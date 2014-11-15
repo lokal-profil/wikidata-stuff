@@ -289,11 +289,17 @@ class PaintingsBot:
         newclaim.addSources([refurl, refdate])
 
 
-def getPaintingGenerator(query=u''):
+def getPaintingGenerator(query=u'', rows=100, start=1):
     '''
     Bla %02d
     '''
-    searchurl = 'http://www.europeana.eu/api/v2/search.json?wskey=' + config.APIKEY + '&profile=minimal&rows=25&start=9&query=*%3A*&rows=24&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22&qf=what%3A+paintings'
+    searchurl = 'http://www.europeana.eu/api/v2/search.json?wskey=' \
+               + config.APIKEY \
+               + '&profile=minimal&rows=' \
+               + str(rows) \
+               + '&start=' \
+               + str(start) \
+               + '&query=*%3A*&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22&qf=what%3A+paintings'
     url = 'http://europeana.eu/api/v2/record/%s.json?wskey=' + config.APIKEY + '&profile=full'
 
     overviewPage = urllib.urlopen(searchurl)
@@ -313,12 +319,21 @@ def getPaintingGenerator(query=u''):
             print jsonData
 
 
-def main():
-    paintingGen = getPaintingGenerator()
+def main(rows=100, start=1):
+    paintingGen = getPaintingGenerator(rows=rows, start=start)
 
     paintingsBot = PaintingsBot(paintingGen, 217)  # inv nr.
     paintingsBot.run()
 
 
 if __name__ == "__main__":
-    main()
+    usage = u'Usage:\tpython nationalmuseumSE.py rows start\n' \
+            u'where rows and start are optional integers'
+    import sys
+    argv = sys.argv[1:]
+    if len(argv) == 0:
+        main()
+    elif len(argv) == 2:
+        main(rows=argv[0], start=argv[1])
+    else:
+        print usage
