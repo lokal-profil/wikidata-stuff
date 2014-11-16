@@ -85,8 +85,12 @@ class KulturnavBot:
                       u'wikidata': None}
 
             for entries in architect[u'@graph']:
-                if entries.get(u'sameAs'):
-                    for sa in entries.get(u'sameAs'):
+                if u'sameAs' in entries.keys():
+                    if type(entries[u'sameAs']) in (unicode, str):
+                        # type changes depending on if it is one or many
+                        # reported upstream
+                        entries[u'sameAs'] = [entries[u'sameAs'], ]
+                    for sa in entries[u'sameAs']:
                         if u'wikidata' in sa:
                             values[u'wikidata'] = sa.split('/')[-1]
                 # since I have no clue which order thes come in
@@ -316,7 +320,7 @@ class KulturnavBot:
             self.addReference(item, claim, date, prop)
 
 
-def getKulturnavGenerator():
+def getKulturnavGenerator(maxHits=500):
     """
     Generator of the entries at Kulturnav
     """
@@ -328,7 +332,6 @@ def getKulturnavGenerator():
     # get all id's in KulturNav which link to wikidata
     wdDict = {}
     for q, u in urls.iteritems():
-        maxHits = 500
         offset = 0
         # overviewPage = json.load(urllib.urlopen(searchurl % (q, offset, maxHits)))
         searchPage = urllib.urlopen(searchurl % (q, offset, maxHits))
@@ -343,7 +346,7 @@ def getKulturnavGenerator():
                         wdDict[o[u'uuid']] = s[u'value'][len(u):]
                         break
             # continue
-            offset += 500
+            offset += maxHits
             searchPage = urllib.urlopen(searchurl % (q, offset, maxHits))
             searchData = searchPage.read()
             overviewPage = json.loads(searchData)
@@ -360,8 +363,8 @@ def getKulturnavGenerator():
             print jsonData
 
 
-def main(cutoff=None):
-    kulturnavGenerator = getKulturnavGenerator()
+def main(cutoff=None, maxHits=250):
+    kulturnavGenerator = getKulturnavGenerator(maxHits=maxHits)
 
     kulturnavBot = KulturnavBot(kulturnavGenerator)
     kulturnavBot.run(cutoff=cutoff)
