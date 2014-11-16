@@ -8,12 +8,16 @@ Based on https://git.wikimedia.org/blob/labs%2Ftools%2Fmultichill.git/e6a873ea1d
 """
 import json
 import pywikibot
-from pywikibot import pagegenerators
+#from pywikibot import pagegenerators
 import urllib
-import re
+#import re
 import pywikibot.data.wikidataquery as wdquery
 import datetime
 import config as config
+
+EDIT_SUMMARY = u'NationalmuseumBot'
+INSTITUTION_Q = u'842858'
+PAINTING_Q = u'3305213'
 
 class PaintingsBot:
     """
@@ -39,7 +43,7 @@ class PaintingsBot:
         if queryoverride:
             query = queryoverride
         else:
-            query = u'CLAIM[195:842858] AND CLAIM[%s]' % (propertyId,)  # collection
+            query = u'CLAIM[195:%s] AND CLAIM[%s]' % (INSTITUTION_Q, propertyId)  # collection
         wd_queryset = wdquery.QuerySet(query)
 
         wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
@@ -62,7 +66,7 @@ class PaintingsBot:
         """
         Starts the robot.
         """
-        nationalmuseum = pywikibot.ItemPage(self.repo, u'Q842858')
+        nationalmuseum = pywikibot.ItemPage(self.repo, u'Q%s' % INSTITUTION_Q)
         for painting in self.generator:
             # Buh, for this one I know for sure it's in there
 
@@ -88,7 +92,7 @@ class PaintingsBot:
 
 
             paintingItem = None
-            newclaims = []
+            # newclaims = []
             if paintingId in self.paintingIds:
                 paintingItemTitle = u'Q%s' % (self.paintingIds.get(paintingId),)
                 print paintingItemTitle
@@ -119,11 +123,19 @@ class PaintingsBot:
                 # print data
                 # create new empty item and request Q-number
                 identification = {}
-                summary = u'Creating new item with data from %s ' % (europeanaUrl,)
+                summary = u'%s: Creating new item with data from %s' % (EDIT_SUMMARY, europeanaUrl)
                 pywikibot.output(summary)
-                #monumentItem.editEntity(data, summary=summary)
-                result = self.repo.editEntity(identification, data, summary=summary)
-                #print result
+                # monumentItem.editEntity(data, summary=summary)
+                try:
+                    result = self.repo.editEntity(identification, data, summary=summary)
+                except pywikibot.data.api.APIError, e:
+                    if e.code == u'modification-failed':
+                        pywikibot.output(u'modification-failed error: skipping')
+                        continue
+                    else:
+                        pywikibot.output(e)
+                        exit(1)
+                # print result
                 paintingItemTitle = result.get(u'entity').get('id')
                 paintingItem = pywikibot.ItemPage(self.repo, title=paintingItemTitle)
 
@@ -134,7 +146,7 @@ class PaintingsBot:
                 paintingItem.addClaim(newclaim)
                 self.addReference(paintingItem, newclaim, uri)
 
-                newqualifier = pywikibot.Claim(self.repo, u'P195') #Add collection, isQualifier=True
+                newqualifier = pywikibot.Claim(self.repo, u'P195')  # Add collection, isQualifier=True
                 newqualifier.setTarget(nationalmuseum)
                 pywikibot.output('Adding new qualifier claim to %s' % paintingItem)
                 newclaim.addQualifier(newqualifier)
@@ -153,7 +165,7 @@ class PaintingsBot:
 
                 data = paintingItem.get()
                 claims = data.get('claims')
-                #print claims
+                # print claims
 
                 # located in
                 if u'P276' not in claims:
@@ -166,7 +178,7 @@ class PaintingsBot:
 
                 # instance of always painting while working on the painting collection
                 if u'P31' not in claims:
-                    dcformatItem = pywikibot.ItemPage(self.repo, title='Q3305213')  # painting
+                    dcformatItem = pywikibot.ItemPage(self.repo, title='Q%s' % PAINTING_Q)  # painting
 
                     newclaim = pywikibot.Claim(self.repo, u'P31')
                     newclaim.setTarget(dcformatItem)
@@ -178,7 +190,10 @@ class PaintingsBot:
                 # creator
                 # beweare of dcCreatorName == u'Okänd':
                 if u'P170' not in claims and dcCreatorName:
-                    creategen = pagegenerators.PreloadingItemGenerator(pagegenerators.WikidataItemGenerator(pagegenerators.SearchPageGenerator(dcCreatorName, step=None, total=10, namespaces=[0], site=self.repo)))
+                    creategen = pagegenerators.PreloadingItemGenerator(
+                                    pagegenerators.WikidataItemGenerator(
+                                        pagegenerators.SearchPageGenerator(
+                                            dcCreatorName, step=None, total=10, namespaces=[0], site=self.repo)))
 
                     newcreator = None
 
@@ -280,7 +295,7 @@ class PaintingsBot:
         Add a reference with a retrieval url and todays date
         """
         pywikibot.output('Adding new reference claim to %s' % paintingItem)
-        refurl = pywikibot.Claim(self.repo, u'P854') #Add url, isReference=True
+        refurl = pywikibot.Claim(self.repo, u'P854')  # Add url, isReference=True
         refurl.setTarget(uri)
         refdate = pywikibot.Claim(self.repo, u'P813')
         today = datetime.datetime.today()
