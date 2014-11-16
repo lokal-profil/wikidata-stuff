@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 Bot to import and source statments about Architects in KulturNav.
-Based on https://git.wikimedia.org/blob/labs%2Ftools%2Fmultichill.git/e6a873ea1d397e22965b2a69d08a2cd7b410d562/bot%2Fwikidata%2Frijksmuseum_import.py
+    by Lokal_Profil
+
+Based on http://git.wikimedia.org/blob/labs/tools/multichill/bot/wikidata/rijksmuseum_import.py
     by Multichill
 
 TODO: Should also get json for any items identified on wikidata but not
@@ -16,7 +18,11 @@ import urllib
 import pywikibot.data.wikidataquery as wdquery
 
 EDIT_SUMMARY = u'kulturnavBot'
-PROPERTY_ID = '1248'
+KULTURNAV_ID_P = '1248'
+DATASET_Q = '17373699'
+STATED_IN_P = '248'
+PUBLICATION_P = '577'
+ARCHITECT_Q = '42973'
 
 
 class KulturnavBot:
@@ -42,15 +48,15 @@ class KulturnavBot:
         if queryoverride:
             query = queryoverride
         else:
-            query = u'CLAIM[%s]' % PROPERTY_ID
+            query = u'CLAIM[%s]' % KULTURNAV_ID_P
         wd_queryset = wdquery.QuerySet(query)
 
         wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
-        data = wd_query.query(wd_queryset, props=[str(PROPERTY_ID), ])
+        data = wd_query.query(wd_queryset, props=[str(KULTURNAV_ID_P), ])
 
         if data.get('status').get('error') == 'OK':
             expectedItems = data.get('status').get('items')
-            props = data.get('props').get(str(PROPERTY_ID))
+            props = data.get('props').get(str(KULTURNAV_ID_P))
             for prop in props:
                 # FIXME: This will overwrite id's that are used more than once.
                 # Use with care and clean up your dataset first
@@ -101,7 +107,7 @@ class KulturnavBot:
             # print values
             # convert these to potential claims
             protoclaims = {u'P31': pywikibot.ItemPage(self.repo, u'Q5'),
-                           u'P106': pywikibot.ItemPage(self.repo, u'Q42973'),
+                           u'P106': pywikibot.ItemPage(self.repo, u'Q%s' % ARCHITECT_Q),
                            u'P20': None,
                            u'P570': None,
                            u'P19': None,
@@ -129,7 +135,7 @@ class KulturnavBot:
             if values[u'foaf:name']:
                 pass  # This should really be used to map against P513 IFF not already in the lable/alias
             if values[u'dcterms:identifier']:
-                protoclaims[u'P1248'] = values[u'dcterms:identifier']
+                protoclaims[u'P%s' % KULTURNAV_ID_P] = values[u'dcterms:identifier']
 
             print u'%s: %s' % (values[u'wikidata'], protoclaims)
 
@@ -193,7 +199,6 @@ class KulturnavBot:
             print u'invalid dbpprop date entry: %s' % item
             exit(1)
 
-
     def dbGender(self, item):
         """
         Simply matches gender values to Q items
@@ -249,16 +254,16 @@ class KulturnavBot:
         Add a reference with a stated in object and a retrieval date
         param date: must be a pywikibot.WbTime object
         """
-        statedin = pywikibot.Claim(self.repo, u'P248')
-        itis = pywikibot.ItemPage(self.repo, "Q17373699")
+        statedin = pywikibot.Claim(self.repo, u'P%s' % STATED_IN_P)
+        itis = pywikibot.ItemPage(self.repo, u'Q%s' % DATASET_Q)
         statedin.setTarget(itis)
 
         # check if already present
-        if self.hasRef(u'P248', itis, claim):
+        if self.hasRef(u'P%s' % STATED_IN_P, itis, claim):
             return False
 
         # if not then add
-        retrieved = pywikibot.Claim(self.repo, u'P577')
+        retrieved = pywikibot.Claim(self.repo, u'P%s' % PUBLICATION_P)
         retrieved.setTarget(date)
 
         try:
@@ -272,7 +277,6 @@ class KulturnavBot:
             else:
                 pywikibot.output(e)
                 exit(1)
-
 
     # some more generic wikidata methods
     @staticmethod
@@ -322,7 +326,9 @@ class KulturnavBot:
 
 def getKulturnavGenerator(maxHits=500):
     """
-    Generator of the entries at Kulturnav
+    Generator of the entries at Kulturnav based on a serch for all items
+    of type person in the Architects dataset which contains wikidata as a
+    sameAs value.
     """
     urls = {'http%3A%2F%2Fwww.wikidata.org%2Fentity%2FQ*': u'http://www.wikidata.org/entity/',
             'https%3A%2F%2Fwww.wikidata.org%2Fentity%2FQ*': u'https://www.wikidata.org/entity/'}
