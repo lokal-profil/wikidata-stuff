@@ -5,7 +5,8 @@ Bot to import and source statments about Architects in KulturNav.
 Based on https://git.wikimedia.org/blob/labs%2Ftools%2Fmultichill.git/e6a873ea1d397e22965b2a69d08a2cd7b410d562/bot%2Fwikidata%2Frijksmuseum_import.py
     by Multichill
 
-TODO:
+TODO: Should also get json for any items identified on wikidata but not
+      on kulturnav
 
 """
 import json
@@ -67,7 +68,7 @@ class KulturnavBot:
         """
         count = 0
         for architect in self.generator:
-            print count, cutoff
+            # print count, cutoff
             if cutoff and count > cutoff:
                 break
             # Valuesworth searching for
@@ -126,7 +127,7 @@ class KulturnavBot:
             if values[u'dcterms:identifier']:
                 protoclaims[u'P1248'] = values[u'dcterms:identifier']
 
-            pywikibot.output(u'%s: %s' % (values[u'wikidata'], protoclaims))
+            print u'%s: %s' % (values[u'wikidata'], protoclaims)
 
             # get the "last modified" timestamp
             date = self.dbDate(values[u'dcterms:modified'])
@@ -239,7 +240,7 @@ class KulturnavBot:
         except (ValueError, TypeError):
             return False
 
-    def addReference(self, architectItem, claim, date):
+    def addReference(self, architectItem, claim, date, prop):
         """
         Add a reference with a stated in object and a retrieval date
         param date: must be a pywikibot.WbTime object
@@ -256,9 +257,18 @@ class KulturnavBot:
         retrieved = pywikibot.Claim(self.repo, u'P577')
         retrieved.setTarget(date)
 
-        claim.addSources([statedin, retrieved])  # writes to database
-        pywikibot.output('Adding new reference claim to %s' % architectItem)
-        return True
+        try:
+            claim.addSources([statedin, retrieved])  # writes to database
+            pywikibot.output('Adding new reference claim to %s' % architectItem)
+            return True
+        except pywikibot.data.api.APIError, e:
+            if e.code == u'modification-failed':
+                pywikibot.output(u'modification-failed error: ref for %s at %s' % (prop, architectItem))
+                return False
+            else:
+                pywikibot.output(e)
+                exit(1)
+
 
     # some more generic wikidata methods
     @staticmethod
@@ -267,14 +277,13 @@ class KulturnavBot:
         Checks if ref is already present
         """
         if claim.sources:
-            if prop in claim.sources[0].keys():
-                for s in claim.sources[0][prop]:
-                    print s.getTarget(), itis
-                    if s.getTarget() == itis:
-                        print 'same'
-                        return True
-                    else:
-                        pywikibot.output(s.getTarget())
+            for i in range(0, len(claim.sources)):
+                if prop in claim.sources[i].keys():
+                    for s in claim.sources[i][prop]:
+                        if s.getTarget() == itis:
+                            return True
+                        else:
+                            pywikibot.output(s.getTarget())
         return False
 
     @staticmethod
@@ -300,11 +309,11 @@ class KulturnavBot:
         claim.setTarget(itis)
         priorClaim = self.hasClaim(prop, itis, item)
         if priorClaim:
-            self.addReference(item, priorClaim, date)
+            self.addReference(item, priorClaim, date, prop)
         else:
             item.addClaim(claim)
             pywikibot.output('Adding %s claim to %s' % (prop, item))
-            self.addReference(item, claim, date)
+            self.addReference(item, claim, date, prop)
 
 
 def getKulturnavGenerator():
