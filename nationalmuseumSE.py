@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 Bot to import paintings from the Nationalmuseum (Sweden) to Wikidata.
-Based on https://git.wikimedia.org/blob/labs%2Ftools%2Fmultichill.git/e6a873ea1d397e22965b2a69d08a2cd7b410d562/bot%2Fwikidata%2Frijksmuseum_import.py
+    by Lokal_Profil
+
+Based on http://git.wikimedia.org/blob/labs/tools/multichill/bot/wikidata/rijksmuseum_import.py
     by Multichill
 
 """
@@ -18,6 +20,7 @@ import config as config
 EDIT_SUMMARY = u'NationalmuseumBot'
 INSTITUTION_Q = u'842858'
 PAINTING_Q = u'3305213'
+
 
 class PaintingsBot:
     """
@@ -47,9 +50,9 @@ class PaintingsBot:
         wd_queryset = wdquery.QuerySet(query)
 
         wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
-        data = wd_query.query(wd_queryset, props=[str(propertyId),])
+        data = wd_query.query(wd_queryset, props=[str(propertyId), ])
 
-        if data.get('status').get('error')=='OK':
+        if data.get('status').get('error') == 'OK':
             expectedItems = data.get('status').get('items')
             props = data.get('props').get(str(propertyId))
             for prop in props:
@@ -57,7 +60,7 @@ class PaintingsBot:
                 # Use with care and clean up your dataset first
                 result[prop[2]] = prop[0]
 
-            if expectedItems==len(result):
+            if expectedItems == len(result):
                 pywikibot.output('I now have %s items in cache' % expectedItems)
 
         return result
@@ -70,10 +73,9 @@ class PaintingsBot:
         for painting in self.generator:
             # Buh, for this one I know for sure it's in there
 
-
             # paintingId = painting['object']['proxies'][0]['about'].replace(u'/proxy/provider/90402/', u'').replace(u'_', u'-')
             ids = painting['object']['proxies'][0]['dcIdentifier']['def']
-            paintingId = ids[0].replace('Inv. Nr.:','').strip('( )')
+            paintingId = ids[0].replace('Inv. Nr.:', '').strip('( )')
             objId = ids[1]
             uri = u'http://emp-web-22.zetcom.ch/eMuseumPlus?service=ExternalInterface&module=collection&objectId=%s&viewType=detailView' % objId
             europeanaUrl = u'http://europeana.eu/portal/record/%s.html' % (painting['object']['about'],)
@@ -88,8 +90,6 @@ class PaintingsBot:
             except KeyError:
                 print 'skipped'
                 continue
-
-
 
             paintingItem = None
             # newclaims = []
@@ -106,19 +106,17 @@ class PaintingsBot:
 
                 for dcTitleLang, dcTitle in painting['object']['proxies'][0]['dcTitle'].iteritems():
                     data['labels'][dcTitleLang] = {'language': dcTitleLang,
-                                            'value': dcTitle[0]}
-
+                                                   'value': dcTitle[0]}
 
                 if dcCreatorName:
                     if dcCreatorName == u'Okänd':
-                        data['descriptions']['en'] = {'language': u'en', 'value' : u'painting by unknown painter'}
-                        data['descriptions']['nl'] = {'language': u'nl', 'value' : u'schilderij van onbekende schilder'}
-                        data['descriptions']['sv'] = {'language': u'sv', 'value' : u'målning av okänd konstnär'}
+                        data['descriptions']['en'] = {'language': u'en', 'value': u'painting by unknown painter'}
+                        data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij van onbekende schilder'}
+                        data['descriptions']['sv'] = {'language': u'sv', 'value': u'målning av okänd konstnär'}
                     else:
-                        data['descriptions']['en'] = {'language': u'en', 'value' : u'painting by %s' % (dcCreatorName,)}
-                        data['descriptions']['nl'] = {'language': u'nl', 'value' : u'schilderij van %s' % (dcCreatorName,)}
-                        data['descriptions']['sv'] = {'language': u'sv', 'value' : u'målning av %s' % (dcCreatorName,)}
-
+                        data['descriptions']['en'] = {'language': u'en', 'value': u'painting by %s' % (dcCreatorName,)}
+                        data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij van %s' % (dcCreatorName,)}
+                        data['descriptions']['sv'] = {'language': u'sv', 'value': u'målning av %s' % (dcCreatorName,)}
 
                 # print data
                 # create new empty item and request Q-number
@@ -160,7 +158,6 @@ class PaintingsBot:
 
                 # end of new item creation
 
-
             if paintingItem and paintingItem.exists():
 
                 data = paintingItem.get()
@@ -174,7 +171,6 @@ class PaintingsBot:
                     pywikibot.output('Adding located in claim to %s' % paintingItem)
                     paintingItem.addClaim(newclaim)
                     self.addReference(paintingItem, newclaim, europeanaUrl)
-
 
                 # instance of always painting while working on the painting collection
                 if u'P31' not in claims:
@@ -226,23 +222,6 @@ class PaintingsBot:
 
                     else:
                         pywikibot.output('No item found for %s' % (dcCreatorName, ))
-                """
-                """
-                # date of creation
-                if u'P571' not in claims:
-                    if painting['object']['proxies'][0].get('dctermsCreated'):
-                        dccreated = painting['object']['proxies'][0]['dctermsCreated']['def'][0].strip()
-                        if len(dccreated)==4: # It's a year
-                            newdate = pywikibot.WbTime(year=dccreated)
-                            newclaim = pywikibot.Claim(self.repo, u'P571')
-                            newclaim.setTarget(newdate)
-                            pywikibot.output('Adding date of creation claim to %s' % paintingItem)
-                            paintingItem.addClaim(newclaim)
-
-                            newreference = pywikibot.Claim(self.repo, u'P854') #Add url, isReference=True
-                            newreference.setTarget(europeanaUrl)
-                            pywikibot.output('Adding new reference claim to %s' % paintingItem)
-                            newclaim.addSource(newreference)
                 """
                 """
                 # material used
@@ -343,7 +322,7 @@ def main(rows=100, start=1):
 
 if __name__ == "__main__":
     usage = u'Usage:\tpython nationalmuseumSE.py rows start\n' \
-            u'where rows and start are optional integers'
+            u'where rows and start are optional positive integers'
     import sys
     argv = sys.argv[1:]
     if len(argv) == 0:
