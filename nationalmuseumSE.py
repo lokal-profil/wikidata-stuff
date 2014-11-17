@@ -4,8 +4,8 @@
 Bot to import paintings from the Nationalmuseum (Sweden) to Wikidata.
     by Lokal_Profil
 
-Based on http://git.wikimedia.org/blob/labs/tools/multichill/bot/wikidata/rijksmuseum_import.py
-    by Multichill
+Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
+    /bot/wikidata/rijksmuseum_import.py by Multichill
 
 """
 import json
