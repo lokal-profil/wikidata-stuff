@@ -1,7 +1,7 @@
 wikidata-stuff
 ==============
 
-Random scripts used for wikidata
+Random scripts used for wikidata. These require [pywikibot](https://github.com/wikimedia/pywikibot-core)
 
 * nationalmuseumSE.py: A [sum of all paintings](http://www.wikidata.org/wiki/Wikidata:WikiProject_sum_of_all_paintings)
 bot for importing paintings from Nationalmuseum in Sweden to Wikidata
