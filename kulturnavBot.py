@@ -88,7 +88,8 @@ class KulturnavBot:
                       u'foaf:name': None,
                       u'dcterms:identifier': None,
                       u'dcterms:modified': None,
-                      u'wikidata': None}
+                      u'wikidata': None,
+                      u'libris-id':None}
 
             for entries in architect[u'@graph']:
                 if u'sameAs' in entries.keys():
@@ -99,6 +100,8 @@ class KulturnavBot:
                     for sa in entries[u'sameAs']:
                         if u'wikidata' in sa:
                             values[u'wikidata'] = sa.split('/')[-1]
+                        elif u'libris.kb.se/auth/' in sa:
+                            values[u'libris-id'] = sa.split('/')[-1]
                 # since I have no clue which order thes come in
                 for k, v in values.iteritems():
                     if k in entries.keys() and v is None:
@@ -116,7 +119,8 @@ class KulturnavBot:
                            u'P21': None,
                            u'P734': None,
                            u'P513': None,
-                           u'P1248': None}
+                           u'P1248': None,
+                           u'P906': None}
 
             if values[u'dbpedia-owl:deathPlace']:
                 protoclaims[u'P20'] = self.dbpedia2Wikidata(values[u'dbpedia-owl:deathPlace'])
@@ -132,8 +136,8 @@ class KulturnavBot:
                 protoclaims[u'P21'] = self.dbGender(values[u'foaf:gender'])
             if values[u'foaf:lastName']:
                 protoclaims[u'P734'] = self.dbName(values[u'foaf:lastName'], u'lastName')
-            if values[u'foaf:name']:
-                pass  # This should really be used to map against P513 IFF not already in the lable/alias
+            if values[u'libris-id']:
+                protoclaims[u'P906'] = values[u'libris-id']
             if values[u'dcterms:identifier']:
                 protoclaims[u'P%s' % KULTURNAV_ID_P] = values[u'dcterms:identifier']
 
@@ -142,8 +146,9 @@ class KulturnavBot:
             # get the "last modified" timestamp
             date = self.dbDate(values[u'dcterms:modified'])
 
+            # find the matching wikidata item
+            # check wikidata first, then kulturNav
             architectItem = None
-
             if values[u'dcterms:identifier'] in self.architectIds:
                 architectItemTitle = u'Q%s' % (self.architectIds.get(values[u'dcterms:identifier']),)
                 if values[u'wikidata'] != architectItemTitle:
@@ -153,16 +158,23 @@ class KulturnavBot:
                 architectItemTitle = values[u'wikidata']
             architectItem = pywikibot.ItemPage(self.repo, title=architectItemTitle)
 
+            # Add information if a match was found
             if architectItem and architectItem.exists():
 
                 # make sure it is not matched to a group of people
                 if self.hasClaim('P:31', pywikibot.ItemPage(self.repo, u'Q16334295'), architectItem):
                     pywikibot.output(u'%s is matched to a group of people, FIXIT' % values[u'wikidata'])
-
+                    continue
+                    
+                # add name as alias (if not the same as lable or existing alias)
+                if values[u'foaf:name']:
+                    pass  # This should either be added as P513 or as an alias IFF not already in the lable/alias
+                
+                # add each property (if new) and source it
                 for pcprop, pcvalue in protoclaims.iteritems():
                     if pcvalue:
                         self.addNewClaim(pcprop, pcvalue, architectItem, date)
-            # run only one for trial
+            # allow for limited runs
             count += 1
 
         # done
@@ -378,7 +390,7 @@ def main(cutoff=None, maxHits=250):
 
 if __name__ == "__main__":
     usage = u'Usage:\tpython kulturnavBot.py cutoff\n' \
-            u'where cutoff is an optional integer'
+            u'\twhere cutoff is an optional integer'
     import sys
     argv = sys.argv[1:]
     if len(argv) == 0:
