@@ -20,6 +20,7 @@ import config as config
 EDIT_SUMMARY = u'NationalmuseumBot'
 INSTITUTION_Q = u'842858'
 PAINTING_Q = u'3305213'
+MINIATURE_URL = u'http://partage.vocnet.org/part00814'
 
 
 class PaintingsBot:
@@ -79,14 +80,25 @@ class PaintingsBot:
             objId = ids[1]
             uri = u'http://emp-web-22.zetcom.ch/eMuseumPlus?service=ExternalInterface&module=collection&objectId=%s&viewType=detailView' % objId
             europeanaUrl = u'http://europeana.eu/portal/record/%s.html' % (painting['object']['about'],)
-
-            print paintingId
-            print uri
-            print europeanaUrl
-
+            
+            # the museum contains sevaral collections. For now only do the basic
+            if paintingId.split(' ')[0] not in (u'NM', u'NMB'):
+                pywikibot.output(u'Skipped due to collection: %s' % paintingId)
+                continue
+            
+            # for now skipp all of the miniatures
+            miniature = False
+            for concept in painting['object']['concepts']:
+                if concept[u'about'] == MINIATURE_URL:
+                    pywikibot.output(u'Skipping miniature')
+                    miniature = True
+                    break
+            if miniature:
+                continue
+            
             try:
                 dcCreatorName = painting['object']['proxies'][0]['dcCreator']['sv'][0].strip()
-                print dcCreatorName
+                # print dcCreatorName
             except KeyError:
                 print 'skipped'
                 continue
@@ -95,7 +107,7 @@ class PaintingsBot:
             # newclaims = []
             if paintingId in self.paintingIds:
                 paintingItemTitle = u'Q%s' % (self.paintingIds.get(paintingId),)
-                print paintingItemTitle
+                # print paintingItemTitle
                 paintingItem = pywikibot.ItemPage(self.repo, title=paintingItemTitle)
 
             else:
@@ -113,6 +125,13 @@ class PaintingsBot:
                         data['descriptions']['en'] = {'language': u'en', 'value': u'painting by unknown painter'}
                         data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij van onbekende schilder'}
                         data['descriptions']['sv'] = {'language': u'sv', 'value': u'målning av okänd konstnär'}
+                    elif dcCreatorName.startswith(u'Attributed to'):
+                        attribName = dcCreatorName[len(u'Attributed to'):].strip()
+                        data['descriptions']['en'] = {'language': u'en', 'value': u'painting attributed to %s' % (attribName,)}
+                        data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij toegeschreven aan %s' % (attribName,)}
+                        data['descriptions']['sv'] = {'language': u'sv', 'value': u'målning tillskriven %s' % (attribName,)}
+                    elif dcCreatorName.startswith(u'Manner of') or dcCreatorName.startswith(u'Copy after'):
+                        continue
                     else:
                         data['descriptions']['en'] = {'language': u'en', 'value': u'painting by %s' % (dcCreatorName,)}
                         data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij van %s' % (dcCreatorName,)}
@@ -128,7 +147,7 @@ class PaintingsBot:
                     result = self.repo.editEntity(identification, data, summary=summary)
                 except pywikibot.data.api.APIError, e:
                     if e.code == u'modification-failed':
-                        pywikibot.output(u'modification-failed error: skipping')
+                        pywikibot.output(u'modification-failed error: skipping %s' % uri)
                         continue
                     else:
                         pywikibot.output(e)
@@ -184,7 +203,8 @@ class PaintingsBot:
 
                 """
                 # creator
-                # beweare of dcCreatorName == u'Okänd':
+                # beware of dcCreatorName == u'Okänd':
+                # beware of startswith(u'Attributed to')
                 if u'P170' not in claims and dcCreatorName:
                     creategen = pagegenerators.PreloadingItemGenerator(
                                     pagegenerators.WikidataItemGenerator(
@@ -322,7 +342,7 @@ def main(rows=100, start=1):
 
 if __name__ == "__main__":
     usage = u'Usage:\tpython nationalmuseumSE.py rows start\n' \
-            u'where rows and start are optional positive integers'
+            u'\twhere rows and start are optional positive integers'
     import sys
     argv = sys.argv[1:]
     if len(argv) == 0:
