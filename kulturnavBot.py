@@ -118,7 +118,7 @@ class KulturnavBot:
                            u'P735': None,
                            u'P21': None,
                            u'P734': None,
-                           u'P513': None,
+                           u'P1477': None,
                            u'P1248': None,
                            u'P906': None}
 
@@ -168,7 +168,7 @@ class KulturnavBot:
                     
                 # add name as alias (if not the same as lable or existing alias)
                 if values[u'foaf:name']:
-                    pass  # This should either be added as P513 or as an alias IFF not already in the lable/alias
+                    pass  # This should either be added as P1477 or as an alias IFF not already in the lable/alias
                 
                 # add each property (if new) and source it
                 for pcprop, pcvalue in protoclaims.iteritems():
