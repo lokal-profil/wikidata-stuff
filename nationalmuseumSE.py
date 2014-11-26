@@ -87,6 +87,7 @@ class PaintingsBot:
                      u'NMRbg': {u'subcol': u'Q18573027', u'place': u'Q1934091'},
                      u'NMStrh': {u'subcol': u'Q18573032', u'place': u'Q1416870'},
                      u'NMVst': {u'subcol': u'Q18573020', u'place': u'Q1757808'},
+                     # u'NMHpd': Harpsund
                      u'NMTiP': {u'subcol': u'Q18573041', u'place': u'Q927844'}
                      }
 
@@ -170,8 +171,19 @@ class PaintingsBot:
                     result = self.repo.editEntity(identification, data, summary=summary)
                 except pywikibot.data.api.APIError, e:
                     if e.code == u'modification-failed':
-                        pywikibot.output(u'modification-failed error: skipping %s' % uri)
-                        continue
+                        # disambiguate and try again
+                        pywikibot.output(u'DISAMBIGUATING')
+                        for lang in data['descriptions'].keys():
+                            data['descriptions'][lang]['value'] += u' (%s)' % paintingId
+                        try:
+                            result = self.repo.editEntity(identification, data, summary=summary)
+                        except pywikibot.data.api.APIError, e:
+                            if e.code == u'modification-failed':
+                                pywikibot.output(u'modification-failed error: skipping %s' % uri)
+                                continue
+                            else:
+                                pywikibot.output(e)
+                                exit(1)
                     else:
                         pywikibot.output(e)
                         exit(1)
