@@ -10,16 +10,20 @@ Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
 """
 import json
 import pywikibot
+from pywikibot import pagegenerators
 import urllib
 import pywikibot.data.wikidataquery as wdquery
 import datetime
 import config as config
+import codecs
 
 EDIT_SUMMARY = u'NationalmuseumBot'
+COMMONS_Q = u'565'
 INSTITUTION_Q = u'842858'
 PAINTING_Q = u'3305213'
 ICON_Q = u'132137'
 MINIATURE_URL = u'http://partage.vocnet.org/part00814'
+MAX_ROWS = 100  # max number of rows per request in Europeana API
 
 
 class PaintingsBot:
@@ -34,6 +38,7 @@ class PaintingsBot:
         """
         self.generator = dictGenerator
         self.repo = pywikibot.Site().data_repository()
+        self.commons = pywikibot.Site(u'commons', u'commons')
 
         self.paintingIdProperty = paintingIdProperty
         self.paintingIds = self.fillCache(self.paintingIdProperty)
@@ -75,7 +80,7 @@ class PaintingsBot:
         # mapping prefixes to subcollections
         prefixMap = {u'NM': {u'subcol': None, u'place': u'Q%s' % INSTITUTION_Q},
                      u'NMB': {u'subcol': None, u'place': u'Q%s' % INSTITUTION_Q},
-                     #u'NMI': {u'subcol': u'Q18573057', u'place': u'Q%s' % INSTITUTION_Q},
+                     # u'NMI': {u'subcol': u'Q18573057', u'place': u'Q%s' % INSTITUTION_Q},
                      u'NMDrh': {u'subcol': u'Q18572999', u'place': u'Q208559'},
                      u'NMGrh': {u'subcol': u'Q2817221', u'place': u'Q714783'},
                      u'NMGu': {u'subcol': u'Q18573011', u'place': u'Q1556819'},
@@ -94,6 +99,7 @@ class PaintingsBot:
             objId = ids[1]
             uri = u'http://emp-web-22.zetcom.ch/eMuseumPlus?service=ExternalInterface&module=collection&objectId=%s&viewType=detailView' % objId
             europeanaUrl = u'http://europeana.eu/portal/record/%s.html' % (painting['object']['about'],)
+            images = self.fileFromExternalLink(uri)
 
             # the museum contains sevaral subcollections. Only deal with mapped ones
             if paintingId.split(' ')[0] not in prefixMap.keys():
@@ -104,7 +110,7 @@ class PaintingsBot:
             miniature = False
             for concept in painting['object']['concepts']:
                 if concept[u'about'] == MINIATURE_URL:
-                    pywikibot.output(u'Skipping miniature')
+                    # pywikibot.output(u'Skipping miniature')
                     miniature = True
                     break
             if miniature:
@@ -144,7 +150,10 @@ class PaintingsBot:
                         data['descriptions']['en'] = {'language': u'en', 'value': u'painting attributed to %s' % (attribName,)}
                         data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij toegeschreven aan %s' % (attribName,)}
                         data['descriptions']['sv'] = {'language': u'sv', 'value': u'målning tillskriven %s' % (attribName,)}
-                    elif dcCreatorName.startswith(u'Manner of') or dcCreatorName.startswith(u'Copy after'):
+                    elif dcCreatorName.startswith(u'Manner of') or \
+                         dcCreatorName.startswith(u'Copy after') or \
+                         dcCreatorName.startswith(u'Workshop of') or \
+                         dcCreatorName.startswith(u'Circle of'):
                         continue
                     else:
                         data['descriptions']['en'] = {'language': u'en', 'value': u'painting by %s' % (dcCreatorName,)}
@@ -241,6 +250,15 @@ class PaintingsBot:
                     paintingItem.addClaim(newclaim)
                     self.addReference(paintingItem, newclaim, europeanaUrl)
 
+                # add image
+                if u'P18' not in claims:
+                    if images and len(images) == 1:  # for now don't want to choose the appropriate one
+                        newclaim = pywikibot.Claim(self.repo, u'P18')
+                        newclaim.setTarget(images[0])
+                        pywikibot.output('Adding image claim to %s' % paintingItem)
+                        paintingItem.addClaim(newclaim)
+                        self.addCommonsReference(paintingItem, newclaim)
+
                 # creator IFF through dbpedia
                 if u'P170' not in claims:
                     creatorQ = None
@@ -277,6 +295,67 @@ class PaintingsBot:
         refdate.setTarget(date)
         newclaim.addSources([refurl, refdate])
 
+    def addCommonsReference(self, paintingItem, newclaim):
+        """
+        Add a stating imported from Wikimedia Commons
+        """
+        commonsItem = pywikibot.ItemPage(self.repo, title=u'Q%s' % COMMONS_Q)
+
+        pywikibot.output('Adding new reference claim to %s' % paintingItem)
+        ref = pywikibot.Claim(self.repo, u'P143')  # imported from
+        ref.setTarget(commonsItem)
+        newclaim.addSource(ref)
+
+    def fileFromExternalLink(self, uri):
+        """
+        Given an eMuseumPlus uri this checks if there are any file pages
+        linking to it
+        """
+        images = []
+        uri = uri.split('://')[1]
+        objgen = pagegenerators.LinksearchPageGenerator(uri, namespaces=[6], site=self.commons)
+        for page in objgen:
+            images.append(pywikibot.FilePage(self.commons, page.title()))
+        return images
+
+    def mostMissedCreators(self, cacheMaxAge=0):
+        """
+        Query WDQ for all objects in the collection missing an artist
+        then put together a toplist for most desired creator
+        """
+        expectedItems = []
+        query = u'CLAIM[195:%s] AND NOCLAIM[170]' % (INSTITUTION_Q, )  # collection
+        wd_queryset = wdquery.QuerySet(query)
+
+        wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
+        data = wd_query.query(wd_queryset)
+
+        if data.get('status').get('error') == 'OK':
+            expectedItems = data.get('items')
+
+        creatorDict = {}
+        counter = 0
+        for qval in expectedItems:
+            qItem = pywikibot.ItemPage(self.repo, title=u'Q%d' % qval)
+            data = qItem.get()
+            claims = data.get('claims')
+            if u'P170' in claims:
+                continue
+            descr = data.get('descriptions').get('en')
+            if descr and descr.startswith(u'painting by '):
+                creator = descr[len(u'painting by '):]
+                if creator in creatorDict.keys():
+                    creatorDict[creator] += 1
+                else:
+                    creatorDict[creator] = 1
+                counter += 1
+        pywikibot.output(u'Found %d mentions of %d creators' % (counter, len(creatorDict)))
+        # output
+        f = codecs.open(u'creatorHitlist.csv', 'w', 'utf-8')
+        for k, v in creatorDict.iteritems():
+            f.write(u'%d|%s\n' % (v, k))
+        f.close()
+
 
 def dbpedia2wikidata(dbpedia):
     """
@@ -302,14 +381,17 @@ def dbpedia2wikidata(dbpedia):
     return None
 
 
-def getPaintingGenerator(query=u'', rows=100, start=1):
+def getPaintingGenerator(query=u'', rows=MAX_ROWS, start=1):
     """
-    Bla %02d
+    Get objects from Europeanas API.
+    API call specifies:
+    DATA_PROVIDER=Nationalmuseum (Sweden)
+    what=paintings
     """
     searchurl = 'http://www.europeana.eu/api/v2/search.json?wskey=' \
                + config.APIKEY \
                + '&profile=minimal&rows=' \
-               + str(rows) \
+               + str(min(MAX_ROWS, rows)) \
                + '&start=' \
                + str(start) \
                + '&query=*%3A*&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22&qf=what%3A+paintings'
@@ -319,6 +401,7 @@ def getPaintingGenerator(query=u'', rows=100, start=1):
     overviewData = overviewPage.read()
     overviewJsonData = json.loads(overviewData)
     overviewPage.close()
+    fail = False
 
     for item in overviewJsonData.get('items'):
         apiPage = urllib.urlopen(url % item.get('id'))
@@ -330,13 +413,21 @@ def getPaintingGenerator(query=u'', rows=100, start=1):
             yield jsonData
         else:
             print jsonData
+            fail = True
+
+    # call again to get around the MAX_ROWS limit of the api
+    if not fail and rows > MAX_ROWS:
+        pywikibot.output(u'%d...' % (start+MAX_ROWS))
+        for g in getPaintingGenerator(rows=(rows-MAX_ROWS), start=(start+MAX_ROWS)):
+            yield g
 
 
-def main(rows=100, start=1):
+def main(rows=MAX_ROWS, start=1):
     paintingGen = getPaintingGenerator(rows=rows, start=start)
 
     paintingsBot = PaintingsBot(paintingGen, 217)  # inv nr.
     paintingsBot.run()
+    # paintingsBot.mostMissedCreators()
 
 
 if __name__ == "__main__":
@@ -347,6 +438,6 @@ if __name__ == "__main__":
     if len(argv) == 0:
         main()
     elif len(argv) == 2:
-        main(rows=argv[0], start=argv[1])
+        main(rows=int(argv[0]), start=int(argv[1]))
     else:
         print usage
