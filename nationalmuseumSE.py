@@ -16,6 +16,7 @@ import pywikibot.data.wikidataquery as wdquery
 import datetime
 import config as config
 import codecs
+import time
 
 EDIT_SUMMARY = u'NationalmuseumBot'
 COMMONS_Q = u'565'
@@ -24,6 +25,28 @@ PAINTING_Q = u'3305213'
 ICON_Q = u'132137'
 MINIATURE_URL = u'http://partage.vocnet.org/part00814'
 MAX_ROWS = 100  # max number of rows per request in Europeana API
+
+# mapping prefixes to subcollections
+PREFIX_MAP = {u'NM': {u'subcol': None, u'place': u'Q%s' % INSTITUTION_Q},
+              u'NMB': {u'subcol': None, u'place': u'Q%s' % INSTITUTION_Q},
+              # u'NMI': {u'subcol': u'Q18573057', u'place': u'Q%s' % INSTITUTION_Q},
+              u'NMDrh': {u'subcol': u'Q18572999', u'place': u'Q208559'},  # Drottningholm
+              u'NMGrh': {u'subcol': u'Q2817221', u'place': u'Q714783'},  # Gripshiolm/Statens porträttsamling
+              u'NMGu': {u'subcol': u'Q18573011', u'place': u'Q1556819'},  # Gustavsberg
+              u'NMRbg': {u'subcol': u'Q18573027', u'place': u'Q1934091'},  # Rosersberg
+              u'NMStrh': {u'subcol': u'Q18573032', u'place': u'Q1416870'},  # Strömsholm
+              u'NMVst': {u'subcol': u'Q18573020', u'place': u'Q1757808'},  # Vadstena
+              u'NMHpd': {u'subcol': u'Q18575366', u'place': u'Q1140280'},  # Harpsund
+              u'NMKok': {u'subcol': u'Q18575408', u'place': u'Q10547348'},  # Kommerskollegiet
+              u'NMLä': {u'subcol': u'Q18575368', u'place': u'Q935973'},  # Läckö slott
+              u'NMNn': {u'subcol': u'Q18575372', u'place': u'Q2242752'},  # Nynäs slott
+              u'NMNnA': {u'subcol': u'Q18575372', u'place': u'Q2242752'},  # Nynäs slott
+              u'NMLeu': {u'subcol': u'Q18575377', u'place': u'Q18575382'},  # Leufsta
+              u'NMWg': {u'subcol': u'Q18575402', u'place': u'Q969362'},  # Wenngarn
+              u'NMUdl': {u'subcol': u'Q18575405', u'place': u'Q176860'},  # Ulriksdal
+              # u'NMDs':
+              u'NMTiP': {u'subcol': u'Q18573041', u'place': u'Q927844'}  # Tessininstitutet
+              }
 
 
 class PaintingsBot:
@@ -60,10 +83,18 @@ class PaintingsBot:
         if data.get('status').get('error') == 'OK':
             expectedItems = data.get('status').get('items')
             props = data.get('props').get(str(propertyId))
+            dupesFound = False
             for prop in props:
-                # FIXME: This will overwrite id's that are used more than once.
-                # Use with care and clean up your dataset first
-                result[prop[2]] = prop[0]
+                if prop[2] in result.keys() and prop[0] != result[prop[2]]:
+                    # Check for Q-numbers claiming to be the same painting
+                    # second conditional needed since wdq sometimes returns same result twice (if object has been merged?)
+                    pywikibot.output(u'%s is a dupliate of %s' % (prop[0], result[prop[2]]))
+                    dupesFound = True
+                else:
+                    result[prop[2]] = prop[0]
+            if dupesFound:
+                pywikibot.output('Dupes found. Fix these before moving on')
+                exit(1)
 
             if expectedItems == len(result):
                 pywikibot.output('I now have %s items in cache' % expectedItems)
@@ -77,33 +108,16 @@ class PaintingsBot:
         nationalmuseum = pywikibot.ItemPage(self.repo, u'Q%s' % INSTITUTION_Q)
         self.creators = {}
 
-        # mapping prefixes to subcollections
-        prefixMap = {u'NM': {u'subcol': None, u'place': u'Q%s' % INSTITUTION_Q},
-                     u'NMB': {u'subcol': None, u'place': u'Q%s' % INSTITUTION_Q},
-                     # u'NMI': {u'subcol': u'Q18573057', u'place': u'Q%s' % INSTITUTION_Q},
-                     u'NMDrh': {u'subcol': u'Q18572999', u'place': u'Q208559'},
-                     u'NMGrh': {u'subcol': u'Q2817221', u'place': u'Q714783'},
-                     u'NMGu': {u'subcol': u'Q18573011', u'place': u'Q1556819'},
-                     u'NMRbg': {u'subcol': u'Q18573027', u'place': u'Q1934091'},
-                     u'NMStrh': {u'subcol': u'Q18573032', u'place': u'Q1416870'},
-                     u'NMVst': {u'subcol': u'Q18573020', u'place': u'Q1757808'},
-                     # u'NMHpd': Harpsund
-                     u'NMTiP': {u'subcol': u'Q18573041', u'place': u'Q927844'}
-                     }
-
         for painting in self.generator:
-            # Buh, for this one I know for sure it's in there
-
             # paintingId = painting['object']['proxies'][0]['about'].replace(u'/proxy/provider/90402/', u'').replace(u'_', u'-')
             ids = painting['object']['proxies'][0]['dcIdentifier']['def']
             paintingId = ids[0].replace('Inv. Nr.:', '').strip('( )')
             objId = ids[1]
             uri = u'http://emp-web-22.zetcom.ch/eMuseumPlus?service=ExternalInterface&module=collection&objectId=%s&viewType=detailView' % objId
             europeanaUrl = u'http://europeana.eu/portal/record/%s.html' % (painting['object']['about'],)
-            images = self.fileFromExternalLink(uri)
 
             # the museum contains sevaral subcollections. Only deal with mapped ones
-            if paintingId.split(' ')[0] not in prefixMap.keys():
+            if paintingId.split(' ')[0] not in PREFIX_MAP.keys():
                 pywikibot.output(u'Skipped due to collection: %s' % paintingId)
                 continue
 
@@ -121,7 +135,7 @@ class PaintingsBot:
                 dcCreatorName = painting['object']['proxies'][0]['dcCreator']['sv'][0].strip()
                 # print dcCreatorName
             except KeyError:
-                print 'skipped'
+                pywikibot.output(u'skipped due to weird creator settings in %s' % europeanaUrl)
                 continue
 
             paintingItem = None
@@ -172,7 +186,6 @@ class PaintingsBot:
                 except pywikibot.data.api.APIError, e:
                     if e.code == u'modification-failed':
                         # disambiguate and try again
-                        pywikibot.output(u'DISAMBIGUATING')
                         for lang in data['descriptions'].keys():
                             data['descriptions'][lang]['value'] += u' (%s)' % paintingId
                         try:
@@ -210,7 +223,7 @@ class PaintingsBot:
                 paintingItem.addClaim(newclaim)
                 self.addReference(paintingItem, newclaim, europeanaUrl)
 
-                subcol = prefixMap[paintingId.split(' ')[0]]['subcol']
+                subcol = PREFIX_MAP[paintingId.split(' ')[0]]['subcol']
                 if subcol is not None:
                     subcolItem = pywikibot.ItemPage(self.repo, title=subcol)
 
@@ -231,7 +244,7 @@ class PaintingsBot:
                 """
                 # located in
                 if u'P276' not in claims:
-                    placeItem = pywikibot.ItemPage(self.repo, title=prefixMap[paintingId.split(' ')[0]]['place'])
+                    placeItem = pywikibot.ItemPage(self.repo, title=PREFIX_MAP[paintingId.split(' ')[0]]['place'])
                     newclaim = pywikibot.Claim(self.repo, u'P276')
                     newclaim.setTarget(placeItem)
                     pywikibot.output('Adding located in claim to %s' % paintingItem)
@@ -262,14 +275,21 @@ class PaintingsBot:
                     paintingItem.addClaim(newclaim)
                     self.addReference(paintingItem, newclaim, europeanaUrl)
 
-                # add image
+                # check for potential images to add
                 if u'P18' not in claims:
-                    if images and len(images) == 1:  # for now don't want to choose the appropriate one
+                    images = self.fileFromExternalLink(uri)
+                    if not images:
+                        pass
+                    elif len(images) == 1:  # for now don't want to choose the appropriate one
                         newclaim = pywikibot.Claim(self.repo, u'P18')
                         newclaim.setTarget(images[0])
                         pywikibot.output('Adding image claim to %s' % paintingItem)
                         paintingItem.addClaim(newclaim)
                         self.addCommonsReference(paintingItem, newclaim)
+                    elif len(images) > 1:
+                        pywikibot.output('Found multiple matching images for %s' % paintingItem)
+                        for image in images:
+                            pywikibot.output(u'\t%s' % image)
 
                 # creator IFF through dbpedia
                 if u'P170' not in claims:
@@ -328,6 +348,7 @@ class PaintingsBot:
         objgen = pagegenerators.LinksearchPageGenerator(uri, namespaces=[6], site=self.commons)
         for page in objgen:
             images.append(pywikibot.FilePage(self.commons, page.title()))
+        images = list(set(images))  # I have no clue how the above resulted in duplicates, but it did
         return images
 
     def mostMissedCreators(self, cacheMaxAge=0):
@@ -377,11 +398,24 @@ def dbpedia2wikidata(dbpedia):
     url = u'http://dbpedia.org/sparql?default-graph-uri=http%3A%2F%2Fdbpedia.org&query=DESCRIBE+%3C' \
         + dbpedia \
         + u'%3E&output=application%2Fld%2Bjson'
-
-    dbPage = urllib.urlopen(url)
-    dbData = dbPage.read()
-    jsonData = json.loads(dbData)
-    dbPage.close()
+    # urlencode twice? per http://dbpedia.org/resource/%C3%89douard_Vuillard
+    try:
+        dbPage = urllib.urlopen(url)
+    except IOError:
+        pywikibot.output(u'dbpedia is complaining so sleeping for 10s')
+        time.sleep(10)
+        try:
+            dbPage = urllib.urlopen(url)
+        except IOError:
+            pywikibot.output(u'dbpedia is still complaining about %s, skipping creator' % dbpedia)
+            return None
+    try:
+        dbData = dbPage.read()
+        jsonData = json.loads(dbData)
+        dbPage.close()
+    except ValueError, e:
+        pywikibot.output(u'dbpedia-skipp: %s, %s' % (dbpedia, e))
+        return None
 
     if jsonData.get('@graph'):
         for g in jsonData.get('@graph'):
@@ -434,22 +468,31 @@ def getPaintingGenerator(query=u'', rows=MAX_ROWS, start=1):
             yield g
 
 
-def main(rows=MAX_ROWS, start=1):
+def main(rows=MAX_ROWS, start=1, addNew=True):
     paintingGen = getPaintingGenerator(rows=rows, start=start)
 
     paintingsBot = PaintingsBot(paintingGen, 217)  # inv nr.
-    paintingsBot.run()
+    paintingsBot.run(addNew=addNew)
     # paintingsBot.mostMissedCreators()
 
 
 if __name__ == "__main__":
-    usage = u'Usage:\tpython nationalmuseumSE.py rows start\n' \
-            u'\twhere rows and start are optional positive integers'
+    usage = u'Usage:\tpython nationalmuseumSE.py rows start addNew\n' \
+            u'\twhere rows and start are optional positive integers' \
+            u'\tand addNew is a boolean (defaults to true)'
     import sys
     argv = sys.argv[1:]
     if len(argv) == 0:
         main()
     elif len(argv) == 2:
         main(rows=int(argv[0]), start=int(argv[1]))
+    elif len(argv) == 3:
+        if argv[2] in ('t', 'T', 'True', 'true'):
+            main(rows=int(argv[0]), start=int(argv[1]), addNew=True)
+        elif argv[2] in ('f', 'F', 'False', 'false'):
+            main(rows=int(argv[0]), start=int(argv[1]), addNew=False)
+        else:
+            print u'Could not interpret the addNew parameter'
+            print usage
     else:
         print usage
