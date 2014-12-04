@@ -26,10 +26,10 @@ ICON_Q = u'132137'
 MINIATURE_URL = u'http://partage.vocnet.org/part00814'
 MAX_ROWS = 100  # max number of rows per request in Europeana API
 
-# mapping prefixes to subcollections
+# mapping prefixes to subcollections see wikidata:User:Lokal Profil/NatMus
 PREFIX_MAP = {u'NM': {u'subcol': None, u'place': u'Q%s' % INSTITUTION_Q},
               u'NMB': {u'subcol': None, u'place': u'Q%s' % INSTITUTION_Q},
-              # u'NMI': {u'subcol': u'Q18573057', u'place': u'Q%s' % INSTITUTION_Q},
+              u'NMI': {u'subcol': u'Q18573057', u'place': u'Q%s' % INSTITUTION_Q},
               u'NMDrh': {u'subcol': u'Q18572999', u'place': u'Q208559'},  # Drottningholm
               u'NMGrh': {u'subcol': u'Q2817221', u'place': u'Q714783'},  # Gripshiolm/Statens porträttsamling
               u'NMGu': {u'subcol': u'Q18573011', u'place': u'Q1556819'},  # Gustavsberg
@@ -39,14 +39,22 @@ PREFIX_MAP = {u'NM': {u'subcol': None, u'place': u'Q%s' % INSTITUTION_Q},
               u'NMHpd': {u'subcol': u'Q18575366', u'place': u'Q1140280'},  # Harpsund
               u'NMKok': {u'subcol': u'Q18575408', u'place': u'Q10547348'},  # Kommerskollegiet
               u'NMLä': {u'subcol': u'Q18575368', u'place': u'Q935973'},  # Läckö slott
-              u'NMNn': {u'subcol': u'Q18575372', u'place': u'Q2242752'},  # Nynäs slott
-              u'NMNnA': {u'subcol': u'Q18575372', u'place': u'Q2242752'},  # Nynäs slott
               u'NMLeu': {u'subcol': u'Q18575377', u'place': u'Q18575382'},  # Leufsta
               u'NMWg': {u'subcol': u'Q18575402', u'place': u'Q969362'},  # Wenngarn
               u'NMUdl': {u'subcol': u'Q18575405', u'place': u'Q176860'},  # Ulriksdal
-              # u'NMDs':
-              u'NMTiP': {u'subcol': u'Q18573041', u'place': u'Q927844'}  # Tessininstitutet
+              u'NMTiP': {u'subcol': u'Q18573041', u'place': u'Q927844'},  # Tessininstitutet
+              # Nynäs slott
+              u'NMNn': {u'subcol': u'Q18575372', u'place': u'Q2242752'},
+              u'NMNnA': {u'subcol': u'Q18575372', u'place': u'Q2242752'},
+              # Dahlgrens samling
+              u'NMDs': {u'subcol': u'Q18594010', u'place': u'Q%s' % INSTITUTION_Q},
+              u'NMDso': {u'subcol': u'Q18594010', u'place': u'Q%s' % INSTITUTION_Q},
+              u'NMDse': {u'subcol': u'Q18594010', u'place': u'Q%s' % INSTITUTION_Q},
+              u'NMDsä': {u'subcol': u'Q18594010', u'place': u'Q%s' % INSTITUTION_Q}
               }
+# prefixes which we know to ignore (this way new prefixes are flagged)
+BAD_PREFIX = (u'NMG', u'NMEg', u'NMH', u'NMK', u'NMPlåt', u'NMSk', u'NMAnt',
+              u'NMSkAv', u'NMTiS', u'NMTiK', u'NMTiD', u'NMTiG')
 
 
 class PaintingsBot:
@@ -118,25 +126,19 @@ class PaintingsBot:
 
             # the museum contains sevaral subcollections. Only deal with mapped ones
             if paintingId.split(' ')[0] not in PREFIX_MAP.keys():
-                pywikibot.output(u'Skipped due to collection: %s' % paintingId)
+                if paintingId.split(' ')[0] not in BAD_PREFIX:
+                    pywikibot.output(u'Skipped due to unknown collection: %s' % paintingId)
                 continue
 
-            # for now skip all of the miniatures
+            # for now skip creating any new miniatures
             miniature = False
             for concept in painting['object']['concepts']:
                 if concept[u'about'] == MINIATURE_URL:
                     # pywikibot.output(u'Skipping miniature')
                     miniature = True
                     break
-            if miniature:
-                continue
-
-            try:
-                dcCreatorName = painting['object']['proxies'][0]['dcCreator']['sv'][0].strip()
-                # print dcCreatorName
-            except KeyError:
-                pywikibot.output(u'skipped due to weird creator settings in %s' % europeanaUrl)
-                continue
+            # if miniature:
+            #    continue
 
             paintingItem = None
             # newclaims = []
@@ -145,11 +147,21 @@ class PaintingsBot:
                 # print paintingItemTitle
                 paintingItem = pywikibot.ItemPage(self.repo, title=paintingItemTitle)
 
-            elif addNew:
+            elif addNew and not miniature:  # skip all new miniatures
                 # creating a new one
                 data = {'labels': {},
                         'descriptions': {},
                         }
+                
+                # skip items missing creator entirely (not the same as unknown)
+                dcCreatorName = None
+                try:
+                    dcCreatorName = painting['object']['proxies'][0]['dcCreator']['sv'][0].strip()
+                    # print dcCreatorName
+                except KeyError:
+                    # pywikibot.output(u'skipped due to weird creator settings in %s' % europeanaUrl)
+                    # continue
+                    pass
 
                 for dcTitleLang, dcTitle in painting['object']['proxies'][0]['dcTitle'].iteritems():
                     data['labels'][dcTitleLang] = {'language': dcTitleLang,
@@ -174,6 +186,10 @@ class PaintingsBot:
                         data['descriptions']['en'] = {'language': u'en', 'value': u'painting by %s' % (dcCreatorName,)}
                         data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij van %s' % (dcCreatorName,)}
                         data['descriptions']['sv'] = {'language': u'sv', 'value': u'målning av %s' % (dcCreatorName,)}
+                else:
+                    data['descriptions']['en'] = {'language': u'en', 'value': u'painting'}
+                    data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij'}
+                    data['descriptions']['sv'] = {'language': u'sv', 'value': u'målning'}
 
                 # print data
                 # create new empty item and request Q-number
