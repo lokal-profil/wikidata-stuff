@@ -393,6 +393,8 @@ class PaintingsBot:
             descr = data.get('descriptions').get('en')
             if descr and descr.startswith(u'painting by '):
                 creator = descr[len(u'painting by '):]
+                if '(' in creator:  # to get rid of disambiguation addition
+                    creator = creator[:creator.find('(')].strip()
                 if creator in creatorDict.keys():
                     creatorDict[creator] += 1
                 else:
@@ -464,6 +466,10 @@ def getPaintingGenerator(query=u'', rows=MAX_ROWS, start=1):
     overviewJsonData = json.loads(overviewData)
     overviewPage.close()
     fail = False
+    totalResults = overviewJsonData.get('totalResults')
+    if start > totalResults:
+        pywikibot.output(u'To high start value. There are only %d results' % totalResults)
+        exit(1)
 
     for item in overviewJsonData.get('items'):
         apiPage = urllib.urlopen(url % item.get('id'))
@@ -479,9 +485,12 @@ def getPaintingGenerator(query=u'', rows=MAX_ROWS, start=1):
 
     # call again to get around the MAX_ROWS limit of the api
     if not fail and rows > MAX_ROWS:
-        pywikibot.output(u'%d...' % (start+MAX_ROWS))
-        for g in getPaintingGenerator(rows=(rows-MAX_ROWS), start=(start+MAX_ROWS)):
-            yield g
+        if (start+MAX_ROWS) > totalResults:
+            pywikibot.output(u'No more results! You are done!')
+        else:
+            pywikibot.output(u'%d...' % (start+MAX_ROWS))
+            for g in getPaintingGenerator(rows=(rows-MAX_ROWS), start=(start+MAX_ROWS)):
+                yield g
 
 
 def main(rows=MAX_ROWS, start=1, addNew=True):
