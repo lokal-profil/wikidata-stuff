@@ -9,6 +9,7 @@ Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
 
 TODO: Should also get json for any items identified on wikidata but not
       on kulturnav
+      Follow redirects
 
 """
 import json
@@ -141,7 +142,7 @@ class KulturnavBot:
             if values[u'dcterms:identifier']:
                 protoclaims[u'P%s' % KULTURNAV_ID_P] = values[u'dcterms:identifier']
 
-            print u'%s: %s' % (values[u'wikidata'], protoclaims)
+            # print u'%s: %s' % (values[u'wikidata'], protoclaims)
 
             # get the "last modified" timestamp
             date = self.dbDate(values[u'dcterms:modified'])
@@ -157,6 +158,7 @@ class KulturnavBot:
             else:
                 architectItemTitle = values[u'wikidata']
             architectItem = pywikibot.ItemPage(self.repo, title=architectItemTitle)
+            # check if redirect, if so update target
 
             # Add information if a match was found
             if architectItem and architectItem.exists():
@@ -193,7 +195,7 @@ class KulturnavBot:
         site = pywikibot.Site(item[u'@language'], 'wikipedia')  # any site will work, this is just an example
         page = pywikibot.Page(site, item[u'@value'])
         if u'wikibase_item' in page.properties() and page.properties()[u'wikibase_item']:
-            return page.properties()[u'wikibase_item']
+            return pywikibot.ItemPage(self.repo, page.properties()[u'wikibase_item'])
 
     def dbDate(self, item):
         """
@@ -207,6 +209,9 @@ class KulturnavBot:
         elif len(item) == 1 and self.is_int(item[0][:len('YYYY')]):
             # 1921Z
             return pywikibot.WbTime(year=int(item[0][:len('YYYY')]))
+        elif len(item) == 2 and all(self.is_int(x) for x in (item[0], item[1][:len('MM')])):
+            # 1921-09Z
+             return pywikibot.WbTime(year=int(item[0]), month=int(item[1][:len('MM')]))
         else:
             print u'invalid dbpprop date entry: %s' % item
             exit(1)
@@ -219,7 +224,7 @@ class KulturnavBot:
                  u'female': u'Q6581072'}
         if item not in known.keys():
             print u'invalid gender entry: %s' % item
-            exit(1)
+            return
 
         return pywikibot.ItemPage(self.repo, known[item])
 
@@ -302,8 +307,8 @@ class KulturnavBot:
                     for s in claim.sources[i][prop]:
                         if s.getTarget() == itis:
                             return True
-                        else:
-                            pywikibot.output(s.getTarget())
+                        # else:
+                        #    pywikibot.output(s.getTarget())
         return False
 
     @staticmethod
