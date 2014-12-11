@@ -103,7 +103,7 @@ class KulturnavBot:
                             values[u'wikidata'] = sa.split('/')[-1]
                         elif u'libris.kb.se/auth/' in sa:
                             values[u'libris-id'] = sa.split('/')[-1]
-                # since I have no clue which order thes come in
+                # since I have no clue which order these come in
                 for k, v in values.iteritems():
                     if k in entries.keys() and v is None:
                         values[k] = entries[k]
@@ -158,7 +158,7 @@ class KulturnavBot:
             else:
                 architectItemTitle = values[u'wikidata']
             architectItem = pywikibot.ItemPage(self.repo, title=architectItemTitle)
-            # check if redirect, if so update target
+            # TODO: check if redirect, if so update target
 
             # Add information if a match was found
             if architectItem and architectItem.exists():
@@ -167,15 +167,18 @@ class KulturnavBot:
                 if self.hasClaim('P:31', pywikibot.ItemPage(self.repo, u'Q16334295'), architectItem):
                     pywikibot.output(u'%s is matched to a group of people, FIXIT' % values[u'wikidata'])
                     continue
-                    
+
                 # add name as alias (if not the same as lable or existing alias)
                 if values[u'foaf:name']:
                     pass  # This should either be added as P1477 or as an alias IFF not already in the lable/alias
-                
+
                 # add each property (if new) and source it
                 for pcprop, pcvalue in protoclaims.iteritems():
                     if pcvalue:
-                        self.addNewClaim(pcprop, pcvalue, architectItem, date)
+                        if isinstance(pcvalue, unicode) and pcvalue in (u'somevalue', u'novalue'):  # special cases
+                            self.addNewSpecialClaim(pcprop, pcvalue, architectItem, date)
+                        else:
+                            self.addNewClaim(pcprop, pcvalue, architectItem, date)
             # allow for limited runs
             count += 1
 
@@ -221,26 +224,39 @@ class KulturnavBot:
         Simply matches gender values to Q items
         """
         known = {u'male': u'Q6581097',
-                 u'female': u'Q6581072'}
+                 u'female': u'Q6581072',
+                 u'unknown': u'somevalue'}  # a special case
         if item not in known.keys():
             print u'invalid gender entry: %s' % item
             return
 
-        return pywikibot.ItemPage(self.repo, known[item])
+        if known[item] in (u'somevalue', u'novalue'):
+            return known[item]
+        else:
+            return pywikibot.ItemPage(self.repo, known[item])
 
     def dbName(self, name, typ):
         """
         Given a plaintext name (first or last) this checks if there is
         a matching object of the right type
+        param name = {'@language': 'xx', '@value': 'xxx'}
         """
         prop = {u'lastName': (u'Q101352',),
                 u'firstName': (u'Q12308941', u'Q11879590', u'Q202444')}
+
+        name = name['@value']
+
+        # Skip any empty values
+        if len(name.strip()) == 0:
+            return
+
+        # search for potential matches
         objgen = pagegenerators.PreloadingItemGenerator(
                     pagegenerators.WikidataItemGenerator(
                         pagegenerators.SearchPageGenerator(
                             name, step=None, total=10, namespaces=[0], site=self.repo)))
-        # check if P31 and then if any of prop[typ] in P31
 
+        # check if P31 and then if any of prop[typ] in P31
         for obj in objgen:
             # print obj.title()
             if name in (obj.get().get('labels').get('en'),
@@ -285,11 +301,11 @@ class KulturnavBot:
 
         try:
             claim.addSources([statedin, retrieved])  # writes to database
-            pywikibot.output('Adding new reference claim to %s' % architectItem)
+            pywikibot.output('Adding reference claim to %s in %s' % (prop, architectItem))
             return True
         except pywikibot.data.api.APIError, e:
             if e.code == u'modification-failed':
-                pywikibot.output(u'modification-failed error: ref for %s at %s' % (prop, architectItem))
+                pywikibot.output(u'modification-failed error: ref to %s in %s' % (prop, architectItem))
                 return False
             else:
                 pywikibot.output(e)
@@ -322,6 +338,17 @@ class KulturnavBot:
                     return claim
         return None
 
+    @staticmethod
+    def hasSpecialClaim(prop, snaktype, item):
+        """
+        hasClaim() in the special case of 'somevalue' and 'novalue'
+        """
+        if prop in item.claims.keys():
+            for claim in item.claims[prop]:
+                if claim.getSnakType() == snaktype:
+                    return claim
+        return None
+
     def addNewClaim(self, prop, itis, item, date):
         """
         Given an item, a property and a claim (in the itis format) this
@@ -333,6 +360,23 @@ class KulturnavBot:
         claim = pywikibot.Claim(self.repo, prop)
         claim.setTarget(itis)
         priorClaim = self.hasClaim(prop, itis, item)
+        if priorClaim:
+            self.addReference(item, priorClaim, date, prop)
+        else:
+            item.addClaim(claim)
+            pywikibot.output('Adding %s claim to %s' % (prop, item))
+            self.addReference(item, claim, date, prop)
+
+    def addNewSpecialClaim(self, prop, snaktype, item, date):
+        """
+        addNewClaim() but for the special 'somevalue' and 'novalue'
+        """
+        if snaktype not in ['somevalue', 'novalue']:
+            pywikibot.output('You passed a non-allowed snakvalue to addNewSpecialClaim(): %s' % snaktype)
+            exit(1)
+        claim = pywikibot.Claim(self.repo, prop)
+        claim.setSnakType(snaktype)
+        priorClaim = self.hasSpecialClaim(prop, snaktype, item)
         if priorClaim:
             self.addReference(item, priorClaim, date, prop)
         else:
