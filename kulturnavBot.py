@@ -48,7 +48,7 @@ class KulturnavBot:
 
         # check if I am running on labs, for WikidataStringSearch
 
-        self.onLabs = os.path.isfile("~/replica.my.cnf")
+        self.onLabs = os.path.isfile(os.path.expanduser("~") + "/replica.my.cnf")
         if self.onLabs:
             self.wdss = WikidataStringSearch()
 
@@ -263,8 +263,8 @@ class KulturnavBot:
         if self.onLabs:
             objgen = pagegenerators.PreloadingItemGenerator(
                         pagegenerators.WikidataItemGenerator(
-                            self.wdss.searchGenerator(
-                                name['@value'], language=name['@language'])))
+                            pywikibot.ItemPage(self.repo, self.wdss.searchGenerator(
+                                name['@value'], language=name['@language']))))
             matches = []
             for obj in objgen:
                 if u'P%s' % IS_A_P in obj.get().get('claims'):
