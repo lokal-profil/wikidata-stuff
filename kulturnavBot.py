@@ -246,6 +246,10 @@ class KulturnavBot:
         else:
             return pywikibot.ItemPage(self.repo, known[item])
 
+    def searchGenerator(text, language):
+        for q in self.wdss.search(text, language=language):
+            yield pywikibot.ItemPage(self.repo, q)
+
     def dbName(self, name, typ):
         """
         Given a plaintext name (first or last) this checks if there is
@@ -263,8 +267,8 @@ class KulturnavBot:
         if self.onLabs:
             objgen = pagegenerators.PreloadingItemGenerator(
                         pagegenerators.WikidataItemGenerator(
-                            pywikibot.ItemPage(self.repo, self.wdss.searchGenerator(
-                                name['@value'], language=name['@language']))))
+                            self.searchGenerator(
+                                name['@value'], language=name['@language'])))
             matches = []
             for obj in objgen:
                 if u'P%s' % IS_A_P in obj.get().get('claims'):
