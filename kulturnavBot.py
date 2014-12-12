@@ -18,10 +18,15 @@ from pywikibot import pagegenerators
 import urllib
 import pywikibot.data.wikidataquery as wdquery
 
+# Needed only for WikidataStringSearch
+import os.path
+from WikidataStringSearch import WikidataStringSearch
+
 EDIT_SUMMARY = u'kulturnavBot'
 KULTURNAV_ID_P = '1248'
 DATASET_Q = '17373699'
 STATED_IN_P = '248'
+IS_A_P = '31'
 PUBLICATION_P = '577'
 ARCHITECT_Q = '42973'
 
@@ -40,6 +45,12 @@ class KulturnavBot:
         self.repo = pywikibot.Site().data_repository()
 
         self.architectIds = self.fillCache()
+
+        # check if I am running on labs, for WikidataStringSearch
+
+        self.onLabs = os.path.isfile("~/replica.my.cnf")
+        if self.onLabs:
+            self.wdss = WikidataStringSearch()
 
     def fillCache(self, queryoverride=u'', cacheMaxAge=0):
         """
@@ -90,7 +101,7 @@ class KulturnavBot:
                       u'dcterms:identifier': None,
                       u'dcterms:modified': None,
                       u'wikidata': None,
-                      u'libris-id':None}
+                      u'libris-id': None}
 
             for entries in architect[u'@graph']:
                 if u'sameAs' in entries.keys():
@@ -164,7 +175,7 @@ class KulturnavBot:
             if architectItem and architectItem.exists():
 
                 # make sure it is not matched to a group of people
-                if self.hasClaim('P:31', pywikibot.ItemPage(self.repo, u'Q16334295'), architectItem):
+                if self.hasClaim('P%s' % IS_A_P, pywikibot.ItemPage(self.repo, u'Q16334295'), architectItem):
                     pywikibot.output(u'%s is matched to a group of people, FIXIT' % values[u'wikidata'])
                     continue
 
@@ -214,7 +225,7 @@ class KulturnavBot:
             return pywikibot.WbTime(year=int(item[0][:len('YYYY')]))
         elif len(item) == 2 and all(self.is_int(x) for x in (item[0], item[1][:len('MM')])):
             # 1921-09Z
-             return pywikibot.WbTime(year=int(item[0]), month=int(item[1][:len('MM')]))
+            return pywikibot.WbTime(year=int(item[0]), month=int(item[1][:len('MM')]))
         else:
             print u'invalid dbpprop date entry: %s' % item
             exit(1)
@@ -244,35 +255,51 @@ class KulturnavBot:
         prop = {u'lastName': (u'Q101352',),
                 u'firstName': (u'Q12308941', u'Q11879590', u'Q202444')}
 
-        name = name['@value']
-
         # Skip any empty values
-        if len(name.strip()) == 0:
+        if len(name['@value'].strip()) == 0:
             return
 
         # search for potential matches
-        objgen = pagegenerators.PreloadingItemGenerator(
-                    pagegenerators.WikidataItemGenerator(
-                        pagegenerators.SearchPageGenerator(
-                            name, step=None, total=10, namespaces=[0], site=self.repo)))
-
-        # check if P31 and then if any of prop[typ] in P31
-        for obj in objgen:
-            # print obj.title()
-            if name in (obj.get().get('labels').get('en'),
-                        obj.get().get('labels').get('sv'),
-                        obj.get().get('aliases').get('en'),
-                        obj.get().get('aliases').get('sv')):
-                # print 'labels en:', obj.get().get('labels').get('en')
-                # print 'labels sv:', obj.get().get('labels').get('sv')
-                # Check if right type of object
-                if u'P31' in obj.get().get('claims'):
+        if self.onLabs:
+            objgen = pagegenerators.PreloadingItemGenerator(
+                        pagegenerators.WikidataItemGenerator(
+                            self.wdss.searchGenerator(
+                                name['@value'], language=name['@language'])))
+            matches = []
+            for obj in objgen:
+                if u'P%s' % IS_A_P in obj.get().get('claims'):
                     # print 'claims:', obj.get().get('claims')[u'P31']
-                    values = obj.get().get('claims')[u'P31']
+                    values = obj.get().get('claims')[u'P%s' % IS_A_P]
                     for v in values:
                         # print u'val:', v.getTarget()
                         if v.getTarget() in prop[typ]:
-                            return obj
+                            matches.append(obj)
+            if len(matches) == 1:
+                return matches[0]
+
+        else:
+            objgen = pagegenerators.PreloadingItemGenerator(
+                        pagegenerators.WikidataItemGenerator(
+                            pagegenerators.SearchPageGenerator(
+                                name['@value'], step=None, total=10, namespaces=[0], site=self.repo)))
+
+            # check if P31 and then if any of prop[typ] in P31
+            for obj in objgen:
+                # print obj.title()
+                if name['@value'] in (obj.get().get('labels').get('en'),
+                                      obj.get().get('labels').get('sv'),
+                                      obj.get().get('aliases').get('en'),
+                                      obj.get().get('aliases').get('sv')):
+                    # print 'labels en:', obj.get().get('labels').get('en')
+                    # print 'labels sv:', obj.get().get('labels').get('sv')
+                    # Check if right type of object
+                    if u'P31' in obj.get().get('claims'):
+                        # print 'claims:', obj.get().get('claims')[u'P31']
+                        values = obj.get().get('claims')[u'P31']
+                        for v in values:
+                            # print u'val:', v.getTarget()
+                            if v.getTarget() in prop[typ]:
+                                return obj
 
     @staticmethod
     def is_int(s):

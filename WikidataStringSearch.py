@@ -80,6 +80,10 @@ class WikidataStringSearch:
         # nothing flagged
         return True
 
+    def searchGenerator(self, text, language='sv', term_type=None):
+        for q in self.search(text, language=language, term_type=term_type):
+            yield q
+
     def search(self, text, language='sv', term_type=None):
         """
         Search for a given
