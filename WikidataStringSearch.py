@@ -20,6 +20,7 @@ class WikidataStringSearch:
         self.conn = MySQLdb.connect(read_default_file="~/replica.my.cnf",
                                     host="wikidatawiki.labsdb",
                                     db="wikidatawiki_p",
+                                    charset='utf8'
                                     )
         self.cursor = self.conn.cursor()
         self.term_types = ()
