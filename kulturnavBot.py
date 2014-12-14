@@ -84,7 +84,7 @@ class KulturnavBot:
         Starts the robot
         param cutoff: if present limits the number of records added in one go
         """
-        count = 0
+        count = 1
         for architect in self.generator:
             # print count, cutoff
             if cutoff and count > cutoff:
@@ -246,7 +246,7 @@ class KulturnavBot:
         else:
             return pywikibot.ItemPage(self.repo, known[item])
 
-    def searchGenerator(text, language):
+    def searchGenerator(self, text, language):
         for q in self.wdss.search(text, language=language):
             yield pywikibot.ItemPage(self.repo, q)
 
@@ -266,9 +266,8 @@ class KulturnavBot:
         # search for potential matches
         if self.onLabs:
             objgen = pagegenerators.PreloadingItemGenerator(
-                        pagegenerators.WikidataItemGenerator(
-                            self.searchGenerator(
-                                name['@value'], language=name['@language'])))
+                        self.searchGenerator(
+                            name['@value'], name['@language']))
             matches = []
             for obj in objgen:
                 if u'P%s' % IS_A_P in obj.get().get('claims'):
@@ -276,7 +275,7 @@ class KulturnavBot:
                     values = obj.get().get('claims')[u'P%s' % IS_A_P]
                     for v in values:
                         # print u'val:', v.getTarget()
-                        if v.getTarget() in prop[typ]:
+                        if v.getTarget().title() in prop[typ]:
                             matches.append(obj)
             if len(matches) == 1:
                 return matches[0]
@@ -302,7 +301,7 @@ class KulturnavBot:
                         values = obj.get().get('claims')[u'P31']
                         for v in values:
                             # print u'val:', v.getTarget()
-                            if v.getTarget() in prop[typ]:
+                            if v.getTarget().title() in prop[typ]:
                                 return obj
 
     @staticmethod
