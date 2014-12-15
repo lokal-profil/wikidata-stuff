@@ -81,13 +81,10 @@ class WikidataStringSearch:
         # nothing flagged
         return True
 
-    def searchGenerator(self, text, language='sv', term_type=None):
-        for q in self.search(text, language=language, term_type=term_type):
-            yield q
-
     def search(self, text, language='sv', term_type=None):
         """
-        Search for a given
+        Search for a given string in a specified language and field
+        Exact match or SQL like wildcards
         term_type defaults to ('label', 'alias')
         """
         if not self.testInput(text,
@@ -119,7 +116,7 @@ LIMIT 100;""" % "', '".join(term_type)
 
     def searchInEntities(self, text, entities, language='sv', term_type=None):
         """
-        As above but limit results to a set list of entitites
+        As search() but limit results to a provided list of entitites
         term_type defaults to ('label', 'alias')
         """
         if not self.testInput(text,
