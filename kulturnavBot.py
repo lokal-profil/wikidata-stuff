@@ -296,9 +296,9 @@ class KulturnavBot:
                     # print 'labels en:', obj.get().get('labels').get('en')
                     # print 'labels sv:', obj.get().get('labels').get('sv')
                     # Check if right type of object
-                    if u'P31' in obj.get().get('claims'):
+                    if u'P%s' % IS_A_P in obj.get().get('claims'):
                         # print 'claims:', obj.get().get('claims')[u'P31']
-                        values = obj.get().get('claims')[u'P31']
+                        values = obj.get().get('claims')[u'P%s' % IS_A_P]
                         for v in values:
                             # print u'val:', v.getTarget()
                             if v.getTarget().title() in prop[typ]:
