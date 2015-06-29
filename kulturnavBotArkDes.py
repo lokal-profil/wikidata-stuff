@@ -31,7 +31,7 @@ PUBLICATION_P = '577'
 ARCHITECT_Q = '42973'
 
 
-class KulturnavBot:
+class KulturnavBotArkDes:
     """
     A bot to enrich and create information on Wikidata based on KulturNav info
     """
@@ -463,12 +463,12 @@ def getKulturnavGenerator(maxHits=500):
 def main(cutoff=None, maxHits=250):
     kulturnavGenerator = getKulturnavGenerator(maxHits=maxHits)
 
-    kulturnavBot = KulturnavBot(kulturnavGenerator)
+    kulturnavBot = KulturnavBotArkDes(kulturnavGenerator)
     kulturnavBot.run(cutoff=cutoff)
 
 
 if __name__ == "__main__":
-    usage = u'Usage:\tpython kulturnavBot.py cutoff\n' \
+    usage = u'Usage:\tpython kulturnavBotArkDes.py cutoff\n' \
             u'\twhere cutoff is an optional integer'
     import sys
     argv = sys.argv[1:]
