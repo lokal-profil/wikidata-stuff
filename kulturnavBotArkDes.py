@@ -90,36 +90,52 @@ class KulturnavBotArkDes:
             if cutoff and count > cutoff:
                 break
             # Valuesworth searching for
-            values = {u'dbpedia-owl:deathPlace': None,
-                      u'dbpprop:deathDate': None,
-                      u'dbpedia-owl:birthPlace': None,
-                      u'dbpprop:birthDate': None,
-                      u'foaf:firstName': None,
-                      u'foaf:gender': None,
-                      u'foaf:lastName': None,
-                      u'foaf:name': None,
-                      u'dcterms:identifier': None,
-                      u'dcterms:modified': None,
+            values = {u'deathPlace': None,
+                      u'deathDate': None,
+                      u'birthPlace': None,
+                      u'birthDate': None,
+                      u'firstName': None,
+                      u'gender': None,
+                      u'lastName': None,
+                      u'name': None,
+                      u'identifier': None,
+                      u'modified': None,
+                      u'seeAlso': None,
+                      u'sameAs': None,
+                      # not expected
                       u'wikidata': None,
                       u'libris-id': None}
 
+            # populate values
             for entries in architect[u'@graph']:
-                if u'sameAs' in entries.keys():
-                    if type(entries[u'sameAs']) in (unicode, str):
-                        # type changes depending on if it is one or many
-                        # reported upstream
-                        entries[u'sameAs'] = [entries[u'sameAs'], ]
-                    for sa in entries[u'sameAs']:
-                        if u'wikidata' in sa:
-                            values[u'wikidata'] = sa.split('/')[-1]
-                        elif u'libris.kb.se/auth/' in sa:
-                            values[u'libris-id'] = sa.split('/')[-1]
-                # since I have no clue which order these come in
-                for k, v in values.iteritems():
-                    if k in entries.keys() and v is None:
-                        values[k] = entries[k]
+                for k, v in entries.iteritems():
+                    if k in values.keys():
+                        if values[k] is None:
+                            values[k] = v
+                        else:
+                            pywikibot.output('duplicate entries for %s' % k)
+                            exit(2)
 
-            # print values
+            # dig into sameAs and seeAlso
+            # each can be either a list or a str/unicode
+            if isinstance(values[u'sameAs'], (str, unicode)):
+                values[u'sameAs'] = [values[u'sameAs'], ]
+            if values[u'sameAs'] is not None:
+                for sa in values[u'sameAs']:
+                    if u'wikidata' in sa:
+                        values[u'wikidata'] = sa.split('/')[-1]
+                    elif u'libris.kb.se/auth/' in sa:
+                        values[u'libris-id'] = sa.split('/')[-1]
+            # we only care about seeAlso if we didn't find a wikidata link
+            if values[u'wikidata'] is None:
+                if isinstance(values[u'seeAlso'], (str, unicode)):
+                    values[u'seeAlso'] = [values[u'seeAlso'], ]
+                for sa in values[u'seeAlso']:
+                    if u'wikipedia' in sa:
+                        pywikibot.output(u'Found a Wikipedia link but no Wikidata link: %s %s' % (sa, values[u'identifier']))
+                continue
+
+            for k, v in values.iteritems(): print k, ' : ', v
             # convert these to potential claims
             protoclaims = {u'P31': pywikibot.ItemPage(self.repo, u'Q5'),
                            u'P106': pywikibot.ItemPage(self.repo, u'Q%s' % ARCHITECT_Q),
@@ -130,45 +146,49 @@ class KulturnavBotArkDes:
                            u'P735': None,
                            u'P21': None,
                            u'P734': None,
-                           u'P1477': None,
+                           # u'P1477': None,
                            u'P1248': None,
                            u'P906': None}
 
-            if values[u'dbpedia-owl:deathPlace']:
-                protoclaims[u'P20'] = self.dbpedia2Wikidata(values[u'dbpedia-owl:deathPlace'])
-            if values[u'dbpprop:deathDate']:
-                protoclaims[u'P570'] = self.dbDate(values[u'dbpprop:deathDate'])
-            if values[u'dbpedia-owl:birthPlace']:
-                protoclaims[u'P19'] = self.dbpedia2Wikidata(values[u'dbpedia-owl:birthPlace'])
-            if values[u'dbpprop:birthDate']:
-                protoclaims[u'P569'] = self.dbDate(values[u'dbpprop:birthDate'])
-            if values[u'foaf:firstName']:
-                protoclaims[u'P735'] = self.dbName(values[u'foaf:firstName'], u'firstName')
-            if values[u'foaf:gender']:
-                protoclaims[u'P21'] = self.dbGender(values[u'foaf:gender'])
-            if values[u'foaf:lastName']:
-                protoclaims[u'P734'] = self.dbName(values[u'foaf:lastName'], u'lastName')
+            if values[u'deathPlace']:
+                protoclaims[u'P20'] = self.dbpedia2Wikidata(values[u'deathPlace'])
+            if values[u'deathDate']:
+                protoclaims[u'P570'] = self.dbDate(values[u'deathDate'])
+            if values[u'birthPlace']:
+                protoclaims[u'P19'] = self.dbpedia2Wikidata(values[u'birthPlace'])
+            if values[u'birthDate']:
+                protoclaims[u'P569'] = self.dbDate(values[u'birthDate'])
+            if values[u'firstName']:
+                protoclaims[u'P735'] = self.dbName(values[u'firstName'], u'firstName')
+            if values[u'gender']:
+                protoclaims[u'P21'] = self.dbGender(values[u'gender'])
+            if values[u'lastName']:
+                protoclaims[u'P734'] = self.dbName(values[u'lastName'], u'lastName')
             if values[u'libris-id']:
                 protoclaims[u'P906'] = values[u'libris-id']
-            if values[u'dcterms:identifier']:
-                protoclaims[u'P%s' % KULTURNAV_ID_P] = values[u'dcterms:identifier']
+            if values[u'identifier']:
+                protoclaims[u'P%s' % KULTURNAV_ID_P] = values[u'identifier']
 
-            # print u'%s: %s' % (values[u'wikidata'], protoclaims)
+            print values[u'wikidata']
+            for k, v in protoclaims.iteritems(): print k, ' : ', v
+
 
             # get the "last modified" timestamp
-            date = self.dbDate(values[u'dcterms:modified'])
+            date = self.dbDate(values[u'modified'])
 
             # find the matching wikidata item
             # check wikidata first, then kulturNav
             architectItem = None
-            if values[u'dcterms:identifier'] in self.architectIds:
-                architectItemTitle = u'Q%s' % (self.architectIds.get(values[u'dcterms:identifier']),)
+            if values[u'identifier'] in self.architectIds:
+                architectItemTitle = u'Q%s' % (self.architectIds.get(values[u'identifier']),)
                 if values[u'wikidata'] != architectItemTitle:
-                    pywikibot.output(u'Identifier missmatch (skipping): %s, %s, %s' % (values[u'dcterms:identifier'], values[u'wikidata'], architectItemTitle))
+                    pywikibot.output(u'Identifier missmatch (skipping): %s, %s, %s' % (values[u'identifier'], values[u'wikidata'], architectItemTitle))
                     continue
             else:
                 architectItemTitle = values[u'wikidata']
             architectItem = pywikibot.ItemPage(self.repo, title=architectItemTitle)
+            if architectItem.isRedirectPage():
+                pywikibot.output(u'%s is a redirect! Unsure what to do with this info' % architectItem.title())
             # TODO: check if redirect, if so update target
 
             # Add information if a match was found
@@ -180,7 +200,7 @@ class KulturnavBotArkDes:
                     continue
 
                 # add name as alias (if not the same as lable or existing alias)
-                if values[u'foaf:name']:
+                if values[u'name']:
                     pass  # This should either be added as P1477 or as an alias IFF not already in the lable/alias
 
                 # add each property (if new) and source it
@@ -216,7 +236,7 @@ class KulturnavBotArkDes:
         Given a dbpprop date object (1922-09-17Z or 2014-07-11T08:14:46Z)
         this returns the equivalent pywikibot.WbTime object
         """
-        item = item[u'@value'][:len('YYYY-MM-DD')].split('-')
+        item = item[:len('YYYY-MM-DD')].split('-')
         if len(item) == 3 and all(self.is_int(x) for x in item):
             # 1921-09-17Z or 2014-07-11T08:14:46Z
             return pywikibot.WbTime(year=int(item[0]), month=int(item[1]), day=int(item[2]))
@@ -227,7 +247,7 @@ class KulturnavBotArkDes:
             # 1921-09Z
             return pywikibot.WbTime(year=int(item[0]), month=int(item[1][:len('MM')]))
         else:
-            print u'invalid dbpprop date entry: %s' % item
+            pywikibot.output(u'invalid dbpprop date entry: %s' % item)
             exit(1)
 
     def dbGender(self, item):
@@ -238,7 +258,7 @@ class KulturnavBotArkDes:
                  u'female': u'Q6581072',
                  u'unknown': u'somevalue'}  # a special case
         if item not in known.keys():
-            print u'invalid gender entry: %s' % item
+            pywikibot.output(u'invalid gender entry: %s' % item)
             return
 
         if known[item] in (u'somevalue', u'novalue'):
@@ -266,8 +286,8 @@ class KulturnavBotArkDes:
         # search for potential matches
         if self.onLabs:
             objgen = pagegenerators.PreloadingItemGenerator(
-                        self.searchGenerator(
-                            name['@value'], name['@language']))
+                self.searchGenerator(
+                    name['@value'], name['@language']))
             matches = []
             for obj in objgen:
                 if u'P%s' % IS_A_P in obj.get().get('claims'):
@@ -282,9 +302,9 @@ class KulturnavBotArkDes:
 
         else:
             objgen = pagegenerators.PreloadingItemGenerator(
-                        pagegenerators.WikidataItemGenerator(
-                            pagegenerators.SearchPageGenerator(
-                                name['@value'], step=None, total=10, namespaces=[0], site=self.repo)))
+                pagegenerators.WikidataItemGenerator(
+                    pagegenerators.SearchPageGenerator(
+                        name['@value'], step=None, total=10, namespaces=[0], site=self.repo)))
 
             # check if P31 and then if any of prop[typ] in P31
             for obj in objgen:
@@ -361,6 +381,8 @@ class KulturnavBotArkDes:
     def hasClaim(prop, itis, item):
         """
         Checks if the claim already exists, if so returns that claim
+
+        Known issue: Cannot detect that a redirect is same as the target
         """
         if prop in item.claims.keys():
             for claim in item.claims[prop]:
