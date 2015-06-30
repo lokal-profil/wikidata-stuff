@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-Bot to import and sourced statments about entities also present in
+Bot to import and sourced statements about entities also present in
 KulturNav (https://www.wikidata.org/wiki/Q16323066).
 
 Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
@@ -11,6 +11,9 @@ Author: Lokal_Profil
 License: MIT
 
 TODO:
+* Alla flerspråkiga bör hantera (eller klaga) på list som värde (FOO_BAR)
+    if isinstance(name, dict):
+        name = [name, ]
 * Generalisering - refactoring
 ** Stick the general wikidata methods in WikidataToolkit?
 * Logga - redigerade, nya
@@ -30,11 +33,15 @@ import pywikibot.data.wikidataquery as wdquery
 import os.path
 from WikidataStringSearch import WikidataStringSearch
 
+FOO_BAR = u'A multilanguage result was encountered but I have yet to' \
+          u'support that functionality'
+
 
 class KulturnavBot(object):
     """
     A bot to enrich and create information on Wikidata based on KulturNav info
     """
+    EDIT_SUMMARY = 'KulturnavBot'
     KULTURNAV_ID_P = '1248'
     DATASET_Q = None
     STATED_IN_P = '248'
@@ -65,11 +72,14 @@ class KulturnavBot(object):
             self.wdss = WikidataStringSearch()
 
     @classmethod
-    def setVariables(cls, dataset_q, dataset_id, entity_type, map_tag):
+    def setVariables(cls, dataset_q, dataset_id, entity_type,
+                     map_tag, edit_summary=None):
         cls.DATASET_Q = dataset_q
         cls.DATASET_ID = dataset_id
         cls.ENTITY_TYPE = entity_type
         cls.MAP_TAG = map_tag
+        if edit_summary is not None:
+            cls.EDIT_SUMMARY = edit_summary
 
     def fillCache(self, queryoverride=u'', cacheMaxAge=0):
         """
@@ -106,13 +116,16 @@ class KulturnavBot(object):
         """
         raise NotImplementedError("Please Implement this method")
 
-    # Kulturnavspecific ones
+    # KulturNav specific ones
     def dbpedia2Wikidata(self, item):
         """
-        Converts a dbpedia reference to the equivalent wikidata item,
+        Converts a dbpedia reference to the equivalent Wikidata item,
         if present
         param item: dict with @language, @value keys
         """
+        if isinstance(item, list):
+            pywikibot.output(FOO_BAR)
+            return
         if not all(x in item.keys() for x in (u'@value', u'@language')):
             print u'invalid dbpedia entry: %s' % item
             exit(1)
@@ -177,6 +190,9 @@ class KulturnavBot(object):
         a matching object of the right type
         param name = {'@language': 'xx', '@value': 'xxx'}
         """
+        if isinstance(name, list):
+            pywikibot.output(FOO_BAR)
+            return
         prop = {u'lastName': (u'Q101352',),
                 u'firstName': (u'Q12308941', u'Q11879590', u'Q202444')}
 
@@ -265,7 +281,39 @@ class KulturnavBot(object):
                 pywikibot.output(e)
                 exit(1)
 
-    # some more generic wikidata methods
+    def addLabelOrAlias(self, nameObj, item):
+        """
+        Adds a name as either a label (if none) or an alias
+
+        param nameObj = {'@language': 'xx', '@value': 'xxx'}
+        """
+        if isinstance(nameObj, list):
+            pywikibot.output(FOO_BAR)
+            return
+        lang = nameObj['@language']
+        name = nameObj['@value']
+        summary = u'%s: Added %s in [%s]' % (self.EDIT_SUMMARY, '%s', lang)
+        # look at label
+        if not item.labels or lang not in item.labels.keys():
+            # add name to label
+            labels = {lang: name}
+            summary %= 'label'
+            item.editLabels(labels, summary=summary)
+            pywikibot.output(summary)
+        elif name != item.labels[lang]:
+            # look at aliases
+            summary %= 'alias'
+            if not item.aliases or lang not in item.aliases.keys():
+                aliases = {lang: [name, ]}
+                item.editAliases(aliases, summary=summary)
+                pywikibot.output(summary)
+            elif name not in item.aliases[lang]:
+                aliases = {lang: item.aliases[lang]}
+                aliases[lang].append(name)
+                item.editAliases(aliases, summary=summary)
+                pywikibot.output(summary)
+
+    # some more generic Wikidata methods
     @staticmethod
     def hasRef(prop, itis, claim):
         """
@@ -432,8 +480,8 @@ class KulturnavBot(object):
     @classmethod
     def getKulturnavGenerator(cls, maxHits=500):
         """
-        Generator of the entries at Kulturnav based on a serch for all items
-        of given type in the given dataset which contains wikidata as a
+        Generator of the entries at KulturNav based on a search for all items
+        of given type in the given dataset which contains Wikidata as a
         given value.
         """
         urls = {
@@ -446,7 +494,7 @@ class KulturnavBot(object):
             '%s/%d/%d')
         queryurl = 'http://kulturnav.org/%s?format=application/ld%%2Bjson'
 
-        # get all id's in KulturNav which link to wikidata
+        # get all id's in KulturNav which link to Wikidata
         wdDict = {}
         for q, u in urls.iteritems():
             offset = 0

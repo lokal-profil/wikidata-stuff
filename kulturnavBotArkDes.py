@@ -1,14 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-Bot to import and source statments about Architects in KulturNav.
+Bot to import and source statements about Architects in KulturNav.
     by Lokal_Profil
 
 Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
     /bot/wikidata/rijksmuseum_import.py by Multichill
 
-TODO: Should also get json for any items identified on wikidata but not
-      on kulturnav
+TODO: Should also get json for any items identified on Wikidata but not
+      on KulturNav
       Follow redirects
 
 """
@@ -16,6 +16,7 @@ import pywikibot
 from kulturnavBot import KulturnavBot
 
 # KulturNav based
+EDIT_SUMMARY = 'KulturnavBot'
 DATASET_ID = '2b7670e1-b44e-4064-817d-27834b03067c'
 ENTITY_TYPE = 'Person'
 MAP_TAG = 'entity.sameAs_s'
@@ -75,7 +76,7 @@ class KulturnavBotArkDes(KulturnavBot):
                         values[u'wikidata'] = sa.split('/')[-1]
                     elif u'libris.kb.se/auth/' in sa:
                         values[u'libris-id'] = sa.split('/')[-1]
-            # we only care about seeAlso if we didn't find a wikidata link
+            # we only care about seeAlso if we didn't find a Wikidata link
             if values[u'wikidata'] is None:
                 if isinstance(values[u'seeAlso'], (str, unicode)):
                     values[u'seeAlso'] = [values[u'seeAlso'], ]
@@ -131,7 +132,7 @@ class KulturnavBotArkDes(KulturnavBot):
             date = self.dbDate(values[u'modified'])
 
             # find the matching wikidata item
-            # check wikidata first, then kulturNav
+            # check Wikidata first, then kulturNav
             architectItem = None
             if values[u'identifier'] in self.itemIds:
                 architectItemTitle = u'Q%s' % (self.itemIds.get(values[u'identifier']),)
@@ -144,7 +145,8 @@ class KulturnavBotArkDes(KulturnavBot):
                     continue
             else:
                 architectItemTitle = values[u'wikidata']
-            architectItem = pywikibot.ItemPage(self.repo, title=architectItemTitle)
+            architectItem = pywikibot.ItemPage(self.repo,
+                                               title=architectItemTitle)
             if architectItem.isRedirectPage():
                 pywikibot.output(u'%s is a redirect! Unsure what to do '
                                  u'with this info' % architectItem.title())
@@ -162,13 +164,19 @@ class KulturnavBotArkDes(KulturnavBot):
                     continue
 
                 # add name as label/alias
+                # since order is last, first create a local rearranged copy
                 if values[u'name']:
-                    # TODO
-                    # if name not in label (in that language)
-                    #   add name to label
-                    # elif name not in alias
-                    #   add name to alias
-                    pass
+                    name = values[u'name']['@value']
+                    if name.find(',') > 0 and \
+                            len(name.split(',')) == 2:
+                        p = name.split(',')
+                        name = u'%s %s' % (p[1].strip(), p[0].strip())
+                        nameObj = values[u'name'].copy()
+                        nameObj['@value'] = name
+                        self.addLabelOrAlias(nameObj, architectItem)
+                    else:
+                        pywikibot.output(u'unexpectedly formatted name: %s' %
+                                         name)
 
                 # add each property (if new) and source it
                 for pcprop, pcvalue in protoclaims.iteritems():
@@ -203,6 +211,7 @@ class KulturnavBotArkDes(KulturnavBot):
             dataset_id=DATASET_ID,
             entity_type=ENTITY_TYPE,
             map_tag=MAP_TAG,
+            edit_summary=EDIT_SUMMARY
         )
         super(KulturnavBotArkDes, cls).main(cutoff, maxHits)
 
