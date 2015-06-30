@@ -12,11 +12,12 @@ License: MIT
 
 TODO:
 * Generalisering - refactoring
-** Would require breaking out values, proto, source?
+** Stick the general wikidata methods in WikidataToolkit
+** Stick all except run in KulturnavBot (maintian a dummy run)
+** Have run in KulturnavBotArkDes
 ** or simply make run a dummy function
-* Hantera qualifiers
 * Logga - redigerade, nya
-* Lägg till qualifier på alla gamla KulturNav (logga "okända/nya" dataset).
+* Lägg till qualifier på P1248 (logga "okända/nya" dataset).
 * Follow redirects
 Should also get json for any items identified on wikidata but not
       on kulturnav
@@ -185,6 +186,8 @@ class KulturnavBot:
             else:
                 architectItemTitle = values[u'wikidata']
             architectItem = pywikibot.ItemPage(self.repo, title=architectItemTitle)
+            if architectItem.isRedirectPage():
+                pywikibot.output(u'%s is a redirect! Unsure what to do with this info' % architectItem.title())
             # TODO: check if redirect, if so update target
 
             # Add information if a match was found
@@ -232,7 +235,7 @@ class KulturnavBot:
         Given a dbpprop date object (1922-09-17Z or 2014-07-11T08:14:46Z)
         this returns the equivalent pywikibot.WbTime object
         """
-        item = item[u'@value'][:len('YYYY-MM-DD')].split('-')
+        item = item[:len('YYYY-MM-DD')].split('-')
         if len(item) == 3 and all(self.is_int(x) for x in item):
             # 1921-09-17Z or 2014-07-11T08:14:46Z
             return pywikibot.WbTime(year=int(item[0]), month=int(item[1]), day=int(item[2]))
@@ -243,7 +246,7 @@ class KulturnavBot:
             # 1921-09Z
             return pywikibot.WbTime(year=int(item[0]), month=int(item[1][:len('MM')]))
         else:
-            print u'invalid dbpprop date entry: %s' % item
+            pywikibot.output(u'invalid dbpprop date entry: %s' % item)
             exit(1)
 
     def dbGender(self, item):
@@ -254,7 +257,7 @@ class KulturnavBot:
                  u'female': u'Q6581072',
                  u'unknown': u'somevalue'}  # a special case
         if item not in known.keys():
-            print u'invalid gender entry: %s' % item
+            pywikibot.output(u'invalid gender entry: %s' % item)
             return
 
         if known[item] in (u'somevalue', u'novalue'):
@@ -282,8 +285,8 @@ class KulturnavBot:
         # search for potential matches
         if self.onLabs:
             objgen = pagegenerators.PreloadingItemGenerator(
-                        self.searchGenerator(
-                            name['@value'], name['@language']))
+                self.searchGenerator(
+                    name['@value'], name['@language']))
             matches = []
             for obj in objgen:
                 if u'P%s' % IS_A_P in obj.get().get('claims'):
@@ -298,9 +301,9 @@ class KulturnavBot:
 
         else:
             objgen = pagegenerators.PreloadingItemGenerator(
-                        pagegenerators.WikidataItemGenerator(
-                            pagegenerators.SearchPageGenerator(
-                                name['@value'], step=None, total=10, namespaces=[0], site=self.repo)))
+                pagegenerators.WikidataItemGenerator(
+                    pagegenerators.SearchPageGenerator(
+                        name['@value'], step=None, total=10, namespaces=[0], site=self.repo)))
 
             # check if P31 and then if any of prop[typ] in P31
             for obj in objgen:
@@ -418,6 +421,8 @@ class KulturnavBot:
     def hasClaim(prop, itis, item):
         """
         Checks if the claim already exists, if so returns that claim
+
+        Known issue: Cannot detect that a redirect is same as the target
         """
         if prop in item.claims.keys():
             for claim in item.claims[prop]:
