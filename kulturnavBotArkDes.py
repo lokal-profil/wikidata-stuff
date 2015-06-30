@@ -22,6 +22,7 @@ import pywikibot.data.wikidataquery as wdquery
 import os.path
 from WikidataStringSearch import WikidataStringSearch
 
+# Wikidata based
 EDIT_SUMMARY = u'kulturnavBot'
 KULTURNAV_ID_P = '1248'
 DATASET_Q = '17373699'
@@ -29,7 +30,12 @@ STATED_IN_P = '248'
 IS_A_P = '31'
 PUBLICATION_P = '577'
 ARCHITECT_Q = '42973'
+CATALOG_P = '972'
 
+# KulturNav based
+DATASET_ID = '2b7670e1-b44e-4064-817d-27834b03067c'
+ENTITY_TYPE = 'Person'
+MAP_TAG = 'entity.sameAs_s'
 
 class KulturnavBotArkDes:
     """
@@ -54,7 +60,7 @@ class KulturnavBotArkDes:
 
     def fillCache(self, queryoverride=u'', cacheMaxAge=0):
         """
-        Query Wikidata to fill the cache of monuments we already have an object for
+        Query Wikidata to fill the cache of entities we already have an object for
         """
         result = {}
         if queryoverride:
@@ -84,10 +90,10 @@ class KulturnavBotArkDes:
         Starts the robot
         param cutoff: if present limits the number of records added in one go
         """
-        count = 1
+        count = 0
         for architect in self.generator:
             # print count, cutoff
-            if cutoff and count > cutoff:
+            if cutoff and count >= cutoff:
                 break
             # Valuesworth searching for
             values = {u'deathPlace': None,
@@ -172,7 +178,6 @@ class KulturnavBotArkDes:
             print values[u'wikidata']
             for k, v in protoclaims.iteritems(): print k, ' : ', v
 
-
             # get the "last modified" timestamp
             date = self.dbDate(values[u'modified'])
 
@@ -208,6 +213,12 @@ class KulturnavBotArkDes:
                     if pcvalue:
                         if isinstance(pcvalue, unicode) and pcvalue in (u'somevalue', u'novalue'):  # special cases
                             self.addNewSpecialClaim(pcprop, pcvalue, architectItem, date)
+                        elif pcprop == u'P%s' % KULTURNAV_ID_P:
+                            qual = {
+                                u'prop': u'P%s' % CATALOG_P,
+                                u'itis': pywikibot.ItemPage(self.repo, u'Q%s' % DATASET_Q),
+                                u'force': True}
+                            self.addNewClaim(pcprop, pcvalue, architectItem, date, qual=qual)
                         else:
                             self.addNewClaim(pcprop, pcvalue, architectItem, date)
             # allow for limited runs
@@ -332,7 +343,7 @@ class KulturnavBotArkDes:
         except (ValueError, TypeError):
             return False
 
-    def addReference(self, architectItem, claim, date, prop):
+    def addReference(self, item, claim, date, prop):
         """
         Add a reference with a stated in object and a retrieval date
         param date: must be a pywikibot.WbTime object
@@ -341,7 +352,7 @@ class KulturnavBotArkDes:
         itis = pywikibot.ItemPage(self.repo, u'Q%s' % DATASET_Q)
         statedin.setTarget(itis)
 
-        # check if already present
+        # check if already present (with any date)
         if self.hasRef(u'P%s' % STATED_IN_P, itis, claim):
             return False
 
@@ -351,11 +362,11 @@ class KulturnavBotArkDes:
 
         try:
             claim.addSources([statedin, retrieved])  # writes to database
-            pywikibot.output('Adding reference claim to %s in %s' % (prop, architectItem))
+            pywikibot.output('Adding reference claim to %s in %s' % (prop, item))
             return True
         except pywikibot.data.api.APIError, e:
             if e.code == u'modification-failed':
-                pywikibot.output(u'modification-failed error: ref to %s in %s' % (prop, architectItem))
+                pywikibot.output(u'modification-failed error: ref to %s in %s' % (prop, item))
                 return False
             else:
                 pywikibot.output(e)
@@ -365,7 +376,7 @@ class KulturnavBotArkDes:
     @staticmethod
     def hasRef(prop, itis, claim):
         """
-        Checks if ref is already present
+        Checks if a given reference is already present at the given claim
         """
         if claim.sources:
             for i in range(0, len(claim.sources)):
@@ -375,6 +386,47 @@ class KulturnavBotArkDes:
                             return True
                         # else:
                         #    pywikibot.output(s.getTarget())
+        return False
+
+    def addQualifier(self, item, claim, prop, itis):
+        """
+        Check if a qualifier is present at the given claim,
+        otherwise add it
+
+        Known issue: This will qualify an already referenced claim
+            this must therefore be tested before
+        """
+        # check if already present
+        if self.hasQualifier(prop, itis, claim):
+            return False
+
+        qClaim = pywikibot.Claim(self.repo, prop)
+        qClaim.setTarget(itis)
+
+        try:
+            claim.addQualifier(qClaim)  # writes to database
+            pywikibot.output('Adding qualifier to %s in %s' % (prop, item))
+            return True
+        except pywikibot.data.api.APIError, e:
+            if e.code == u'modification-failed':
+                pywikibot.output(u'modification-failed error: qualifier to %s in %s' % (prop, item))
+                return False
+            else:
+                pywikibot.output(e)
+                exit(1)
+
+    @staticmethod
+    def hasQualifier(prop, itis, claim):
+        """
+        Checks if qualifier is already present
+        """
+        if claim.qualifiers:
+            if prop in claim.qualifiers.keys():
+                for s in claim.qualifiers[prop]:
+                    if s.getTarget() == itis:
+                        return True
+                    # else:
+                    #    pywikibot.output(s.getTarget())
         return False
 
     @staticmethod
@@ -401,40 +453,84 @@ class KulturnavBotArkDes:
                     return claim
         return None
 
-    def addNewClaim(self, prop, itis, item, date):
+    def addNewClaim(self, prop, itis, item, date, qual=None, snaktype=None):
         """
         Given an item, a property and a claim (in the itis format) this
         either adds the sourced claim, or sources it if already existing
+
+        Known issues:
+        * Only allows one qualifier to be added
+        * Will source a claim with other qualifiers
+
         prop: a PXX code, unicode
         itis: a valid claim e.g. pywikibot.ItemPage(repo, "Q6581097")
         item: the item being checked
+        qual: optional qualifier to add to claim, dict{prop, itis, force}
+            prop and itis: are formulated as those for the claim
+            force: (bool) add even to a sourced claim
+        snaktype: somevalue/novalue
+            (should only ever be set through addNewSpecialClaim)
         """
         claim = pywikibot.Claim(self.repo, prop)
-        claim.setTarget(itis)
-        priorClaim = self.hasClaim(prop, itis, item)
-        if priorClaim:
+
+        # handle special cases
+        if snaktype is None:
+            claim.setTarget(itis)
+            priorClaim = self.hasClaim(prop, itis, item)
+        else:
+            claim.setSnakType(snaktype)
+            priorClaim = self.hasSpecialClaim(prop, snaktype, item)
+
+        validQualifier = (
+            qual is not None and
+            isinstance(qual, dict) and
+            set(qual.keys()) == set(['prop', 'itis', 'force'])
+        )
+
+        if priorClaim and validQualifier:
+            # cannot add a qualifier to a previously sourced claim
+            if not priorClaim.sources:
+                # if unsourced
+                self.addQualifier(item, priorClaim, qual[u'prop'], qual[u'itis'])
+                self.addReference(item, priorClaim, date, prop)
+            elif self.hasQualifier(qual[u'prop'], qual[u'itis'], priorClaim):
+                # if qualifier already present
+                self.addReference(item, priorClaim, date, prop)
+            elif qual[u'force']:
+                # if force is set
+                self.addQualifier(item, priorClaim, qual[u'prop'], qual[u'itis'])
+                self.addReference(item, priorClaim, date, prop)
+            else:
+                # add new qualified claim
+                item.addClaim(claim)
+                pywikibot.output('Adding %s claim to %s' % (prop, item))
+                self.addQualifier(item, claim, qual[u'prop'], qual[u'itis'])
+                self.addReference(item, claim, date, prop)
+        elif priorClaim:
             self.addReference(item, priorClaim, date, prop)
         else:
             item.addClaim(claim)
             pywikibot.output('Adding %s claim to %s' % (prop, item))
+            if validQualifier:
+                self.addQualifier(item, claim, qual[u'prop'], qual[u'itis'])
             self.addReference(item, claim, date, prop)
 
-    def addNewSpecialClaim(self, prop, snaktype, item, date):
+    def addNewSpecialClaim(self, prop, snaktype, item, date, qualifier=None):
         """
         addNewClaim() but for the special 'somevalue' and 'novalue'
         """
         if snaktype not in ['somevalue', 'novalue']:
             pywikibot.output('You passed a non-allowed snakvalue to addNewSpecialClaim(): %s' % snaktype)
             exit(1)
-        claim = pywikibot.Claim(self.repo, prop)
-        claim.setSnakType(snaktype)
-        priorClaim = self.hasSpecialClaim(prop, snaktype, item)
-        if priorClaim:
-            self.addReference(item, priorClaim, date, prop)
-        else:
-            item.addClaim(claim)
-            pywikibot.output('Adding %s claim to %s' % (prop, item))
-            self.addReference(item, claim, date, prop)
+
+        # pass it on to addNewClaim with itis=None
+        self.addNewClaim(
+            prop,
+            None,
+            item,
+            date,
+            qualifier=qualifier,
+            snaktype=snaktype)
 
 
 def getKulturnavGenerator(maxHits=500):
@@ -445,7 +541,7 @@ def getKulturnavGenerator(maxHits=500):
     """
     urls = {'http%3A%2F%2Fwww.wikidata.org%2Fentity%2FQ*': u'http://www.wikidata.org/entity/',
             'https%3A%2F%2Fwww.wikidata.org%2Fentity%2FQ*': u'https://www.wikidata.org/entity/'}
-    searchurl = 'http://kulturnav.org/api/search/entityType:Person,entity.dataset_r:2b7670e1-b44e-4064-817d-27834b03067c,entity.sameAs_s:%s/%d/%d'
+    searchurl = 'http://kulturnav.org/api/search/entityType:%s,entity.dataset_r:%s,%s:%s' % (ENTITY_TYPE, DATASET_ID, MAP_TAG, '%s/%d/%d')
     queryurl = 'http://kulturnav.org/%s?format=application/ld%%2Bjson'
 
     # get all id's in KulturNav which link to wikidata
