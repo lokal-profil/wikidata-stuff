@@ -18,7 +18,7 @@ TODO:
 ** or simply make run a dummy function
 * Logga - redigerade, nya
 * Lägg till qualifier på P1248 (logga "okända/nya" dataset).
-* Follow redirects
+* Handle redirects
 Should also get json for any items identified on wikidata but not
       on kulturnav
 
@@ -41,6 +41,7 @@ STATED_IN_P = '248'
 IS_A_P = '31'
 PUBLICATION_P = '577'
 ARCHITECT_Q = '42973'
+CATALOG_P = '972'
 
 # KulturNav based
 DATASET_ID = '2b7670e1-b44e-4064-817d-27834b03067c'
@@ -101,42 +102,59 @@ class KulturnavBot:
         Starts the robot
         param cutoff: if present limits the number of records added in one go
         """
-        count = 1
+        count = 0
         for architect in self.generator:
             # print count, cutoff
-            if cutoff and count > cutoff:
+            if cutoff and count >= cutoff:
                 break
             # Valuesworth searching for
-            values = {u'dbpedia-owl:deathPlace': None,
-                      u'dbpprop:deathDate': None,
-                      u'dbpedia-owl:birthPlace': None,
-                      u'dbpprop:birthDate': None,
-                      u'foaf:firstName': None,
-                      u'foaf:gender': None,
-                      u'foaf:lastName': None,
-                      u'foaf:name': None,
-                      u'dcterms:identifier': None,
-                      u'dcterms:modified': None,
+            values = {u'deathPlace': None,
+                      u'deathDate': None,
+                      u'birthPlace': None,
+                      u'birthDate': None,
+                      u'firstName': None,
+                      u'gender': None,
+                      u'lastName': None,
+                      u'name': None,
+                      u'identifier': None,
+                      u'modified': None,
+                      u'seeAlso': None,
+                      u'sameAs': None,
+                      # not expected
                       u'wikidata': None,
                       u'libris-id': None}
 
+            # populate values
             for entries in architect[u'@graph']:
-                if u'sameAs' in entries.keys():
-                    if type(entries[u'sameAs']) in (unicode, str):
-                        # type changes depending on if it is one or many
-                        # reported upstream
-                        entries[u'sameAs'] = [entries[u'sameAs'], ]
-                    for sa in entries[u'sameAs']:
-                        if u'wikidata' in sa:
-                            values[u'wikidata'] = sa.split('/')[-1]
-                        elif u'libris.kb.se/auth/' in sa:
-                            values[u'libris-id'] = sa.split('/')[-1]
-                # since I have no clue which order these come in
-                for k, v in values.iteritems():
-                    if k in entries.keys() and v is None:
-                        values[k] = entries[k]
+                for k, v in entries.iteritems():
+                    if k in values.keys():
+                        if values[k] is None:
+                            values[k] = v
+                        else:
+                            pywikibot.output('duplicate entries for %s' % k)
+                            exit(2)
 
-            # print values
+            # dig into sameAs and seeAlso
+            # each can be either a list or a str/unicode
+            if isinstance(values[u'sameAs'], (str, unicode)):
+                values[u'sameAs'] = [values[u'sameAs'], ]
+            if values[u'sameAs'] is not None:
+                for sa in values[u'sameAs']:
+                    if u'wikidata' in sa:
+                        values[u'wikidata'] = sa.split('/')[-1]
+                    elif u'libris.kb.se/auth/' in sa:
+                        values[u'libris-id'] = sa.split('/')[-1]
+            # we only care about seeAlso if we didn't find a wikidata link
+            if values[u'wikidata'] is None:
+                if isinstance(values[u'seeAlso'], (str, unicode)):
+                    values[u'seeAlso'] = [values[u'seeAlso'], ]
+                for sa in values[u'seeAlso']:
+                    if u'wikipedia' in sa:
+                        pywikibot.output(u'Found a Wikipedia link but no Wikidata link: %s %s' % (sa, values[u'identifier']))
+                continue
+
+            # for k, v in values.iteritems(): print k, ' : ', v
+
             # convert these to potential claims
             protoclaims = {u'P31': pywikibot.ItemPage(self.repo, u'Q5'),
                            u'P106': pywikibot.ItemPage(self.repo, u'Q%s' % ARCHITECT_Q),
@@ -147,41 +165,42 @@ class KulturnavBot:
                            u'P735': None,
                            u'P21': None,
                            u'P734': None,
-                           u'P1477': None,
+                           # u'P1477': None,
                            u'P1248': None,
                            u'P906': None}
 
-            if values[u'dbpedia-owl:deathPlace']:
-                protoclaims[u'P20'] = self.dbpedia2Wikidata(values[u'dbpedia-owl:deathPlace'])
-            if values[u'dbpprop:deathDate']:
-                protoclaims[u'P570'] = self.dbDate(values[u'dbpprop:deathDate'])
-            if values[u'dbpedia-owl:birthPlace']:
-                protoclaims[u'P19'] = self.dbpedia2Wikidata(values[u'dbpedia-owl:birthPlace'])
-            if values[u'dbpprop:birthDate']:
-                protoclaims[u'P569'] = self.dbDate(values[u'dbpprop:birthDate'])
-            if values[u'foaf:firstName']:
-                protoclaims[u'P735'] = self.dbName(values[u'foaf:firstName'], u'firstName')
-            if values[u'foaf:gender']:
-                protoclaims[u'P21'] = self.dbGender(values[u'foaf:gender'])
-            if values[u'foaf:lastName']:
-                protoclaims[u'P734'] = self.dbName(values[u'foaf:lastName'], u'lastName')
+            if values[u'deathPlace']:
+                protoclaims[u'P20'] = self.dbpedia2Wikidata(values[u'deathPlace'])
+            if values[u'deathDate']:
+                protoclaims[u'P570'] = self.dbDate(values[u'deathDate'])
+            if values[u'birthPlace']:
+                protoclaims[u'P19'] = self.dbpedia2Wikidata(values[u'birthPlace'])
+            if values[u'birthDate']:
+                protoclaims[u'P569'] = self.dbDate(values[u'birthDate'])
+            if values[u'firstName']:
+                protoclaims[u'P735'] = self.dbName(values[u'firstName'], u'firstName')
+            if values[u'gender']:
+                protoclaims[u'P21'] = self.dbGender(values[u'gender'])
+            if values[u'lastName']:
+                protoclaims[u'P734'] = self.dbName(values[u'lastName'], u'lastName')
             if values[u'libris-id']:
                 protoclaims[u'P906'] = values[u'libris-id']
-            if values[u'dcterms:identifier']:
-                protoclaims[u'P%s' % KULTURNAV_ID_P] = values[u'dcterms:identifier']
+            if values[u'identifier']:
+                protoclaims[u'P%s' % KULTURNAV_ID_P] = values[u'identifier']
 
-            # print u'%s: %s' % (values[u'wikidata'], protoclaims)
+            # print values[u'wikidata']
+            # for k, v in protoclaims.iteritems(): print k, ' : ', v
 
             # get the "last modified" timestamp
-            date = self.dbDate(values[u'dcterms:modified'])
+            date = self.dbDate(values[u'modified'])
 
             # find the matching wikidata item
             # check wikidata first, then kulturNav
             architectItem = None
-            if values[u'dcterms:identifier'] in self.architectIds:
-                architectItemTitle = u'Q%s' % (self.architectIds.get(values[u'dcterms:identifier']),)
+            if values[u'identifier'] in self.architectIds:
+                architectItemTitle = u'Q%s' % (self.architectIds.get(values[u'identifier']),)
                 if values[u'wikidata'] != architectItemTitle:
-                    pywikibot.output(u'Identifier missmatch (skipping): %s, %s, %s' % (values[u'dcterms:identifier'], values[u'wikidata'], architectItemTitle))
+                    pywikibot.output(u'Identifier missmatch (skipping): %s, %s, %s' % (values[u'identifier'], values[u'wikidata'], architectItemTitle))
                     continue
             else:
                 architectItemTitle = values[u'wikidata']
@@ -199,7 +218,7 @@ class KulturnavBot:
                     continue
 
                 # add name as alias (if not the same as lable or existing alias)
-                if values[u'foaf:name']:
+                if values[u'name']:
                     pass  # This should either be added as P1477 or as an alias IFF not already in the lable/alias
 
                 # add each property (if new) and source it
@@ -207,6 +226,12 @@ class KulturnavBot:
                     if pcvalue:
                         if isinstance(pcvalue, unicode) and pcvalue in (u'somevalue', u'novalue'):  # special cases
                             self.addNewSpecialClaim(pcprop, pcvalue, architectItem, date)
+                        elif pcprop == u'P%s' % KULTURNAV_ID_P:
+                            qual = {
+                                u'prop': u'P%s' % CATALOG_P,
+                                u'itis': pywikibot.ItemPage(self.repo, u'Q%s' % DATASET_Q),
+                                u'force': True}
+                            self.addNewClaim(pcprop, pcvalue, architectItem, date, qual=qual)
                         else:
                             self.addNewClaim(pcprop, pcvalue, architectItem, date)
             # allow for limited runs
@@ -441,7 +466,7 @@ class KulturnavBot:
                     return claim
         return None
 
-    def addNewClaim(self, prop, itis, item, date, qualifier=None, snaktype=None):
+    def addNewClaim(self, prop, itis, item, date, qual=None, snaktype=None):
         """
         Given an item, a property and a claim (in the itis format) this
         either adds the sourced claim, or sources it if already existing
@@ -453,8 +478,9 @@ class KulturnavBot:
         prop: a PXX code, unicode
         itis: a valid claim e.g. pywikibot.ItemPage(repo, "Q6581097")
         item: the item being checked
-        qualifier: optional qualifier to add to claim, tuple (prop, itis)
-            where prop and itis are formulated as thouse for the claim
+        qual: optional qualifier to add to claim, dict{prop, itis, force}
+            prop and itis: are formulated as those for the claim
+            force: (bool) add even to a sourced claim
         snaktype: somevalue/novalue
             (should only ever be set through addNewSpecialClaim)
         """
@@ -469,32 +495,37 @@ class KulturnavBot:
             priorClaim = self.hasSpecialClaim(prop, snaktype, item)
 
         validQualifier = (
-            qualifier is not None and
-            isinstance(qualifier, tuple) and
-            len(qualifier) == 2)
+            qual is not None and
+            isinstance(qual, dict) and
+            set(qual.keys()) == set(['prop', 'itis', 'force'])
+        )
 
         if priorClaim and validQualifier:
-            self.addReference(item, priorClaim, date, prop)
-        elif priorClaim:
             # cannot add a qualifier to a previously sourced claim
             if not priorClaim.sources:
                 # if unsourced
-                self.addQualifier(item, priorClaim, qualifier[0], qualifier[1])
+                self.addQualifier(item, priorClaim, qual[u'prop'], qual[u'itis'])
                 self.addReference(item, priorClaim, date, prop)
-            elif self.hasQualifier(qualifier[0], qualifier[1], priorClaim):
+            elif self.hasQualifier(qual[u'prop'], qual[u'itis'], priorClaim):
                 # if qualifier already present
+                self.addReference(item, priorClaim, date, prop)
+            elif qual[u'force']:
+                # if force is set
+                self.addQualifier(item, priorClaim, qual[u'prop'], qual[u'itis'])
                 self.addReference(item, priorClaim, date, prop)
             else:
                 # add new qualified claim
                 item.addClaim(claim)
                 pywikibot.output('Adding %s claim to %s' % (prop, item))
-                self.addQualifier(item, claim, qualifier[0], qualifier[1])
+                self.addQualifier(item, claim, qual[u'prop'], qual[u'itis'])
                 self.addReference(item, claim, date, prop)
+        elif priorClaim:
+            self.addReference(item, priorClaim, date, prop)
         else:
             item.addClaim(claim)
             pywikibot.output('Adding %s claim to %s' % (prop, item))
             if validQualifier:
-                self.addQualifier(item, claim, qualifier[0], qualifier[1])
+                self.addQualifier(item, claim, qual[u'prop'], qual[u'itis'])
             self.addReference(item, claim, date, prop)
 
     def addNewSpecialClaim(self, prop, snaktype, item, date, qualifier=None):
