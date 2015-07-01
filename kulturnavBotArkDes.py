@@ -66,11 +66,6 @@ class KulturnavBotArkDes(KulturnavBot):
                         else:
                             pywikibot.output(u'duplicate entries for %s' % k)
                             problemFree = False
-            if not problemFree:
-                # continue with next architect
-                pywikibot.output(u'Found an issue with %s (%s), skipping' %
-                                 (values['identifier'], values['wikidata']))
-                continue
 
             # dig into sameAs and seeAlso
             # each can be either a list or a str/unicode
@@ -91,6 +86,12 @@ class KulturnavBotArkDes(KulturnavBot):
                         pywikibot.output(u'Found a Wikipedia link but no '
                                          u'Wikidata link: %s %s' %
                                          (sa, values[u'identifier']))
+                problemFree = False
+
+            if not problemFree:
+                # continue with next architect
+                pywikibot.output(u'Found an issue with %s (%s), skipping' %
+                                 (values['identifier'], values['wikidata']))
                 continue
 
             # for k, v in values.iteritems(): print k, ' : ', v
