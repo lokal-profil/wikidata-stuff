@@ -57,14 +57,20 @@ class KulturnavBotArkDes(KulturnavBot):
                       u'libris-id': None}
 
             # populate values
+            problemFree = True
             for entries in architect[u'@graph']:
                 for k, v in entries.iteritems():
                     if k in values.keys():
                         if values[k] is None:
                             values[k] = v
                         else:
-                            pywikibot.output('duplicate entries for %s' % k)
-                            exit(2)
+                            pywikibot.output(u'duplicate entries for %s' % k)
+                            problemFree = False
+            if not problemFree:
+                # continue with next architect
+                pywikibot.output(u'Found an issue with %s (%s), skipping' %
+                                 (values['identifier'], values['wikidata']))
+                continue
 
             # dig into sameAs and seeAlso
             # each can be either a list or a str/unicode
