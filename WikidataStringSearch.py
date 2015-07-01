@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 A database hookup (to be run from labs) for doing text string searches
-(SQL LIKE style) in lables, aliases and descriptions of items
+(SQL LIKE style) in labels, aliases and descriptions of items
 
 TODO:   Throw errors from inputTest
         Wrap executes in try to deal with fails
@@ -53,7 +53,7 @@ class WikidataStringSearch:
             print 'You cannot send stringSearch an empty string'
             return False
 
-        # test lanugage
+        # test language
         if language not in self.languages:
             print '%s is not a recognised language' % language
             return False
@@ -70,7 +70,7 @@ class WikidataStringSearch:
                 print 'Entities must be a non-zero list'
                 return False
 
-            # Check each is correctly formated
+            # Check each is correctly formatted
             if not all(e.startswith('Q') and
                        isinstance(e, (str, unicode)) and
                        WikidataStringSearch.is_int(e[1:])
@@ -116,7 +116,7 @@ LIMIT 100;""" % "', '".join(term_type)
 
     def searchInEntities(self, text, entities, language='sv', term_type=None):
         """
-        As search() but limit results to a provided list of entitites
+        As search() but limit results to a provided list of entities
         term_type defaults to ('label', 'alias')
         """
         if not self.testInput(text,
