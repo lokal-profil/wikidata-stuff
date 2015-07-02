@@ -112,12 +112,12 @@ class KulturnavBotArkDes(KulturnavBot):
                 u'P1248': None,
                 u'P906': None}
 
-            if values[u'deathPlace']:
-                protoclaims[u'P20'] = self.dbpedia2Wikidata(values[u'deathPlace'])
+            # if values[u'deathPlace']:
+            #    protoclaims[u'P20'] = self.dbpedia2Wikidata(values[u'deathPlace'])
             if values[u'deathDate']:
                 protoclaims[u'P570'] = self.dbDate(values[u'deathDate'])
-            if values[u'birthPlace']:
-                protoclaims[u'P19'] = self.dbpedia2Wikidata(values[u'birthPlace'])
+            # if values[u'birthPlace']:
+            #    protoclaims[u'P19'] = self.dbpedia2Wikidata(values[u'birthPlace'])
             if values[u'birthDate']:
                 protoclaims[u'P569'] = self.dbDate(values[u'birthDate'])
             if values[u'firstName']:
