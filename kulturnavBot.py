@@ -40,8 +40,8 @@ import pywikibot.data.wikidataquery as wdquery
 import os.path
 from WikidataStringSearch import WikidataStringSearch
 
-FOO_BAR = u'A multilingual result was encountered but I have yet to ' \
-          u'support that functionality'
+FOO_BAR = u'A multilingual result (or one with multiple options) was ' \
+          u'encountered but I have yet to support that functionality'
 
 
 class KulturnavBot(object):

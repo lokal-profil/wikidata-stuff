@@ -143,9 +143,14 @@ class KulturnavBotArkDes(KulturnavBot):
             if values[u'identifier'] in self.itemIds:
                 architectItemTitle = u'Q%s' % (self.itemIds.get(values[u'identifier']),)
                 if values[u'wikidata'] != architectItemTitle:
+                    # this may be caused by either being a redirect
                     wd = pywikibot.ItemPage(self.repo, values[u'wikidata'])
+                    wi = pywikibot.ItemPage(self.repo, architectItemTitle)
                     if wd.isRedirectPage() and \
                             wd.getRedirectTarget() == architectItemTitle:
+                        pass
+                    elif wi.isRedirectPage() and \
+                            wi.getRedirectTarget() == values[u'wikidata']:
                         pass
                     else:
                         pywikibot.output(
