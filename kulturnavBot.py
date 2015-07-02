@@ -16,12 +16,19 @@ TODO:
         name = [name, ]
 * Generalisering - refactoring
 ** Stick the general wikidata methods in WikidataToolkit?
-* Logga - redigerade, nya
-* Lägg till qualifier på P1248 (logga "okända/nya" dataset).
-* Handle redirects
-Should also get json for any items identified on wikidata but not
-      on kulturnav
-
+* Logging: added P1248 tags
+* For Place given through internal links.
+    Follow and extract geonames url.
+    Then try:
+        wdq.wmflabs.org/api?q=CLAIM[1566:<geonames id>]
+    if no result then:
+        get <geonames url>/about.rdf and extract gn:wikipediaArticle from which
+        Wikidata entity can be found.
+        e.g. 7b8f28a3-8f97-4bf8-b33d-8d10f3471041 ->
+             8165a3c5-d827-4d0e-82b9-9ad8fb77328b ->
+             http://sws.geonames.org/2711537 ->
+             http://sws.geonames.org/2711537/about.rdf ->
+             http://en.wikipedia.org/wiki/Gothenburg
 """
 import json
 import pywikibot
@@ -146,19 +153,28 @@ class KulturnavBot(object):
         item = item[:len('YYYY-MM-DD')].split('-')
         if len(item) == 3 and all(self.is_int(x) for x in item):
             # 1921-09-17Z or 2014-07-11T08:14:46Z
+            d = int(item[2])
+            if d == 0:
+                d = None
+            m = int(item[1])
+            if m == 0:
+                m = None
             return pywikibot.WbTime(
                 year=int(item[0]),
-                month=int(item[1]),
-                day=int(item[2]))
+                month=m,
+                day=d)
         elif len(item) == 1 and self.is_int(item[0][:len('YYYY')]):
             # 1921Z
             return pywikibot.WbTime(year=int(item[0][:len('YYYY')]))
         elif len(item) == 2 and \
                 all(self.is_int(x) for x in (item[0], item[1][:len('MM')])):
             # 1921-09Z
+            m = int(item[1][:len('MM')])
+            if m == 0:
+                m = None
             return pywikibot.WbTime(
                 year=int(item[0]),
-                month=int(item[1][:len('MM')]))
+                month=m)
         else:
             pywikibot.output(u'invalid dbpprop date entry: %s' % item)
             exit(1)
