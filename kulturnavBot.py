@@ -489,7 +489,7 @@ class KulturnavBot(object):
                 self.addQualifier(item, claim, qual[u'prop'], qual[u'itis'])
             self.addReference(item, claim, date, prop)
 
-    def addNewSpecialClaim(self, prop, snaktype, item, date, qualifier=None):
+    def addNewSpecialClaim(self, prop, snaktype, item, date, qual=None):
         """
         addNewClaim() but for the special 'somevalue' and 'novalue'
         """
@@ -504,7 +504,7 @@ class KulturnavBot(object):
             None,
             item,
             date,
-            qualifier=qualifier,
+            qual=qual,
             snaktype=snaktype)
 
     @classmethod
