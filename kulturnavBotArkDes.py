@@ -146,11 +146,9 @@ class KulturnavBotArkDes(KulturnavBot):
                     # this may be caused by either being a redirect
                     wd = pywikibot.ItemPage(self.repo, values[u'wikidata'])
                     wi = pywikibot.ItemPage(self.repo, architectItemTitle)
-                    if wd.isRedirectPage() and \
-                            wd.getRedirectTarget() == architectItemTitle:
+                    if wd.isRedirectPage() and wd.getRedirectTarget() == wi:
                         pass
-                    elif wi.isRedirectPage() and \
-                            wi.getRedirectTarget() == values[u'wikidata']:
+                    elif wi.isRedirectPage() and wi.getRedirectTarget() == wd:
                         pass
                     else:
                         pywikibot.output(
