@@ -8,8 +8,7 @@ Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
     /bot/wikidata/rijksmuseum_import.py by Multichill
 
 TODO: Should also get json for any items identified on Wikidata but not
-      on KulturNav
-      Follow redirects
+      on KulturNav. More tricky since dataset must then also be checked.
 
 """
 import pywikibot
@@ -144,20 +143,28 @@ class KulturnavBotArkDes(KulturnavBot):
             if values[u'identifier'] in self.itemIds:
                 architectItemTitle = u'Q%s' % (self.itemIds.get(values[u'identifier']),)
                 if values[u'wikidata'] != architectItemTitle:
-                    pywikibot.output(u'Identifier missmatch (skipping): '
-                                     u'%s, %s, %s' % (
-                                        values[u'identifier'],
-                                        values[u'wikidata'],
-                                        architectItemTitle))
-                    continue
+                    wd = pywikibot.ItemPage(self.repo, values[u'wikidata'])
+                    if wd.isRedirectPage() and \
+                            wd.getRedirectTarget() == architectItemTitle:
+                        pass
+                    else:
+                        pywikibot.output(
+                            u'Identifier missmatch (skipping): '
+                            u'%s, %s, %s' % (values[u'identifier'],
+                                             values[u'wikidata'],
+                                             architectItemTitle))
+                        continue
             else:
                 architectItemTitle = values[u'wikidata']
-            architectItem = pywikibot.ItemPage(self.repo,
-                                               title=architectItemTitle)
-            if architectItem.isRedirectPage():
-                pywikibot.output(u'%s is a redirect! Unsure what to do '
-                                 u'with this info' % architectItem.title())
-            # TODO: check if redirect, if so update target
+
+            # create ItemPage, bypassing any redirect
+            architectItem = self.bypassRedirect(
+                                pywikibot.ItemPage(
+                                    self.repo,
+                                    architectItemTitle))
+            # in case of redirect
+            architectItemTitle = architectItem.title()
+            values[u'wikidata'] = architectItem.title()
 
             # Add information if a match was found
             if architectItem and architectItem.exists():
@@ -173,17 +180,23 @@ class KulturnavBotArkDes(KulturnavBot):
                 # add name as label/alias
                 # since order is last, first create a local rearranged copy
                 if values[u'name']:
-                    name = values[u'name']['@value']
-                    if name.find(',') > 0 and \
-                            len(name.split(',')) == 2:
-                        p = name.split(',')
-                        name = u'%s %s' % (p[1].strip(), p[0].strip())
-                        nameObj = values[u'name'].copy()
-                        nameObj['@value'] = name
-                        self.addLabelOrAlias(nameObj, architectItem)
+                    if KulturnavBotArkDes.foobar(values[u'name']):
+                        # care is needed since item must be get() again after an update
+                        pywikibot.output(u'multiple languages in name of %s (%s)' %
+                                         (values['identifier'],
+                                          values['wikidata']))
                     else:
-                        pywikibot.output(u'unexpectedly formatted name: %s' %
-                                         name)
+                        name = values[u'name']['@value']
+                        if name.find(',') > 0 and \
+                                len(name.split(',')) == 2:
+                            p = name.split(',')
+                            name = u'%s %s' % (p[1].strip(), p[0].strip())
+                            nameObj = values[u'name'].copy()
+                            nameObj['@value'] = name
+                            self.addLabelOrAlias(nameObj, architectItem)
+                        else:
+                            pywikibot.output(u'unexpectedly formatted name: %s' %
+                                             name)
 
                 # add each property (if new) and source it
                 for pcprop, pcvalue in protoclaims.iteritems():

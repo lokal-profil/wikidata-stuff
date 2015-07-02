@@ -11,7 +11,7 @@ Author: Lokal_Profil
 License: MIT
 
 TODO:
-* Alla flerspråkiga bör hantera (eller klaga) på list som värde (FOO_BAR)
+* Alla flerspråkiga bör hantera (eller klaga) på list som värde foobar(item)
     if isinstance(name, dict):
         name = [name, ]
 * Generalisering - refactoring
@@ -33,7 +33,7 @@ import pywikibot.data.wikidataquery as wdquery
 import os.path
 from WikidataStringSearch import WikidataStringSearch
 
-FOO_BAR = u'A multilanguage result was encountered but I have yet to' \
+FOO_BAR = u'A multilingual result was encountered but I have yet to ' \
           u'support that functionality'
 
 
@@ -123,8 +123,7 @@ class KulturnavBot(object):
         if present
         param item: dict with @language, @value keys
         """
-        if isinstance(item, list):
-            pywikibot.output(FOO_BAR)
+        if KulturnavBot.foobar(item):
             return
         if not all(x in item.keys() for x in (u'@value', u'@language')):
             print u'invalid dbpedia entry: %s' % item
@@ -190,8 +189,7 @@ class KulturnavBot(object):
         a matching object of the right type
         param name = {'@language': 'xx', '@value': 'xxx'}
         """
-        if isinstance(name, list):
-            pywikibot.output(FOO_BAR)
+        if KulturnavBot.foobar(name):
             return
         prop = {u'lastName': (u'Q101352',),
                 u'firstName': (u'Q12308941', u'Q11879590', u'Q202444')}
@@ -287,8 +285,7 @@ class KulturnavBot(object):
 
         param nameObj = {'@language': 'xx', '@value': 'xxx'}
         """
-        if isinstance(nameObj, list):
-            pywikibot.output(FOO_BAR)
+        if KulturnavBot.foobar(nameObj):
             return
         lang = nameObj['@language']
         name = nameObj['@value']
@@ -314,8 +311,7 @@ class KulturnavBot(object):
                 pywikibot.output(summary)
 
     # some more generic Wikidata methods
-    @staticmethod
-    def hasRef(prop, itis, claim):
+    def hasRef(self, prop, itis, claim):
         """
         Checks if a given reference is already present at the given claim
         """
@@ -323,11 +319,34 @@ class KulturnavBot(object):
             for i in range(0, len(claim.sources)):
                 if prop in claim.sources[i].keys():
                     for s in claim.sources[i][prop]:
-                        if s.getTarget() == itis:
+                        if self.bypassRedirect(s.getTarget()) == itis:
                             return True
                         # else:
                         #    pywikibot.output(s.getTarget())
         return False
+
+    def bypassRedirect(self, item):
+        """
+        Checks if an item is a Redirect, and if so returns the
+        target item instead of the original.
+        This is needed for itis comparisons
+
+        Not that this should either be called before an
+        item.exists()/item.get() call or a new one must be made afterwards
+
+        return ItemPage
+        """
+        # skip all non-ItemPage
+        if not isinstance(item, pywikibot.ItemPage):
+            return item
+
+        if item.isRedirectPage():
+            targetPage = item.getRedirectTarget()
+            # targetPage is a Page, so use title to make an ItemPage
+            target = pywikibot.ItemPage(self.repo, targetPage.title())
+            return target
+        else:
+            return item
 
     def addQualifier(self, item, claim, prop, itis):
         """
@@ -357,35 +376,30 @@ class KulturnavBot(object):
                 pywikibot.output(e)
                 exit(1)
 
-    @staticmethod
-    def hasQualifier(prop, itis, claim):
+    def hasQualifier(self, prop, itis, claim):
         """
         Checks if qualifier is already present
         """
         if claim.qualifiers:
             if prop in claim.qualifiers.keys():
                 for s in claim.qualifiers[prop]:
-                    if s.getTarget() == itis:
+                    if self.bypassRedirect(s.getTarget()) == itis:
                         return True
                     # else:
                     #    pywikibot.output(s.getTarget())
         return False
 
-    @staticmethod
-    def hasClaim(prop, itis, item):
+    def hasClaim(self, prop, itis, item):
         """
         Checks if the claim already exists, if so returns that claim
-
-        Known issue: Cannot detect that a redirect is same as the target
         """
         if prop in item.claims.keys():
             for claim in item.claims[prop]:
-                if claim.getTarget() == itis:
+                if self.bypassRedirect(claim.getTarget()) == itis:
                     return claim
         return None
 
-    @staticmethod
-    def hasSpecialClaim(prop, snaktype, item):
+    def hasSpecialClaim(self, prop, snaktype, item):
         """
         hasClaim() in the special case of 'somevalue' and 'novalue'
         """
@@ -534,6 +548,12 @@ class KulturnavBot(object):
         kulturnavBot = cls(kulturnavGenerator)
         kulturnavBot.run(cutoff=cutoff)
 
+    @staticmethod
+    def foobar(item):
+        if isinstance(item, list):
+            pywikibot.output(FOO_BAR)
+            return True
+        return False
 
 if __name__ == "__main__":
     usage = u'Usage:\tpython kulturnavBot.py cutoff\n' \
