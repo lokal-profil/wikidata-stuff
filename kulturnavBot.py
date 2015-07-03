@@ -215,7 +215,7 @@ class KulturnavBot(object):
             if len(matches) == 1:
                 return matches[0]
             elif len(matches) > 1:
-                pywikibot.output(u'Possible duplicates: ' % matches)
+                pywikibot.output(u'Possible duplicates: %s' % matches)
 
         else:
             objgen = pagegenerators.PreloadingItemGenerator(
