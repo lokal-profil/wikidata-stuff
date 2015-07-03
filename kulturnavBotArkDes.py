@@ -39,9 +39,9 @@ class KulturnavBotArkDes(KulturnavBot):
             if cutoff and count >= cutoff:
                 break
             # Valuesworth searching for
-            values = {u'deathPlace': None,
+            values = {# u'deathPlace': None,
                       u'deathDate': None,
-                      u'birthPlace': None,
+                      # u'birthPlace': None,
                       u'birthDate': None,
                       u'firstName': None,
                       u'gender': None,
@@ -121,11 +121,13 @@ class KulturnavBotArkDes(KulturnavBot):
             if values[u'birthDate']:
                 protoclaims[u'P569'] = self.dbDate(values[u'birthDate'])
             if values[u'firstName']:
-                protoclaims[u'P735'] = self.dbName(values[u'firstName'], u'firstName')
+                protoclaims[u'P735'] = self.dbName(values[u'firstName'],
+                                                   u'firstName')
             if values[u'gender']:
                 protoclaims[u'P21'] = self.dbGender(values[u'gender'])
             if values[u'lastName']:
-                protoclaims[u'P734'] = self.dbName(values[u'lastName'], u'lastName')
+                protoclaims[u'P734'] = self.dbName(values[u'lastName'],
+                                                   u'lastName')
             if values[u'libris-id']:
                 protoclaims[u'P906'] = values[u'libris-id']
             if values[u'identifier']:
@@ -141,7 +143,8 @@ class KulturnavBotArkDes(KulturnavBot):
             # check Wikidata first, then kulturNav
             architectItem = None
             if values[u'identifier'] in self.itemIds:
-                architectItemTitle = u'Q%s' % (self.itemIds.get(values[u'identifier']),)
+                architectItemTitle = u'Q%s' % \
+                    (self.itemIds.get(values[u'identifier']),)
                 if values[u'wikidata'] != architectItemTitle:
                     # this may be caused by either being a redirect
                     wd = pywikibot.ItemPage(self.repo, values[u'wikidata'])
@@ -184,7 +187,8 @@ class KulturnavBotArkDes(KulturnavBot):
                 # since order is last, first create a local rearranged copy
                 if values[u'name']:
                     if KulturnavBotArkDes.foobar(values[u'name']):
-                        # care is needed since item must be get() again after an update
+                        # care is needed since item must be get() again
+                        # after an update for it to show
                         pywikibot.output(u'multiple languages in name of %s (%s)' %
                                          (values['identifier'],
                                           values['wikidata']))
@@ -197,9 +201,14 @@ class KulturnavBotArkDes(KulturnavBot):
                             nameObj = values[u'name'].copy()
                             nameObj['@value'] = name
                             self.addLabelOrAlias(nameObj, architectItem)
+                        elif name.find(',') == -1:
+                            # no comma means just a nickname e.g. Michelangelo
+                            self.addLabelOrAlias(values[u'name'],
+                                                 architectItem)
                         else:
-                            pywikibot.output(u'unexpectedly formatted name: %s' %
-                                             name)
+                            # e.g. more than 1 comma
+                            pywikibot.output(u'unexpectedly formatted '
+                                             u'name: %s' % name)
 
                 # add each property (if new) and source it
                 for pcprop, pcvalue in protoclaims.iteritems():
