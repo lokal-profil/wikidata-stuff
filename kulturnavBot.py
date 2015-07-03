@@ -214,7 +214,7 @@ class KulturnavBot(object):
                             matches.append(obj)
             if len(matches) == 1:
                 return matches[0]
-            else:
+            elif len(matches) > 1:
                 pywikibot.output(u'Possible duplicates: ' % matches)
 
         else:
