@@ -197,13 +197,11 @@ class KulturnavBot(object):
             return
 
         # search for potential matches
-        # onLabs method is stricter and only returns value if a unique result
-        # other method returns the first result
+        matches = []
         if self.onLabs:
             objgen = pagegenerators.PreloadingItemGenerator(
                 self.searchGenerator(
                     name['@value'], name['@language']))
-            matches = []
             for obj in objgen:
                 if u'P%s' % self.IS_A_P in obj.get().get('claims'):
                     # print 'claims:', obj.get().get('claims')[u'P31']
@@ -212,11 +210,6 @@ class KulturnavBot(object):
                         # print u'val:', v.getTarget()
                         if v.getTarget().title() in prop[typ]:
                             matches.append(obj)
-            if len(matches) == 1:
-                return matches[0]
-            elif len(matches) > 1:
-                pywikibot.output(u'Possible duplicates: %s' % matches)
-
         else:
             objgen = pagegenerators.PreloadingItemGenerator(
                 pagegenerators.WikidataItemGenerator(
@@ -240,7 +233,14 @@ class KulturnavBot(object):
                         for v in values:
                             # print u'val:', v.getTarget()
                             if v.getTarget().title() in prop[typ]:
-                                return obj
+                                matches.append(obj)
+
+        # get rid of duplicates then check for uniqueness
+        matches = list(set(matches))
+        if len(matches) == 1:
+            return matches[0]
+        elif len(matches) > 1:
+            pywikibot.output(u'Possible duplicates: %s' % matches)
 
     @staticmethod
     def is_int(s):
