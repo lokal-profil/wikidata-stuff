@@ -3,13 +3,6 @@
 """
 Bot to import and source statements about Architects in KulturNav.
     by Lokal_Profil
-
-Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
-    /bot/wikidata/rijksmuseum_import.py by Multichill
-
-TODO: Should also get json for any items identified on Wikidata but not
-      on KulturNav. More tricky since dataset must then also be checked.
-
 """
 import pywikibot
 from kulturnavBot import KulturnavBot

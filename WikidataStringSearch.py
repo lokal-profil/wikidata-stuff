@@ -3,9 +3,6 @@
 """
 A database hookup (to be run from labs) for doing text string searches
 (SQL LIKE style) in labels, aliases and descriptions of items
-
-TODO:   Throw errors from inputTest
-        Wrap executes in try to deal with fails
 """
 import MySQLdb
 

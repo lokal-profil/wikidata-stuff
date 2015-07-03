@@ -10,25 +10,7 @@ Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
 Author: Lokal_Profil
 License: MIT
 
-TODO:
-* Alla flerspråkiga bör hantera (eller klaga) på list som värde foobar(item)
-    if isinstance(name, dict):
-        name = [name, ]
-* Generalisering - refactoring
-** Stick the general wikidata methods in WikidataToolkit?
-* Logging: added P1248 tags
-* For Place given through internal links.
-    Follow and extract geonames url.
-    Then try:
-        wdq.wmflabs.org/api?q=CLAIM[1566:<geonames id>]
-    if no result then:
-        get <geonames url>/about.rdf and extract gn:wikipediaArticle from which
-        Wikidata entity can be found.
-        e.g. 7b8f28a3-8f97-4bf8-b33d-8d10f3471041 ->
-             8165a3c5-d827-4d0e-82b9-9ad8fb77328b ->
-             http://sws.geonames.org/2711537 ->
-             http://sws.geonames.org/2711537/about.rdf ->
-             http://en.wikipedia.org/wiki/Gothenburg
+See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 """
 import json
 import pywikibot
