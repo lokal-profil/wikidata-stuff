@@ -197,6 +197,8 @@ class KulturnavBot(object):
             return
 
         # search for potential matches
+        # onLabs method is stricter and only returns value if a unique result
+        # other method returns the first result
         if self.onLabs:
             objgen = pagegenerators.PreloadingItemGenerator(
                 self.searchGenerator(
@@ -212,6 +214,8 @@ class KulturnavBot(object):
                             matches.append(obj)
             if len(matches) == 1:
                 return matches[0]
+            else:
+                pywikibot.output(u'Possible duplicates: ' % matches)
 
         else:
             objgen = pagegenerators.PreloadingItemGenerator(
@@ -245,6 +249,32 @@ class KulturnavBot(object):
             return True
         except (ValueError, TypeError):
             return False
+
+    @staticmethod
+    def shuffleNames(nameObj):
+        """
+        Detects if a @value string is "Last, First" and if so returns
+        it as "First Last".
+        Strings without commas are returned as is.
+        Strings with multiple commas result in an None being returned.
+
+        param nameObj = {'@language': 'xx', '@value': 'xxx'}
+        return nameObj|None
+        """
+        name = nameObj['@value']
+        if name.find(',') > 0 and len(name.split(',')) == 2:
+            p = name.split(',')
+            name = u'%s %s' % (p[1].strip(), p[0].strip())
+            nameObj = nameObj.copy()
+            nameObj['@value'] = name
+            return nameObj
+        elif name.find(',') == -1:
+            # no comma means just a nickname e.g. Michelangelo
+            return nameObj
+        else:
+            # e.g. more than 1 comma
+            pywikibot.output(u'unexpectedly formatted name: %s' % name)
+            return None
 
     def addReference(self, item, claim, date, prop):
         """
@@ -282,12 +312,24 @@ class KulturnavBot(object):
         Adds a name as either a label (if none) or an alias
 
         param nameObj = {'@language': 'xx', '@value': 'xxx'}
+                        or a list of such
         """
-        if KulturnavBot.foobar(nameObj):
+        # for a list of entries
+        if isinstance(nameObj, list):
+            for n in nameObj:
+                self.addLabelOrAlias(n, item)
+                # reload item so that next call is aware of made changes
+                item = pywikibot.ItemPage(self.repo, item.title())
+                item.exists()
             return
+
+        # for a single entry
         lang = nameObj['@language']
         name = nameObj['@value']
-        summary = u'%s: Added %s in [%s]' % (self.EDIT_SUMMARY, '%s', lang)
+        summary = u'%s: Added %s in [%s] to %s' % (self.EDIT_SUMMARY,
+                                                   '%s',
+                                                   lang,
+                                                   item.title())
         # look at label
         if not item.labels or lang not in item.labels.keys():
             # add name to label

@@ -158,9 +158,9 @@ class KulturnavBotArkDes(KulturnavBot):
 
             # create ItemPage, bypassing any redirect
             architectItem = self.bypassRedirect(
-                                pywikibot.ItemPage(
-                                    self.repo,
-                                    architectItemTitle))
+                pywikibot.ItemPage(
+                    self.repo,
+                    architectItemTitle))
             # in case of redirect
             architectItemTitle = architectItem.title()
             values[u'wikidata'] = architectItem.title()
@@ -179,29 +179,21 @@ class KulturnavBotArkDes(KulturnavBot):
                 # add name as label/alias
                 # since order is last, first create a local rearranged copy
                 if values[u'name']:
-                    if KulturnavBotArkDes.foobar(values[u'name']):
-                        # care is needed since item must be get() again
-                        # after an update for it to show
-                        pywikibot.output(u'multiple languages in name of %s (%s)' %
-                                         (values['identifier'],
-                                          values['wikidata']))
+                    hitlist = []
+                    if isinstance(values[u'name'], dict):
+                        s = KulturnavBotArkDes.shuffleNames(values[u'name'])
+                        if s is not None:
+                            hitlist.append(s)
+                    elif isinstance(values[u'name'], list):
+                        for n in values[u'name']:
+                            s = KulturnavBotArkDes.shuffleNames(n)
+                            if s is not None:
+                                hitlist.append(s)
                     else:
-                        name = values[u'name']['@value']
-                        if name.find(',') > 0 and \
-                                len(name.split(',')) == 2:
-                            p = name.split(',')
-                            name = u'%s %s' % (p[1].strip(), p[0].strip())
-                            nameObj = values[u'name'].copy()
-                            nameObj['@value'] = name
-                            self.addLabelOrAlias(nameObj, architectItem)
-                        elif name.find(',') == -1:
-                            # no comma means just a nickname e.g. Michelangelo
-                            self.addLabelOrAlias(values[u'name'],
-                                                 architectItem)
-                        else:
-                            # e.g. more than 1 comma
-                            pywikibot.output(u'unexpectedly formatted '
-                                             u'name: %s' % name)
+                        pywikibot.output(u'unexpectedly formatted name'
+                                         u'object: %s' % values[u'name'])
+                    if len(hitlist) > 0:
+                        self.addLabelOrAlias(hitlist, architectItem)
 
                 # add each property (if new) and source it
                 for pcprop, pcvalue in protoclaims.iteritems():
