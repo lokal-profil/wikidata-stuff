@@ -381,9 +381,7 @@ class KulturnavBot(object):
             return item
 
         if item.isRedirectPage():
-            targetPage = item.getRedirectTarget()
-            # targetPage is a Page, so use title to make an ItemPage
-            target = pywikibot.ItemPage(self.repo, targetPage.title())
+            target = item.getRedirectTarget()
             return target
         else:
             return item
