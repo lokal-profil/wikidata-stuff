@@ -250,6 +250,20 @@ class KulturnavBot(object):
         elif len(matches) > 1:
             pywikibot.log(u'Possible duplicates: %s' % matches)
 
+    def kulturnav2Wikidata(self, uuid):
+        """
+        Given a kulturNav uuid this returns the Wikidata entity connected
+        to this uuid through the KULTURNAV_ID_P property (if any).
+
+        NOTE that the WDQ results may be outdated
+        return itemPage|None
+        """
+        if uuid in self.itemIds.keys():
+            qNo = u'Q%d' % self.itemIds[uuid]
+            return pywikibot.ItemPage(self.repo, qNo)
+        else:
+            return None
+
     @staticmethod
     def is_int(s):
         try:
@@ -389,8 +403,7 @@ class KulturnavBot(object):
             return item
 
         if item.isRedirectPage():
-            target = item.getRedirectTarget()
-            return target
+            return item.getRedirectTarget()
         else:
             return item
 
@@ -544,37 +557,36 @@ class KulturnavBot(object):
         of given type in the given dataset which contains Wikidata as a
         given value.
         """
-        urls = {
-            'http%3A%2F%2Fwww.wikidata.org%2Fentity%2FQ*': u'http://www.wikidata.org/entity/',
-            'https%3A%2F%2Fwww.wikidata.org%2Fentity%2FQ*': u'https://www.wikidata.org/entity/'}
-        searchurl = 'http://kulturnav.org/api/search/entityType:%s,entity.dataset_r:%s,%s:%s' % (
-            cls.ENTITY_TYPE,
-            cls.DATASET_ID,
-            cls.MAP_TAG,
-            '%s/%d/%d')
+        patterns = (u'http://www.wikidata.org/entity/',
+                    u'https://www.wikidata.org/entity/')
+        q = '*%2F%2Fwww.wikidata.org%2Fentity%2FQ*'
+        searchurl = 'http://kulturnav.org/api/search/' + \
+                    'entityType:' + cls.ENTITY_TYPE + ',' + \
+                    'entity.dataset_r:' + cls.DATASET_ID + ',' + \
+                    cls.MAP_TAG + ':%s/%d/%d'
         queryurl = 'http://kulturnav.org/%s?format=application/ld%%2Bjson'
 
         # get all id's in KulturNav which link to Wikidata
         wdDict = {}
-        for q, u in urls.iteritems():
-            offset = 0
-            # overviewPage = json.load(urllib2.urlopen(searchurl % (q, offset, maxHits)))
+
+        offset = 0
+        # overviewPage = json.load(urllib2.urlopen(searchurl % (q, offset, maxHits)))
+        searchPage = urllib2.urlopen(searchurl % (q, offset, maxHits))
+        searchData = searchPage.read()
+        overviewPage = json.loads(searchData)
+
+        while len(overviewPage) > 0:
+            for o in overviewPage:
+                sameAs = o[u'properties'][cls.MAP_TAG[:cls.MAP_TAG.rfind('_')]]
+                for s in sameAs:
+                    if s[u'value'].startswith(patterns):
+                        wdDict[o[u'uuid']] = s[u'value'].split('/')[-1]
+                        break
+            # continue
+            offset += maxHits
             searchPage = urllib2.urlopen(searchurl % (q, offset, maxHits))
             searchData = searchPage.read()
             overviewPage = json.loads(searchData)
-
-            while len(overviewPage) > 0:
-                for o in overviewPage:
-                    sameAs = o[u'properties'][cls.MAP_TAG[:cls.MAP_TAG.rfind('_')]]
-                    for s in sameAs:
-                        if s[u'value'].startswith(u):
-                            wdDict[o[u'uuid']] = s[u'value'][len(u):]
-                            break
-                # continue
-                offset += maxHits
-                searchPage = urllib2.urlopen(searchurl % (q, offset, maxHits))
-                searchData = searchPage.read()
-                overviewPage = json.loads(searchData)
 
         # get the record for each of these entries
         for kulturnavId, wikidataId in wdDict.iteritems():
@@ -599,9 +611,9 @@ class KulturnavBot(object):
 
         for arg in pywikibot.handle_args(args):
             for v in if_arg_value(arg, '-cutoff'):
-                cutoff = v
+                cutoff = int(v)
             for v in if_arg_value(arg, '-maxHits'):
-                maxHits = v
+                maxHits = int(v)
 
         kulturnavGenerator = cls.getKulturnavGenerator(maxHits=maxHits)
 

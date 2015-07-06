@@ -18,7 +18,7 @@ import pywikibot
 from kulturnavBot import KulturnavBot
 
 # KulturNav based
-EDIT_SUMMARY = 'KulturnavBot'
+EDIT_SUMMARY = 'KulturnavBot(ArkDes)'
 DATASET_ID = '2b7670e1-b44e-4064-817d-27834b03067c'
 ENTITY_TYPE = 'Person'
 MAP_TAG = 'entity.sameAs_s'
@@ -41,7 +41,7 @@ class KulturnavBotArkDes(KulturnavBot):
             # print count, cutoff
             if cutoff and count >= cutoff:
                 break
-            # Valuesworth searching for
+            # Values worth searching for
             values = {# u'deathPlace': None,
                       u'deathDate': None,
                       # u'birthPlace': None,
