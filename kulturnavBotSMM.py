@@ -75,61 +75,44 @@ class KulturnavBotSMM(KulturnavBot):
     """
     DATASET = None  # set by setDataset()
     GROUP_OF_PEOPLE_Q = '16334295'
+    HUMAN_Q = '5'
+    cutoff = None
 
     def run(self, cutoff=None):
         """
         Starts the robot
         param cutoff: if present limits the number of records added in one go
         """
+        self.cutoff = cutoff
         # switch run method based on DATASET
         if self.DATASET == 'Personer':
-            self.runPerson(cutoff=cutoff)
+            self.runPerson()
         else:
             raise NotImplementedError("Please implement this dataset: %s"
                                       % self.DATASET)
 
-    def runPerson(self, cutoff=None):
-        count = 0
-        for hit in self.generator:
-            # print count, cutoff
-            if cutoff and count >= cutoff:
-                break
-            # Values worth searching for
-            values = {# u'deathPlace': None,
-                      u'deathDate': None,
-                      # u'birthPlace': None,
-                      u'birthDate': None,
-                      u'firstName': None,
-                      u'gender': None,
-                      u'lastName': None,
-                      u'name': None,
-                      # u'person.nationality': None,  # requires geonames or similar
-                      # required
-                      u'identifier': None,
-                      u'modified': None,
-                      u'seeAlso': None,
-                      u'sameAs': None,
-                      # not expected
-                      u'wikidata': None,
-                      u'libris-id': None,
-                      u'viaf-id': None}
+    def runPerson(self):
+        personValues = {
+            # u'deathPlace': None,
+            u'deathDate': None,
+            # u'birthPlace': None,
+            u'birthDate': None,
+            u'firstName': None,
+            u'gender': None,
+            u'lastName': None,
+            u'name': None
+            # u'person.nationality': None
+        }
 
-            # populate values
-            if not self.populateValues(values, hit):
-                # continue with next hit if problem was encounterd
-                continue
-
-            # find the matching wikidata item
-            hitItem = self.wikidataMatch(values)
-
-            # convert values to potential claims
+        def personClaims(self, values):
             protoclaims = {
-                u'P31': pywikibot.ItemPage(self.repo, u'Q5'),  # instance of
+                u'P31': pywikibot.ItemPage(  # instance of
+                    self.repo,
+                    u'Q%s' % self.HUMAN_Q)
                 }
             # P106 occupation
             # P27 nationality
 
-            protoclaims[u'P%s' % self.KULTURNAV_ID_P] = values[u'identifier']
             # if values[u'deathPlace']:
             #    protoclaims[u'P20'] = self.dbpedia2Wikidata(values[u'deathPlace'])
             if values[u'deathDate']:
@@ -146,6 +129,66 @@ class KulturnavBotSMM(KulturnavBot):
             if values[u'lastName']:
                 protoclaims[u'P734'] = self.dbName(values[u'lastName'],
                                                    u'lastName')
+            return protoclaims
+
+        def personTest(self, hitItem):
+            group_item = pywikibot.ItemPage(
+                self.repo,
+                u'Q%s' % self.GROUP_OF_PEOPLE_Q)
+            if self.hasClaim('P%s' % self.IS_A_P, group_item, hitItem):
+                    pywikibot.output(u'%s is matched to a group of people, '
+                                     u'FIXIT' % hitItem.title())
+                    return False
+            else:
+                    return True
+
+        # pass settingson to runLayout()
+        self.runLayout(datasetValues=personValues,
+                       datasetProtoclaims=personClaims,
+                       datasetSanityTest=personTest,
+                       shuffle=True)
+
+    def runLayout(self, datasetValues, datasetProtoclaims,
+                  datasetSanityTest, shuffle):
+        """
+        The basic layout of a run. It should be called for a dataset
+        specific run which sets the parameters.
+
+        param datasetValues: a dict of additional values to look for
+        param datasetProtoclaims: a function for populating protoclaims
+        param datasetSanityTest: a function which must return true for
+                                 results to be written to Wikidata
+        param shuffle: whether name/title/alias is shuffled or not
+                       i.e. if name = last, first
+        """
+        count = 0
+        for hit in self.generator:
+            # print count, cutoff
+            if self.cutoff and count >= self.cutoff:
+                break
+            # Required values to searching for
+            values = {u'identifier': None,
+                      u'modified': None,
+                      u'seeAlso': None,
+                      u'sameAs': None,
+                      # not expected
+                      u'wikidata': None,
+                      u'libris-id': None,
+                      u'viaf-id': None}
+            values.update(datasetValues)
+
+            # populate values
+            if not self.populateValues(values, hit):
+                # continue with next hit if problem was encounterd
+                continue
+
+            # find the matching wikidata item
+            hitItem = self.wikidataMatch(values)
+
+            # convert values to potential claims
+            protoclaims = datasetProtoclaims(self, values)
+
+            protoclaims[u'P%s' % self.KULTURNAV_ID_P] = values[u'identifier']
             if values[u'libris-id']:
                 protoclaims[u'P906'] = values[u'libris-id']
             if values[u'viaf-id']:
@@ -154,18 +197,12 @@ class KulturnavBotSMM(KulturnavBot):
             # Add information if a match was found
             if hitItem and hitItem.exists():
 
-                # make sure it is not matched to a group of people
-                if self.hasClaim('P%s' % self.IS_A_P,
-                                 pywikibot.ItemPage(
-                                    self.repo,
-                                    u'Q%s' % self.GROUP_OF_PEOPLE_Q),
-                                 hitItem):
-                    pywikibot.output(u'%s is matched to a group of people, '
-                                     u'FIXIT' % values[u'wikidata'])
+                # make sure it passes the sanityTest
+                if not datasetSanityTest(self, hitItem):
                     continue
 
                 # add name as label/alias
-                self.addNames(values[u'name'], hitItem, shuffle=True)
+                self.addNames(values[u'name'], hitItem, shuffle=shuffle)
 
                 # get the "last modified" timestamp
                 date = self.dbDate(values[u'modified'])
