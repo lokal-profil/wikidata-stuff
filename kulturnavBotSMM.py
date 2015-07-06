@@ -146,10 +146,11 @@ class KulturnavBotSMM(KulturnavBot):
         self.runLayout(datasetValues=personValues,
                        datasetProtoclaims=personClaims,
                        datasetSanityTest=personTest,
+                       label=u'name',
                        shuffle=True)
 
     def runLayout(self, datasetValues, datasetProtoclaims,
-                  datasetSanityTest, shuffle):
+                  datasetSanityTest, label, shuffle):
         """
         The basic layout of a run. It should be called for a dataset
         specific run which sets the parameters.
@@ -158,7 +159,9 @@ class KulturnavBotSMM(KulturnavBot):
         param datasetProtoclaims: a function for populating protoclaims
         param datasetSanityTest: a function which must return true for
                                  results to be written to Wikidata
-        param shuffle: whether name/title/alias is shuffled or not
+        param label: the key in values to be used for label/alias.
+                     set to None to skip addNames()
+        param shuffle: whether name/label/alias is shuffled or not
                        i.e. if name = last, first
         """
         count = 0
@@ -202,7 +205,8 @@ class KulturnavBotSMM(KulturnavBot):
                     continue
 
                 # add name as label/alias
-                self.addNames(values[u'name'], hitItem, shuffle=shuffle)
+                if label is not None:
+                    self.addNames(values[label], hitItem, shuffle=shuffle)
 
                 # get the "last modified" timestamp
                 date = self.dbDate(values[u'modified'])
@@ -214,7 +218,7 @@ class KulturnavBotSMM(KulturnavBot):
             count += 1
 
         # done
-        pywikibot.output(u'Went over %d entries' % count)
+        pywikibot.output(u'Handled %d entries' % count)
 
     def populateValues(self, values, hit):
         """
