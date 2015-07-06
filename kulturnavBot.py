@@ -326,10 +326,10 @@ class KulturnavBot(object):
         # for a single entry
         lang = nameObj['@language']
         name = nameObj['@value']
-        summary = u'%s: Added %s in [%s] to %s' % (self.EDIT_SUMMARY,
-                                                   '%s',
-                                                   lang,
-                                                   item.title())
+        summary = u'%s: Added [%s] %s to [[%s]]' % (self.EDIT_SUMMARY,
+                                                       lang,
+                                                       '%s',
+                                                       item.title())
         # look at label
         if not item.labels or lang not in item.labels.keys():
             # add name to label
