@@ -220,7 +220,7 @@ class KulturnavBot(object):
                             matches.append(obj)
         else:
             objgen = pagegenerators.PreloadingItemGenerator(
-                pagegenerators.WikidataItemGenerator(
+                pagegenerators.WikibaseItemGenerator(
                     pagegenerators.SearchPageGenerator(
                         name['@value'], step=None, total=10,
                         namespaces=[0], site=self.repo)))
