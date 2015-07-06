@@ -4,11 +4,19 @@
 Bot to import and sourced statements about entities also present in
 KulturNav (https://www.wikidata.org/wiki/Q16323066).
 
+usage:
+    python kulturnavBot.py [OPTIONS]
+
 Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
     /bot/wikidata/rijksmuseum_import.py by Multichill
 
 Author: Lokal_Profil
 License: MIT
+
+Options (may be omitted):
+  -cutoff:INT       number of entries to process before terminating
+  -maxHits:INT      number of items to request at a time from Kulturnav
+                    (default 250)
 
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 """
@@ -240,7 +248,7 @@ class KulturnavBot(object):
         if len(matches) == 1:
             return matches[0]
         elif len(matches) > 1:
-            pywikibot.output(u'Possible duplicates: %s' % matches)
+            pywikibot.log(u'Possible duplicates: %s' % matches)
 
     @staticmethod
     def is_int(s):
@@ -327,9 +335,9 @@ class KulturnavBot(object):
         lang = nameObj['@language']
         name = nameObj['@value']
         summary = u'%s: Added [%s] %s to [[%s]]' % (self.EDIT_SUMMARY,
-                                                       lang,
-                                                       '%s',
-                                                       item.title())
+                                                    lang,
+                                                    '%s',
+                                                    item.title())
         # look at label
         if not item.labels or lang not in item.labels.keys():
             # add name to label
@@ -580,7 +588,21 @@ class KulturnavBot(object):
                 print jsonData
 
     @classmethod
-    def main(cls, cutoff=None, maxHits=250):
+    def main(cls, *args):
+        # handle arguments
+        cutoff = None
+        maxHits = 250
+
+        def if_arg_value(arg, name):
+            if arg.startswith(name):
+                yield arg[len(name) + 1:]
+
+        for arg in pywikibot.handle_args(args):
+            for v in if_arg_value(arg, '-cutoff'):
+                cutoff = v
+            for v in if_arg_value(arg, '-maxHits'):
+                maxHits = v
+
         kulturnavGenerator = cls.getKulturnavGenerator(maxHits=maxHits)
 
         kulturnavBot = cls(kulturnavGenerator)
@@ -594,13 +616,4 @@ class KulturnavBot(object):
         return False
 
 if __name__ == "__main__":
-    usage = u'Usage:\tpython kulturnavBot.py cutoff\n' \
-            u'\twhere cutoff is an optional integer'
-    import sys
-    argv = sys.argv[1:]
-    if len(argv) == 0:
-        KulturnavBot.main()
-    elif len(argv) == 1:
-        KulturnavBot.main(cutoff=int(argv[0]))
-    else:
-        print usage
+    KulturnavBot.main()

@@ -2,7 +2,17 @@
 # -*- coding: utf-8 -*-
 """
 Bot to import and source statements about Architects in KulturNav.
-    by Lokal_Profil
+
+usage:
+    python kulturnavBotArkDes.py [OPTIONS]
+
+Author: Lokal_Profil
+License: MIT
+
+Options (may be omitted):
+  -cutoff:INT       number of entries to process before terminating
+  -maxHits:INT      number of items to request at a time from Kulturnav
+                    (default 250)
 """
 import pywikibot
 from kulturnavBot import KulturnavBot
@@ -222,7 +232,7 @@ class KulturnavBotArkDes(KulturnavBot):
         pywikibot.output(u'Went over %d entries' % count)
 
     @classmethod
-    def main(cls, cutoff=None, maxHits=250):
+    def main(cls, *args):
         cls.setVariables(
             dataset_q=DATASET_Q,
             dataset_id=DATASET_ID,
@@ -230,17 +240,8 @@ class KulturnavBotArkDes(KulturnavBot):
             map_tag=MAP_TAG,
             edit_summary=EDIT_SUMMARY
         )
-        super(KulturnavBotArkDes, cls).main(cutoff, maxHits)
+        super(KulturnavBotArkDes, cls).main(*args)
 
 
 if __name__ == "__main__":
-    usage = u'Usage:\tpython kulturnavBotArkDes.py cutoff\n' \
-            u'\twhere cutoff is an optional integer'
-    import sys
-    argv = sys.argv[1:]
-    if len(argv) == 0:
-        KulturnavBotArkDes.main()
-    elif len(argv) == 1:
-        KulturnavBotArkDes.main(cutoff=int(argv[0]))
-    else:
-        print usage
+    KulturnavBotArkDes.main()
