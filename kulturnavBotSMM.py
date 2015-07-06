@@ -135,7 +135,7 @@ class KulturnavBotSMM(KulturnavBot):
             group_item = pywikibot.ItemPage(
                 self.repo,
                 u'Q%s' % self.GROUP_OF_PEOPLE_Q)
-            if self.hasClaim('P%s' % self.IS_A_P, group_item, hitItem):
+            if self.wd.hasClaim('P%s' % self.IS_A_P, group_item, hitItem):
                     pywikibot.output(u'%s is matched to a group of people, '
                                      u'FIXIT' % hitItem.title())
                     return False
@@ -211,8 +211,11 @@ class KulturnavBotSMM(KulturnavBot):
                 # get the "last modified" timestamp
                 date = self.dbDate(values[u'modified'])
 
+                # construct a refObject
+                ref = self.makeRef(date)
+
                 # add each property (if new) and source it
-                self.addProperties(protoclaims, hitItem, date)
+                self.addProperties(protoclaims, hitItem, ref)
 
             # allow for limited runs
             count += 1
@@ -306,7 +309,7 @@ class KulturnavBotSMM(KulturnavBot):
             return None
 
         # create ItemPage, bypassing any redirect
-        hitItem = self.bypassRedirect(
+        hitItem = self.wd.bypassRedirect(
             pywikibot.ItemPage(
                 self.repo,
                 hitItemTitle))
@@ -343,7 +346,7 @@ class KulturnavBotSMM(KulturnavBot):
             else:
                 self.addLabelOrAlias(names, hitItem)
 
-    def addProperties(self, protoclaims, hitItem, date):
+    def addProperties(self, protoclaims, hitItem, ref):
         """
         add each property (if new) and source it
         """
@@ -352,20 +355,17 @@ class KulturnavBotSMM(KulturnavBot):
                 if isinstance(pcvalue, unicode) and \
                         pcvalue in (u'somevalue', u'novalue'):
                     # special cases
-                    self.addNewSpecialClaim(pcprop, pcvalue,
-                                            hitItem, date)
+                    self.wd.addNewSpecialClaim(pcprop, pcvalue,
+                                               hitItem, ref)
                 elif pcprop == u'P%s' % self.KULTURNAV_ID_P:
-                    qual = {
-                        u'prop': u'P%s' % self.CATALOG_P,
-                        u'itis': pywikibot.ItemPage(
-                            self.repo,
-                            u'Q%s' % self.DATASET_Q),
-                        u'force': True}
-                    self.addNewClaim(pcprop, pcvalue, hitItem,
-                                     date, qual=qual)
+                    qual = self.makeQual(self.CATALOG_P,
+                                         self.DATASET_Q,
+                                         force=True)
+                    self.wd.addNewClaim(pcprop, pcvalue, hitItem,
+                                        ref, qual=qual)
                 else:
-                    self.addNewClaim(pcprop, pcvalue,
-                                     hitItem, date)
+                    self.wd.addNewClaim(pcprop, pcvalue,
+                                        hitItem, ref)
 
     @classmethod
     def setDataset(cls, *args):

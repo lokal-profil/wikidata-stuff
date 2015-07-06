@@ -25,10 +25,7 @@ import pywikibot
 from pywikibot import pagegenerators
 import urllib2
 import pywikibot.data.wikidataquery as wdquery
-
-# Needed only for WikidataStringSearch
-import os.path
-from WikidataStringSearch import WikidataStringSearch
+from WikidataStuff import WikidataStuff
 
 FOO_BAR = u'A multilingual result (or one with multiple options) was ' \
           u'encountered but I have yet to support that functionality'
@@ -53,20 +50,15 @@ class KulturnavBot(object):
         """
         Arguments:
             * generator    - A generator that yields Dict objects.
-
         """
         self.generator = dictGenerator
         self.repo = pywikibot.Site().data_repository()
 
+        # trigger wdq query
         self.itemIds = self.fillCache()
 
-        # check if I am running on labs, for WikidataStringSearch
-
-        self.onLabs = os.path.isfile(
-            os.path.expanduser("~") +
-            "/replica.my.cnf")
-        if self.onLabs:
-            self.wdss = WikidataStringSearch()
+        # set up WikidataStuff object
+        self.wd = WikidataStuff(self.repo)
 
     @classmethod
     def setVariables(cls, dataset_q, dataset_id, entity_type,
@@ -113,7 +105,7 @@ class KulturnavBot(object):
         """
         raise NotImplementedError("Please Implement this method")
 
-    # KulturNav specific ones
+    # KulturNav specific functions
     def dbpedia2Wikidata(self, item):
         """
         Converts a dbpedia reference to the equivalent Wikidata item,
@@ -185,10 +177,6 @@ class KulturnavBot(object):
         else:
             return pywikibot.ItemPage(self.repo, known[item])
 
-    def searchGenerator(self, text, language):
-        for q in self.wdss.search(text, language=language):
-            yield pywikibot.ItemPage(self.repo, q)
-
     def dbName(self, name, typ):
         """
         Given a plaintext name (first or last) this checks if there is
@@ -206,9 +194,9 @@ class KulturnavBot(object):
 
         # search for potential matches
         matches = []
-        if self.onLabs:
+        if self.wd.onLabs:
             objgen = pagegenerators.PreloadingItemGenerator(
-                self.searchGenerator(
+                self.wd.searchGenerator(
                     name['@value'], name['@language']))
             for obj in objgen:
                 if u'P%s' % self.IS_A_P in obj.get().get('claims'):
@@ -298,36 +286,31 @@ class KulturnavBot(object):
             pywikibot.output(u'unexpectedly formatted name: %s' % name)
             return None
 
-    def addReference(self, item, claim, date, prop):
+    def makeRef(self, date):
         """
-        Add a reference with a stated in object and a retrieval date
-        param date: must be a pywikibot.WbTime object
+        Make a correctly formatted ref object for claims
         """
-        statedin = pywikibot.Claim(self.repo, u'P%s' % self.STATED_IN_P)
-        itis = pywikibot.ItemPage(self.repo, u'Q%s' % self.DATASET_Q)
-        statedin.setTarget(itis)
+        ref = {
+            'source_P': u'P%s' % self.STATED_IN_P,
+            'source': pywikibot.ItemPage(self.repo,
+                                         u'Q%s' % self.DATASET_Q),
+            'time_P': u'P%s' % self.PUBLICATION_P,
+            'time': date,
+        }
+        return ref
 
-        # check if already present (with any date)
-        if self.hasRef(u'P%s' % self.STATED_IN_P, itis, claim):
-            return False
-
-        # if not then add
-        retrieved = pywikibot.Claim(self.repo, u'P%s' % self.PUBLICATION_P)
-        retrieved.setTarget(date)
-
-        try:
-            claim.addSources([statedin, retrieved])  # writes to database
-            pywikibot.output('Adding reference claim to %s in %s' %
-                             (prop, item))
-            return True
-        except pywikibot.data.api.APIError, e:
-            if e.code == u'modification-failed':
-                pywikibot.output(u'modification-failed error: '
-                                 u'ref to %s in %s' % (prop, item))
-                return False
-            else:
-                pywikibot.output(e)
-                exit(1)
+    def makeQual(self, P, Q, force=False):
+        """
+        Make a correctly formatted qualifier object for claims
+        """
+        qual = {
+            u'prop': u'P%s' % P,
+            u'itis': pywikibot.ItemPage(
+                self.repo,
+                u'Q%s' % Q),
+            u'force': force
+        }
+        return qual
 
     def addLabelOrAlias(self, nameObj, item):
         """
@@ -340,215 +323,14 @@ class KulturnavBot(object):
         if isinstance(nameObj, list):
             for n in nameObj:
                 self.addLabelOrAlias(n, item)
-                # reload item so that next call is aware of made changes
+                # reload item so that next call is aware of any changes
                 item = pywikibot.ItemPage(self.repo, item.title())
                 item.exists()
             return
 
         # for a single entry
-        lang = nameObj['@language']
-        name = nameObj['@value']
-        summary = u'%s: Added [%s] %s to [[%s]]' % (self.EDIT_SUMMARY,
-                                                    lang,
-                                                    '%s',
-                                                    item.title())
-        # look at label
-        if not item.labels or lang not in item.labels.keys():
-            # add name to label
-            labels = {lang: name}
-            summary %= 'label'
-            item.editLabels(labels, summary=summary)
-            pywikibot.output(summary)
-        elif name != item.labels[lang]:
-            # look at aliases
-            summary %= 'alias'
-            if not item.aliases or lang not in item.aliases.keys():
-                aliases = {lang: [name, ]}
-                item.editAliases(aliases, summary=summary)
-                pywikibot.output(summary)
-            elif name not in item.aliases[lang]:
-                aliases = {lang: item.aliases[lang]}
-                aliases[lang].append(name)
-                item.editAliases(aliases, summary=summary)
-                pywikibot.output(summary)
-
-    # some more generic Wikidata methods
-    def hasRef(self, prop, itis, claim):
-        """
-        Checks if a given reference is already present at the given claim
-        """
-        if claim.sources:
-            for i in range(0, len(claim.sources)):
-                if prop in claim.sources[i].keys():
-                    for s in claim.sources[i][prop]:
-                        if self.bypassRedirect(s.getTarget()) == itis:
-                            return True
-                        # else:
-                        #    pywikibot.output(s.getTarget())
-        return False
-
-    def bypassRedirect(self, item):
-        """
-        Checks if an item is a Redirect, and if so returns the
-        target item instead of the original.
-        This is needed for itis comparisons
-
-        Not that this should either be called before an
-        item.exists()/item.get() call or a new one must be made afterwards
-
-        return ItemPage
-        """
-        # skip all non-ItemPage
-        if not isinstance(item, pywikibot.ItemPage):
-            return item
-
-        if item.isRedirectPage():
-            return item.getRedirectTarget()
-        else:
-            return item
-
-    def addQualifier(self, item, claim, prop, itis):
-        """
-        Check if a qualifier is present at the given claim,
-        otherwise add it
-
-        Known issue: This will qualify an already referenced claim
-            this must therefore be tested before
-        """
-        # check if already present
-        if self.hasQualifier(prop, itis, claim):
-            return False
-
-        qClaim = pywikibot.Claim(self.repo, prop)
-        qClaim.setTarget(itis)
-
-        try:
-            claim.addQualifier(qClaim)  # writes to database
-            pywikibot.output('Adding qualifier to %s in %s' % (prop, item))
-            return True
-        except pywikibot.data.api.APIError, e:
-            if e.code == u'modification-failed':
-                pywikibot.output(u'modification-failed error: '
-                                 u'qualifier to %s in %s' % (prop, item))
-                return False
-            else:
-                pywikibot.output(e)
-                exit(1)
-
-    def hasQualifier(self, prop, itis, claim):
-        """
-        Checks if qualifier is already present
-        """
-        if claim.qualifiers:
-            if prop in claim.qualifiers.keys():
-                for s in claim.qualifiers[prop]:
-                    if self.bypassRedirect(s.getTarget()) == itis:
-                        return True
-                    # else:
-                    #    pywikibot.output(s.getTarget())
-        return False
-
-    def hasClaim(self, prop, itis, item):
-        """
-        Checks if the claim already exists, if so returns that claim
-        """
-        if prop in item.claims.keys():
-            for claim in item.claims[prop]:
-                if self.bypassRedirect(claim.getTarget()) == itis:
-                    return claim
-        return None
-
-    def hasSpecialClaim(self, prop, snaktype, item):
-        """
-        hasClaim() in the special case of 'somevalue' and 'novalue'
-        """
-        if prop in item.claims.keys():
-            for claim in item.claims[prop]:
-                if claim.getSnakType() == snaktype:
-                    return claim
-        return None
-
-    def addNewClaim(self, prop, itis, item, date, qual=None, snaktype=None):
-        """
-        Given an item, a property and a claim (in the itis format) this
-        either adds the sourced claim, or sources it if already existing
-
-        Known issues:
-        * Only allows one qualifier to be added
-        * Will source a claim with other qualifiers
-
-        prop: a PXX code, unicode
-        itis: a valid claim e.g. pywikibot.ItemPage(repo, "Q6581097")
-        item: the item being checked
-        qual: optional qualifier to add to claim, dict{prop, itis, force}
-            prop and itis: are formulated as those for the claim
-            force: (bool) add even to a sourced claim
-        snaktype: somevalue/novalue
-            (should only ever be set through addNewSpecialClaim)
-        """
-        claim = pywikibot.Claim(self.repo, prop)
-
-        # handle special cases
-        if snaktype is None:
-            claim.setTarget(itis)
-            priorClaim = self.hasClaim(prop, itis, item)
-        else:
-            claim.setSnakType(snaktype)
-            priorClaim = self.hasSpecialClaim(prop, snaktype, item)
-
-        validQualifier = (
-            qual is not None and
-            isinstance(qual, dict) and
-            set(qual.keys()) == set(['prop', 'itis', 'force'])
-        )
-
-        if priorClaim and validQualifier:
-            # cannot add a qualifier to a previously sourced claim
-            if not priorClaim.sources:
-                # if unsourced
-                self.addQualifier(item, priorClaim,
-                                  qual[u'prop'], qual[u'itis'])
-                self.addReference(item, priorClaim, date, prop)
-            elif self.hasQualifier(qual[u'prop'], qual[u'itis'], priorClaim):
-                # if qualifier already present
-                self.addReference(item, priorClaim, date, prop)
-            elif qual[u'force']:
-                # if force is set
-                self.addQualifier(item, priorClaim,
-                                  qual[u'prop'], qual[u'itis'])
-                self.addReference(item, priorClaim, date, prop)
-            else:
-                # add new qualified claim
-                item.addClaim(claim)
-                pywikibot.output('Adding %s claim to %s' % (prop, item))
-                self.addQualifier(item, claim, qual[u'prop'], qual[u'itis'])
-                self.addReference(item, claim, date, prop)
-        elif priorClaim:
-            self.addReference(item, priorClaim, date, prop)
-        else:
-            item.addClaim(claim)
-            pywikibot.output('Adding %s claim to %s' % (prop, item))
-            if validQualifier:
-                self.addQualifier(item, claim, qual[u'prop'], qual[u'itis'])
-            self.addReference(item, claim, date, prop)
-
-    def addNewSpecialClaim(self, prop, snaktype, item, date, qual=None):
-        """
-        addNewClaim() but for the special 'somevalue' and 'novalue'
-        """
-        if snaktype not in ['somevalue', 'novalue']:
-            pywikibot.output(u'You passed a non-allowed snakvalue to '
-                             u'addNewSpecialClaim(): %s' % snaktype)
-            exit(1)
-
-        # pass it on to addNewClaim with itis=None
-        self.addNewClaim(
-            prop,
-            None,
-            item,
-            date,
-            qual=qual,
-            snaktype=snaktype)
+        self.wd.addLabelOrAlias(nameObj['@language'], nameObj['@value'],
+                                item, prefix=self.EDIT_SUMMARY)
 
     @classmethod
     def getKulturnavGenerator(cls, maxHits=500):
