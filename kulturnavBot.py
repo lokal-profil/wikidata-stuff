@@ -105,6 +105,224 @@ class KulturnavBot(object):
         """
         raise NotImplementedError("Please Implement this method")
 
+    def runLayout(self, datasetValues, datasetProtoclaims,
+                  datasetSanityTest, label, shuffle):
+        """
+        The basic layout of a run. It should be called for a dataset
+        specific run which sets the parameters.
+
+        param datasetValues: a dict of additional values to look for
+        param datasetProtoclaims: a function for populating protoclaims
+        param datasetSanityTest: a function which must return true for
+                                 results to be written to Wikidata
+        param label: the key in values to be used for label/alias.
+                     set to None to skip addNames()
+        param shuffle: whether name/label/alias is shuffled or not
+                       i.e. if name = last, first
+        """
+        count = 0
+        for hit in self.generator:
+            # print count, cutoff
+            if self.cutoff and count >= self.cutoff:
+                break
+            # Required values to searching for
+            values = {u'identifier': None,
+                      u'modified': None,
+                      u'seeAlso': None,
+                      u'sameAs': None,
+                      # not expected
+                      u'wikidata': None,
+                      u'libris-id': None,
+                      u'viaf-id': None}
+            values.update(datasetValues)
+
+            # populate values
+            if not self.populateValues(values, hit):
+                # continue with next hit if problem was encounterd
+                continue
+
+            # find the matching wikidata item
+            hitItem = self.wikidataMatch(values)
+
+            # convert values to potential claims
+            protoclaims = datasetProtoclaims(self, values)
+
+            protoclaims[u'P%s' % self.KULTURNAV_ID_P] = values[u'identifier']
+            if values[u'libris-id']:
+                protoclaims[u'P906'] = values[u'libris-id']
+            if values[u'viaf-id']:
+                protoclaims[u'P214'] = values[u'viaf-id']
+
+            # Add information if a match was found
+            if hitItem and hitItem.exists():
+
+                # make sure it passes the sanityTest
+                if not datasetSanityTest(self, hitItem):
+                    continue
+
+                # add name as label/alias
+                if label is not None:
+                    self.addNames(values[label], hitItem, shuffle=shuffle)
+
+                # get the "last modified" timestamp
+                date = self.dbDate(values[u'modified'])
+
+                # construct a refObject
+                ref = self.makeRef(date)
+
+                # add each property (if new) and source it
+                self.addProperties(protoclaims, hitItem, ref)
+
+            # allow for limited runs
+            count += 1
+
+        # done
+        pywikibot.output(u'Handled %d entries' % count)
+
+    def populateValues(self, values, hit):
+        """
+        given a list of values and a kulturnav hit, populate the values
+        and check if result is problem free
+
+        return bool problemFree
+        """
+        problemFree = True
+        for entries in hit[u'@graph']:
+            for k, v in entries.iteritems():
+                if k in values.keys():
+                    if values[k] is None:
+                        values[k] = v
+                    else:
+                        pywikibot.output(u'duplicate entries for %s' % k)
+                        problemFree = False
+
+        # the minimum which must have been identified
+        if values[u'identifier'] is None:
+            pywikibot.output(u'Could not isolate the identifier from the '
+                             u'KulturNav object! JSON layout must have '
+                             u'changed. Crashing!')
+            exit(1)
+
+        # dig into sameAs and seeAlso
+        # each can be either a list or a str/unicode
+        if isinstance(values[u'sameAs'], (str, unicode)):
+            values[u'sameAs'] = [values[u'sameAs'], ]
+        if values[u'sameAs'] is not None:
+            for sa in values[u'sameAs']:
+                if u'wikidata' in sa:
+                    values[u'wikidata'] = sa.split('/')[-1]
+                elif u'libris-id' in values.keys() and \
+                        u'libris.kb.se/auth/' in sa:
+                    values[u'libris-id'] = sa.split('/')[-1]
+                elif u'viaf-id' in values.keys() and \
+                        u'viaf.org/viaf/' in sa:
+                    values[u'viaf-id'] = sa.split('/')[-1]
+        # we only care about seeAlso if we didn't find a Wikidata link
+        if values[u'wikidata'] is None:
+            if isinstance(values[u'seeAlso'], (str, unicode)):
+                values[u'seeAlso'] = [values[u'seeAlso'], ]
+            for sa in values[u'seeAlso']:
+                if u'wikipedia' in sa:
+                    pywikibot.output(u'Found a Wikipedia link but no '
+                                     u'Wikidata link: %s %s' %
+                                     (sa, values[u'identifier']))
+            problemFree = False
+
+        if not problemFree:
+            pywikibot.output(u'Found an issue with %s (%s), skipping' %
+                             (values['identifier'], values['wikidata']))
+        return problemFree
+
+    def wikidataMatch(self, values):
+        """
+        Finds the matching wikidata item
+        checks Wikidata first, then kulturNav
+
+        return ItemPage|None the matching item
+        """
+        if values[u'identifier'] in self.itemIds:
+            hitItemTitle = u'Q%s' % \
+                (self.itemIds.get(values[u'identifier']),)
+            if values[u'wikidata'] != hitItemTitle:
+                # this may be caused by either being a redirect
+                wd = pywikibot.ItemPage(self.repo, values[u'wikidata'])
+                wi = pywikibot.ItemPage(self.repo, hitItemTitle)
+                if wd.isRedirectPage() and wd.getRedirectTarget() == wi:
+                    pass
+                elif wi.isRedirectPage() and wi.getRedirectTarget() == wd:
+                    pass
+                else:
+                    pywikibot.output(
+                        u'Identifier missmatch (skipping): '
+                        u'%s, %s, %s' % (values[u'identifier'],
+                                         values[u'wikidata'],
+                                         hitItemTitle))
+                    return None
+        elif values[u'wikidata']:
+            hitItemTitle = values[u'wikidata']
+        else:
+            # no match found
+            return None
+
+        # create ItemPage, bypassing any redirect
+        hitItem = self.wd.bypassRedirect(
+            pywikibot.ItemPage(
+                self.repo,
+                hitItemTitle))
+        # in case of redirect
+        values[u'wikidata'] = hitItem.title()
+
+        return hitItem
+
+    def addNames(self, names, hitItem, shuffle=False):
+        """
+        Given a nameObj or a list of such this prepares them for
+        addLabelOrAlias()
+
+        param: shuffle bool if name order is last, first then this
+               creates a local rearranged copy
+        """
+        if names:
+            if shuffle:
+                namelist = []
+                if isinstance(names, dict):
+                    s = KulturnavBot.shuffleNames(names)
+                    if s is not None:
+                        namelist.append(s)
+                elif isinstance(names, list):
+                    for n in names:
+                        s = KulturnavBot.shuffleNames(n)
+                        if s is not None:
+                            namelist.append(s)
+                else:
+                    pywikibot.output(u'unexpectedly formatted name'
+                                     u'object: %s' % names)
+                if len(namelist) > 0:
+                    self.addLabelOrAlias(namelist, hitItem)
+            else:
+                self.addLabelOrAlias(names, hitItem)
+
+    def addProperties(self, protoclaims, hitItem, ref):
+        """
+        add each property (if new) and source it
+        """
+        for pcprop, pcvalue in protoclaims.iteritems():
+            if pcvalue:
+                if isinstance(pcvalue, unicode) and \
+                        pcvalue in (u'somevalue', u'novalue'):
+                    # special cases
+                    self.wd.addNewSpecialClaim(pcprop, pcvalue,
+                                               hitItem, ref)
+                elif pcprop == u'P%s' % self.KULTURNAV_ID_P:
+                    qual = self.makeQual(self.CATALOG_P,
+                                         self.DATASET_Q,
+                                         force=True)
+                    self.wd.addNewClaim(pcprop, pcvalue, hitItem,
+                                        ref, qual=qual)
+                else:
+                    self.wd.addNewClaim(pcprop, pcvalue,
+                                        hitItem, ref)
+
     # KulturNav specific functions
     def dbpedia2Wikidata(self, item):
         """
@@ -314,7 +532,8 @@ class KulturnavBot(object):
 
     def addLabelOrAlias(self, nameObj, item):
         """
-        Adds a name as either a label (if none) or an alias
+        Adds a name as either a label (if none) or an alias.
+        Essentially a filter for the more generic method in WikidatStuff
 
         param nameObj = {'@language': 'xx', '@value': 'xxx'}
                         or a list of such
