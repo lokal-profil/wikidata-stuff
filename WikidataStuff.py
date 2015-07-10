@@ -125,25 +125,18 @@ class WikidataStuff(object):
                 pywikibot.output(e)
                 exit(1)
 
-    def bypassRedirect(self, item):
+    def hasQualifier(self, prop, itis, claim):
         """
-        Checks if an item is a Redirect, and if so returns the
-        target item instead of the original.
-        This is needed for itis comparisons
-
-        Not that this should either be called before an
-        item.exists()/item.get() call or a new one must be made afterwards
-
-        return ItemPage
+        Checks if qualifier is already present
         """
-        # skip all non-ItemPage
-        if not isinstance(item, pywikibot.ItemPage):
-            return item
-
-        if item.isRedirectPage():
-            return item.getRedirectTarget()
-        else:
-            return item
+        if claim.qualifiers:
+            if prop in claim.qualifiers.keys():
+                for s in claim.qualifiers[prop]:
+                    if self.bypassRedirect(s.getTarget()) == itis:
+                        return True
+                    # else:
+                    #    pywikibot.output(s.getTarget())
+        return False
 
     def addQualifier(self, item, claim, prop, itis):
         """
@@ -172,19 +165,6 @@ class WikidataStuff(object):
             else:
                 pywikibot.output(e)
                 exit(1)
-
-    def hasQualifier(self, prop, itis, claim):
-        """
-        Checks if qualifier is already present
-        """
-        if claim.qualifiers:
-            if prop in claim.qualifiers.keys():
-                for s in claim.qualifiers[prop]:
-                    if self.bypassRedirect(s.getTarget()) == itis:
-                        return True
-                    # else:
-                    #    pywikibot.output(s.getTarget())
-        return False
 
     def hasClaim(self, prop, itis, item):
         """
@@ -289,6 +269,26 @@ class WikidataStuff(object):
             ref,
             qual=qual,
             snaktype=snaktype)
+
+    def bypassRedirect(self, item):
+        """
+        Checks if an item is a Redirect, and if so returns the
+        target item instead of the original.
+        This is needed for itis comparisons
+
+        Not that this should either be called before an
+        item.exists()/item.get() call or a new one must be made afterwards
+
+        return ItemPage
+        """
+        # skip all non-ItemPage
+        if not isinstance(item, pywikibot.ItemPage):
+            return item
+
+        if item.isRedirectPage():
+            return item.getRedirectTarget()
+        else:
+            return item
 
     def validQualifier(self, qual):
         """
