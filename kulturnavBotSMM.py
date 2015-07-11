@@ -76,14 +76,11 @@ class KulturnavBotSMM(KulturnavBot):
     DATASET = None  # set by setDataset()
     GROUP_OF_PEOPLE_Q = '16334295'
     HUMAN_Q = '5'
-    cutoff = None
 
-    def run(self, cutoff=None):
+    def run(self):
         """
         Starts the robot
-        param cutoff: if present limits the number of records added in one go
         """
-        self.cutoff = cutoff
         # switch run method based on DATASET
         if self.DATASET == 'Personer':
             self.runPerson()

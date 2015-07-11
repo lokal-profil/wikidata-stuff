@@ -104,7 +104,7 @@ class WikidataStuff(object):
         statedin.setTarget(ref[u'source'])
 
         # check if already present (with any date)
-        if self.wd.hasRef(ref[u'source_P'], ref[u'source'], claim):
+        if self.hasRef(ref[u'source_P'], ref[u'source'], claim):
             return False
 
         # if not then add

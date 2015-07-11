@@ -9,6 +9,12 @@ Also includes some more general pywikibot methods for wikidata.
   * kulturnavBotArkDes: A bot for adding and/or sourcing statements about
 architects based on data curated by Swedish Centre for Architecture and
 Design ([ArkDes](http://www.arkdes.se/)) made available through KulturNav.
+  * kulturnavBotSMM: A bot for adding and/or sourcing statements about
+maritime objects based on data curated by the National Maritime Museums
+([SMM](http://www.maritima.se/)) made available through KulturNav.
+
+* WikidataStuff.py: A set of generally useful functions for interacting
+with Wikidata using pywikibot.
 
 * WikidataStringSearch.py: A database hookup (to be run from labs) for
 doing text string searches (SQL LIKE style) in labels, aliases and

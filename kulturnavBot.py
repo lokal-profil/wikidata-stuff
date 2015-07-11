@@ -53,6 +53,7 @@ class KulturnavBot(object):
         """
         self.generator = dictGenerator
         self.repo = pywikibot.Site().data_repository()
+        self.cutoff = None
 
         # trigger wdq query
         self.itemIds = self.fillCache()
@@ -98,10 +99,9 @@ class KulturnavBot(object):
 
         return result
 
-    def run(self, cutoff=None):
+    def run(self):
         """
         Starts the robot
-        param cutoff: if present limits the number of records added in one go
         """
         raise NotImplementedError("Please Implement this method")
 
@@ -619,7 +619,8 @@ class KulturnavBot(object):
         kulturnavGenerator = cls.getKulturnavGenerator(maxHits=maxHits)
 
         kulturnavBot = cls(kulturnavGenerator)
-        kulturnavBot.run(cutoff=cutoff)
+        kulturnavBot.cutoff = cutoff
+        kulturnavBot.run()
 
     @staticmethod
     def foobar(item):
