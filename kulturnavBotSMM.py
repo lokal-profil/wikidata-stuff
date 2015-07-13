@@ -89,7 +89,7 @@ class KulturnavBotSMM(KulturnavBot):
                                       % self.DATASET)
 
     def runPerson(self):
-        personValues = {
+        personRules = {
             # u'deathPlace': None,
             u'deathDate': None,
             # u'birthPlace': None,
@@ -140,11 +140,66 @@ class KulturnavBotSMM(KulturnavBot):
                     return True
 
         # pass settingson to runLayout()
-        self.runLayout(datasetValues=personValues,
+        self.runLayout(datasetRules=personRules,
                        datasetProtoclaims=personClaims,
                        datasetSanityTest=personTest,
                        label=u'name',
                        shuffle=True)
+
+    def runVarv(self):
+        """
+        TODO:
+            Is varv a place or an organisation?
+            finish values
+                build mechanism for handling subnodes?
+            finish claims
+                identify VARV_Q
+            finish test
+        """
+        varvRules = {
+            u'name': None,
+            u'establishment.date': {
+                'hasKeys': [
+                    'association.establishment.association',
+                    '@type',
+                    'event.time'],
+                'hasValues': {
+                    '@type': 'dbpedia-owl:Event'},
+                'target': 'event.time'},
+            u'termination.date': {
+                'hasKeys': [
+                    'association.termination.association',
+                    '@type',
+                    'event.time'],
+                'hasValues': {
+                    '@type': 'dbpedia-owl:Event'},
+                'target': 'event.time'}
+            # association.establishment
+            # association.termination
+            # location
+        }
+
+        def varvClaims(self, values):
+            protoclaims = {
+                u'P31': pywikibot.ItemPage(  # instance of
+                    self.repo,
+                    u'Q%s' % self.VARV_Q)
+                }
+
+            # handle values
+            return protoclaims
+
+        def varvTest(self, hitItem):
+            # check if it is a place/organization?
+            # alternatively that it is not the wrong one
+            pass
+
+        # pass settingson to runLayout()
+        self.runLayout(datasetRules=varvRules,
+                       datasetProtoclaims=varvClaims,
+                       datasetSanityTest=varvTest,
+                       label=u'name',
+                       shuffle=False)
 
     @classmethod
     def setDataset(cls, *args):

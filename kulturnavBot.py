@@ -105,13 +105,14 @@ class KulturnavBot(object):
         """
         raise NotImplementedError("Please Implement this method")
 
-    def runLayout(self, datasetValues, datasetProtoclaims,
+    def runLayout(self, datasetRules, datasetProtoclaims,
                   datasetSanityTest, label, shuffle):
         """
         The basic layout of a run. It should be called for a dataset
         specific run which sets the parameters.
 
-        param datasetValues: a dict of additional values to look for
+        param datasetRules: a dict of additional rules/values to look for
+                            see populateValues() for details
         param datasetProtoclaims: a function for populating protoclaims
         param datasetSanityTest: a function which must return true for
                                  results to be written to Wikidata
@@ -125,19 +126,24 @@ class KulturnavBot(object):
             # print count, cutoff
             if self.cutoff and count >= self.cutoff:
                 break
-            # Required values to searching for
-            values = {u'identifier': None,
-                      u'modified': None,
-                      u'seeAlso': None,
-                      u'sameAs': None,
-                      # not expected
-                      u'wikidata': None,
-                      u'libris-id': None,
-                      u'viaf-id': None}
-            values.update(datasetValues)
+            # Required rules/values to search for
+            rules = {
+                u'identifier': None,
+                u'modified': None,
+                u'seeAlso': None,
+                u'sameAs': None,
+                # not expected
+                u'wikidata': None,
+                u'libris-id': None,
+                u'viaf-id': None
+            }
+            rules.update(datasetRules)
 
-            # populate values
-            if not self.populateValues(values, hit):
+            # put together empty dict of values then populate
+            values = {}
+            for k in rules.keys():
+                values[k] = None
+            if not self.populateValues(values, rules, hit):
                 # continue with next hit if problem was encounterd
                 continue
 
@@ -179,21 +185,64 @@ class KulturnavBot(object):
         # done
         pywikibot.output(u'Handled %d entries' % count)
 
-    def populateValues(self, values, hit):
+    def populateValues(self, values, rules, hit):
         """
         given a list of values and a kulturnav hit, populate the values
         and check if result is problem free
 
+        param values: dict with keys and every value as None
+        param rules: a dict with keys and values either:
+            None: the exakt key is present in hit and its value is wanted
+            a rule: {hasKeys, hasValues, target}
+                hasKeys: list of keys which must be present
+                hasValues: a list of key-value pairs which must be present
+                target: the key for which the value is wanted
+        param hit: a kulturnav entry
         return bool problemFree
         """
+        def hasKeys(needles, haystack):
+            """
+            checks if all the provided keys are present
+            param needles: a list of strings
+            param haystack: a dict
+            return bool
+            """
+            for n in needles:
+                if n not in haystack.keys():
+                    return False
+            return True
+
+        def hasValues(needles, haystack):
+            """
+            checks if all the provided keys are present
+            param needles: None or a dict of key-value pairs
+            param haystack: a dict
+            return bool
+            """
+            if needles is None:
+                return True
+            for n, v in needles.iteritems():
+                if not haystack[n] == v:
+                    return False
+            return True
+
         problemFree = True
         for entries in hit[u'@graph']:
-            for k, v in entries.iteritems():
-                if k in values.keys():
-                    if values[k] is None:
-                        values[k] = v
+            for key, rule in rules.iteritems():
+                val = None
+                if rule is None:
+                    if key in entries.keys():
+                        val = entries[key]
+                elif hasKeys(rule['hasKeys'], entries):
+                    if hasValues(rule['hasValues'], entries):
+                        val = entries[rule['target']]
+
+                # test and register found value
+                if val is not None:
+                    if values[key] is None:
+                        values[key] = val
                     else:
-                        pywikibot.output(u'duplicate entries for %s' % k)
+                        pywikibot.output(u'duplicate entries for %s' % key)
                         problemFree = False
 
         # the minimum which must have been identified
@@ -218,7 +267,7 @@ class KulturnavBot(object):
                         u'viaf.org/viaf/' in sa:
                     values[u'viaf-id'] = sa.split('/')[-1]
         # we only care about seeAlso if we didn't find a Wikidata link
-        if values[u'wikidata'] is None:
+        if values[u'wikidata'] is None and values[u'seeAlso'] is not None:
             if isinstance(values[u'seeAlso'], (str, unicode)):
                 values[u'seeAlso'] = [values[u'seeAlso'], ]
             for sa in values[u'seeAlso']:

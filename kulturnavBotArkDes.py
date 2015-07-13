@@ -37,7 +37,7 @@ class KulturnavBotArkDes(KulturnavBot):
         """
         Starts the robot
         """
-        values = {
+        rules = {
             # u'deathPlace': None,
             u'deathDate': None,
             # u'birthPlace': None,
@@ -90,7 +90,7 @@ class KulturnavBotArkDes(KulturnavBot):
                     return True
 
         # pass settingson to runLayout()
-        self.runLayout(datasetValues=values,
+        self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
                        datasetSanityTest=personTest,
                        label=u'name',
