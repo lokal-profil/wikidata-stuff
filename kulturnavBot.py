@@ -31,6 +31,23 @@ FOO_BAR = u'A multilingual result (or one with multiple options) was ' \
           u'encountered but I have yet to support that functionality'
 
 
+class Rule():
+    """
+    A class for encoding rules used by runLayout()
+    """
+    def __init__(self, keys, values, target):
+        """
+        keys: list of keys which must be present (in addition t values/target)
+        values: a list of key-value pairs which must be present
+        target: the key for which the value is wanted
+        """
+        self.keys = keys
+        self.values = values
+        self.keys += values.keys()
+        self.target = target
+        self.keys.append(target)
+
+
 class KulturnavBot(object):
     """
     A bot to enrich and create information on Wikidata based on KulturNav info
@@ -111,8 +128,7 @@ class KulturnavBot(object):
         The basic layout of a run. It should be called for a dataset
         specific run which sets the parameters.
 
-        param datasetRules: a dict of additional rules/values to look for
-                            see populateValues() for details
+        param datasetRules: a dict of additional Rules or values to look for
         param datasetProtoclaims: a function for populating protoclaims
         param datasetSanityTest: a function which must return true for
                                  results to be written to Wikidata
@@ -193,10 +209,7 @@ class KulturnavBot(object):
         param values: dict with keys and every value as None
         param rules: a dict with keys and values either:
             None: the exakt key is present in hit and its value is wanted
-            a rule: {hasKeys, hasValues, target}
-                hasKeys: list of keys which must be present
-                hasValues: a list of key-value pairs which must be present
-                target: the key for which the value is wanted
+            a Rule: acording to the class above
         param hit: a kulturnav entry
         return bool problemFree
         """
@@ -233,9 +246,9 @@ class KulturnavBot(object):
                 if rule is None:
                     if key in entries.keys():
                         val = entries[key]
-                elif hasKeys(rule['hasKeys'], entries):
-                    if hasValues(rule['hasValues'], entries):
-                        val = entries[rule['target']]
+                elif hasKeys(rule.keys, entries):
+                    if hasValues(rule.values, entries):
+                        val = entries[rule.target]
 
                 # test and register found value
                 if val is not None:

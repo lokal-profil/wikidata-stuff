@@ -18,6 +18,7 @@ Options (may be omitted):
 """
 import pywikibot
 from kulturnavBot import KulturnavBot
+from kulturnavBot import Rule
 
 # KulturNav based
 EDIT_SUMMARY = 'KulturnavBot(SMM)'
@@ -158,22 +159,14 @@ class KulturnavBotSMM(KulturnavBot):
         """
         varvRules = {
             u'name': None,
-            u'establishment.date': {
-                'hasKeys': [
-                    'association.establishment.association',
-                    '@type',
-                    'event.time'],
-                'hasValues': {
-                    '@type': 'dbpedia-owl:Event'},
-                'target': 'event.time'},
-            u'termination.date': {
-                'hasKeys': [
-                    'association.termination.association',
-                    '@type',
-                    'event.time'],
-                'hasValues': {
-                    '@type': 'dbpedia-owl:Event'},
-                'target': 'event.time'}
+            u'establishment.date': Rule(
+                keys=['association.establishment.association', ],
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.time'),
+            u'termination.date': Rule(
+                keys=['association.termination.association', ],
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.time')
             # association.establishment
             # association.termination
             # location
@@ -184,7 +177,7 @@ class KulturnavBotSMM(KulturnavBot):
                 u'P31': pywikibot.ItemPage(  # instance of
                     self.repo,
                     u'Q%s' % self.VARV_Q)
-                }
+            }
 
             # handle values
             return protoclaims
