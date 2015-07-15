@@ -151,12 +151,7 @@ class KulturnavBotSMM(KulturnavBot):
     def runVarv(self):
         """
         TODO:
-            Is varv a place or an organisation?
-            finish values
-                build mechanism for handling subnodes?
-            finish claims
-                identify VARV_Q
-            finish test
+            Make a protoclaim using location
         """
         varvRules = {
             u'name': None,
@@ -190,12 +185,28 @@ class KulturnavBotSMM(KulturnavBot):
                 protoclaims[u'P576'] = self.dbDate(values[u'establishment.date'])
             if values[u'agent.ownedBy']:
                 protoclaims[u'P127'] = self.kulturnav2Wikidata(values[u'agent.ownedBy'])
+            # something with location
             return protoclaims
 
         def varvTest(self, hitItem):
-            # check if it is a place/organization?
-            # alternatively that it is not the wrong one
-            pass
+            # abort if already a IS_A_P claim and (one of them) isn't
+            # SHIPYARD_Q
+            varv_item = pywikibot.ItemPage(
+                self.repo,
+                u'Q%s' % self.SHIPYARD_Q)
+
+            # check claims
+            if 'P%s' % self.IS_A_P in hitItem.claims.keys():
+                if self.wd.hasClaim('P%s' % self.IS_A_P, varv_item, hitItem):
+                    return True
+                else:
+                    pywikibot.output(u'%s is identified as something other'
+                                     u'than a shipyard. Check!' %
+                                     hitItem.title())
+                    return False
+            else:
+                # no IS_A_P claim
+                return True
 
         # pass settingson to runLayout()
         self.runLayout(datasetRules=varvRules,
