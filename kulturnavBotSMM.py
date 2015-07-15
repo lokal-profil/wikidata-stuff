@@ -77,6 +77,7 @@ class KulturnavBotSMM(KulturnavBot):
     DATASET = None  # set by setDataset()
     GROUP_OF_PEOPLE_Q = '16334295'
     HUMAN_Q = '5'
+    SHIPYARD_Q = '190928'
 
     def run(self):
         """
@@ -159,6 +160,7 @@ class KulturnavBotSMM(KulturnavBot):
         """
         varvRules = {
             u'name': None,
+            u'agent.ownedBy': None,
             u'establishment.date': Rule(
                 keys=['association.establishment.association', ],
                 values={'@type': 'dbpedia-owl:Event'},
@@ -166,17 +168,19 @@ class KulturnavBotSMM(KulturnavBot):
             u'termination.date': Rule(
                 keys=['association.termination.association', ],
                 values={'@type': 'dbpedia-owl:Event'},
-                target='event.time')
-            # association.establishment
-            # association.termination
-            # location
+                target='event.time'),
+            u'location': Rule(
+                keys=['agent.activity.activity', ],
+                values={'@type': 'dbpedia-owl:Event'},
+                target='P7_took_place_at',
+                viaId='location')
         }
 
         def varvClaims(self, values):
             protoclaims = {
                 u'P31': pywikibot.ItemPage(  # instance of
                     self.repo,
-                    u'Q%s' % self.VARV_Q)
+                    u'Q%s' % self.SHIPYARD_Q)
             }
 
             # handle values

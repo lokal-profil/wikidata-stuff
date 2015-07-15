@@ -35,17 +35,20 @@ class Rule():
     """
     A class for encoding rules used by runLayout()
     """
-    def __init__(self, keys, values, target):
+    def __init__(self, keys, values, target, viaId=None):
         """
         keys: list of keys which must be present (in addition t values/target)
         values: a list of key-value pairs which must be present
         target: the key for which the value is wanted
+        viaId: if not None then the value of target should be matched to
+               an @id entry where this key should be used
         """
         self.keys = keys
         self.values = values
         self.keys += values.keys()
         self.target = target
         self.keys.append(target)
+        self.viaId = viaId
 
 
 class KulturnavBot(object):
@@ -239,8 +242,16 @@ class KulturnavBot(object):
                     return False
             return True
 
+        ids = {}
         problemFree = True
         for entries in hit[u'@graph']:
+            # populate ids for viaId rules
+            if '@id' in entries.keys():
+                if entries['@id'] in ids.keys():
+                    pywikibot.output('Non-unique viaID key: \n%s\n%s' %
+                                     (entries, ids[entries['@id']]))
+                ids[entries['@id']] = entries
+            # handle rules
             for key, rule in rules.iteritems():
                 val = None
                 if rule is None:
@@ -257,6 +268,12 @@ class KulturnavBot(object):
                     else:
                         pywikibot.output(u'duplicate entries for %s' % key)
                         problemFree = False
+
+        # convert values for viaId rules
+        for key, rule in rules.iteritems():
+            if rule is not None and rule.viaId is not None:
+                if values[key] is not None and values[key] in ids.keys():
+                    values[key] = ids[values[key]][rule.viaId]
 
         # the minimum which must have been identified
         if values[u'identifier'] is None:
