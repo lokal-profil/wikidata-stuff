@@ -184,6 +184,12 @@ class KulturnavBotSMM(KulturnavBot):
             }
 
             # handle values
+            if values[u'establishment.date']:
+                protoclaims[u'P571'] = self.dbDate(values[u'establishment.date'])
+            if values[u'termination.date']:
+                protoclaims[u'P576'] = self.dbDate(values[u'establishment.date'])
+            if values[u'agent.ownedBy']:
+                protoclaims[u'P127'] = self.kulturnav2Wikidata(values[u'agent.ownedBy'])
             return protoclaims
 
         def varvTest(self, hitItem):
