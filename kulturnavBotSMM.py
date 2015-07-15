@@ -65,7 +65,7 @@ DATASETS = {
         'fullName': u'Varv',
         'DATASET_ID': 'b0fc1427-a9ab-4239-910a-cd02c02c4a76',
         'ENTITY_TYPE': 'Organization',
-        'DATASET_Q': None}
+        'DATASET_Q': '20669386'}
 }
 MAP_TAG = 'entity.sameAs_s'
 
@@ -86,6 +86,8 @@ class KulturnavBotSMM(KulturnavBot):
         # switch run method based on DATASET
         if self.DATASET == 'Personer':
             self.runPerson()
+        elif self.DATASET == 'Varv':
+            self.runVarv()
         else:
             raise NotImplementedError("Please implement this dataset: %s"
                                       % self.DATASET)
@@ -182,7 +184,7 @@ class KulturnavBotSMM(KulturnavBot):
             if values[u'establishment.date']:
                 protoclaims[u'P571'] = self.dbDate(values[u'establishment.date'])
             if values[u'termination.date']:
-                protoclaims[u'P576'] = self.dbDate(values[u'establishment.date'])
+                protoclaims[u'P576'] = self.dbDate(values[u'termination.date'])
             if values[u'agent.ownedBy']:
                 protoclaims[u'P127'] = self.kulturnav2Wikidata(values[u'agent.ownedBy'])
             # something with location
