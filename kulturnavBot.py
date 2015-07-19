@@ -37,15 +37,19 @@ class Rule():
     """
     def __init__(self, keys, values, target, viaId=None):
         """
-        keys: list of keys which must be present (in addition t values/target)
-        values: a list of key-value pairs which must be present
+        keys: list|None of keys which must be present
+              (in addition t values/target)
+        values: a list|None of key-value pairs which must be present
         target: the key for which the value is wanted
         viaId: if not None then the value of target should be matched to
                an @id entry where this key should be used
         """
-        self.keys = keys
+        self.keys = []
+        if keys is not None:
+            self.keys += keys
         self.values = values
-        self.keys += values.keys()
+        if values is not None:
+            self.keys += values.keys()
         self.target = target
         self.keys.append(target)
         self.viaId = viaId
@@ -274,6 +278,19 @@ class KulturnavBot(object):
             if rule is not None and rule.viaId is not None:
                 if values[key] is not None and values[key] in ids.keys():
                     values[key] = ids[values[key]][rule.viaId]
+        for key, rule in rules.iteritems():
+            if rule is not None and \
+                    rule.viaId is not None and \
+                    values[key] is not None:
+                if isinstance(values[key], list):
+                    # for list deal with each at a time and return a list
+                    results = []
+                    for val in values[key]:
+                        if val in ids.keys():
+                            results.append(ids[val][rule.viaId])
+                    values[key] = results
+                elif values[key] in ids.keys():
+                    values[key] = ids[values[key]][rule.viaId]
 
         # the minimum which must have been identified
         if values[u'identifier'] is None:
@@ -384,23 +401,42 @@ class KulturnavBot(object):
     def addProperties(self, protoclaims, hitItem, ref):
         """
         add each property (if new) and source it
+
+        param protoclaims: a dict of claims with a
+            key: Prop number
+            val: statement (or list of statments)
+        param hititem: the target entity
+        param ref: a refrence claim
         """
         for pcprop, pcvalue in protoclaims.iteritems():
             if pcvalue:
-                if isinstance(pcvalue, unicode) and \
-                        pcvalue in (u'somevalue', u'novalue'):
-                    # special cases
-                    self.wd.addNewSpecialClaim(pcprop, pcvalue,
-                                               hitItem, ref)
-                elif pcprop == u'P%s' % self.KULTURNAV_ID_P:
-                    qual = self.makeQual(self.CATALOG_P,
-                                         self.DATASET_Q,
-                                         force=True)
-                    self.wd.addNewClaim(pcprop, pcvalue, hitItem,
-                                        ref, qual=qual)
+                if isinstance(pcvalue, list):
+                    pcvalue = set(pcvalue)  # eliminate potential duplicates
+                    for val in pcvalue:
+                        if val is not None:  # stay paranoid
+                            self.addProperty(self, pcprop, val, hitItem, ref)
                 else:
-                    self.wd.addNewClaim(pcprop, pcvalue,
-                                        hitItem, ref)
+                    self.addProperty(self, pcprop, pcvalue, hitItem, ref)
+
+    def addProperty(self, pcprop, pcvalue, hitItem, ref):
+        """
+        add a single property (if new) and source it
+        pcvalue must not be None
+        """
+        if isinstance(pcvalue, unicode) and \
+                pcvalue in (u'somevalue', u'novalue'):
+            # special cases
+            self.wd.addNewSpecialClaim(pcprop, pcvalue,
+                                       hitItem, ref)
+        elif pcprop == u'P%s' % self.KULTURNAV_ID_P:
+            qual = self.makeQual(self.CATALOG_P,
+                                 self.DATASET_Q,
+                                 force=True)
+            self.wd.addNewClaim(pcprop, pcvalue, hitItem,
+                                ref, qual=qual)
+        else:
+            self.wd.addNewClaim(pcprop, pcvalue,
+                                hitItem, ref)
 
     # KulturNav specific functions
     def dbpedia2Wikidata(self, item):
@@ -537,12 +573,15 @@ class KulturnavBot(object):
 
     def kulturnav2Wikidata(self, uuid):
         """
-        Given a kulturNav uuid this returns the Wikidata entity connected
-        to this uuid through the KULTURNAV_ID_P property (if any).
+        Given a kulturNav uuid or url this returns the Wikidata entity
+        connected to this uuid through the KULTURNAV_ID_P property
+        (if any).
 
         NOTE that the WDQ results may be outdated
         return itemPage|None
         """
+        if uuid.startswith(u'http://kulturnav.org'):
+            uuid.split('/')[-1]
         if uuid in self.itemIds.keys():
             qNo = u'Q%d' % self.itemIds[uuid]
             return pywikibot.ItemPage(self.repo, qNo)
