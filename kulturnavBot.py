@@ -38,7 +38,7 @@ class Rule():
     def __init__(self, keys, values, target, viaId=None):
         """
         keys: list|None of keys which must be present
-              (in addition t values/target)
+              (in addition to value/target)
         values: a list|None of key-value pairs which must be present
         target: the key for which the value is wanted
         viaId: if not None then the value of target should be matched to
@@ -375,8 +375,8 @@ class KulturnavBot(object):
         Given a nameObj or a list of such this prepares them for
         addLabelOrAlias()
 
-        param: shuffle bool if name order is last, first then this
-               creates a local rearranged copy
+        param shuffle: bool if name order is last, first then this
+                       creates a local rearranged copy
         """
         if names:
             if shuffle:
@@ -414,9 +414,13 @@ class KulturnavBot(object):
                     pcvalue = set(pcvalue)  # eliminate potential duplicates
                     for val in pcvalue:
                         if val is not None:  # stay paranoid
-                            self.addProperty(self, pcprop, val, hitItem, ref)
+                            self.addProperty(pcprop, val, hitItem, ref)
+                            # reload item so that next call is aware of changes
+                            hitItem = pywikibot.ItemPage(self.repo,
+                                                         hitItem.title())
+                            hitItem.exists()
                 else:
-                    self.addProperty(self, pcprop, pcvalue, hitItem, ref)
+                    self.addProperty(pcprop, pcvalue, hitItem, ref)
 
     def addProperty(self, pcprop, pcvalue, hitItem, ref):
         """
