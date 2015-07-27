@@ -105,8 +105,8 @@ class KulturnavBotSMM(KulturnavBot):
             u'firstName': None,
             u'gender': None,
             u'lastName': None,
-            u'name': None
-            # u'person.nationality': None
+            u'name': None,
+            u'person.nationality': None
         }
 
         def personClaims(self, values):
@@ -115,8 +115,7 @@ class KulturnavBotSMM(KulturnavBot):
                     self.repo,
                     u'Q%s' % self.HUMAN_Q)
                 }
-            # P106 occupation
-            # P27 nationality
+            # P106 occupation - fieldOfActivityOfThePerson
 
             # if values[u'deathPlace']:
             #    protoclaims[u'P20'] = self.dbpedia2Wikidata(
@@ -136,6 +135,10 @@ class KulturnavBotSMM(KulturnavBot):
             if values[u'lastName']:
                 protoclaims[u'P734'] = self.dbName(values[u'lastName'],
                                                    u'lastName')
+            if values[u'person.nationality']:
+                protoclaims[u'P27'] = self.location2Wikidata(
+                    values[u'person.nationality'])
+
             return protoclaims
 
         def personTest(self, hitItem):
@@ -200,12 +203,12 @@ class KulturnavBotSMM(KulturnavBot):
             return protoclaims
 
         def varvTest(self, hitItem):
-            '''
+            """
             abort if already a IS_A_P claim and (one of them) isn't
             SHIPYARD_Q
             @todo: relax so that e.g. COMPANY_Q is allowed
             return bool runOrNot
-            '''
+            """
             varv_item = pywikibot.ItemPage(
                 self.repo,
                 u'Q%s' % self.SHIPYARD_Q)

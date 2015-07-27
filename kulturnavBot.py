@@ -61,6 +61,7 @@ class KulturnavBot(object):
     """
     EDIT_SUMMARY = 'KulturnavBot'
     KULTURNAV_ID_P = '1248'
+    GEONAMES_ID_P = '1566'
     DATASET_Q = None
     STATED_IN_P = '248'
     IS_A_P = '31'
@@ -69,8 +70,9 @@ class KulturnavBot(object):
     DATASET_ID = None
     ENTITY_TYPE = None
     MAP_TAG = None
+    locations = {}  # a dict of uuid to wikidata location matches
 
-    def __init__(self, dictGenerator):
+    def __init__(self, dictGenerator, verbose=False):
         """
         Arguments:
             * generator    - A generator that yields Dict objects.
@@ -78,6 +80,7 @@ class KulturnavBot(object):
         self.generator = dictGenerator
         self.repo = pywikibot.Site().data_repository()
         self.cutoff = None
+        self.verbose = verbose
 
         # trigger wdq query
         self.itemIds = self.fillCache()
@@ -181,6 +184,12 @@ class KulturnavBot(object):
                 protoclaims[u'P906'] = values[u'libris-id']
             if values[u'viaf-id']:
                 protoclaims[u'P214'] = values[u'viaf-id']
+
+            # output info for testing
+            if self.verbose:
+                pywikibot.output(values)
+                pywikibot.output(protoclaims)
+                pywikibot.output(hitItem)
 
             # Add information if a match was found
             if hitItem and hitItem.exists():
@@ -575,6 +584,69 @@ class KulturnavBot(object):
         elif len(matches) > 1:
             pywikibot.log(u'Possible duplicates: %s' % matches)
 
+    def location2Wikidata(self, uuid):
+        """
+        Given a kulturNav uuid or url this checks if that contains a
+        GeoNames url and, if so, connects that to a Wikidata object
+        using the GEONAMES_ID_P property (if any).
+
+        NOTE that the WDQ results may be outdated
+        return itemPage|None
+        """
+        # Convert url to uuid
+        if uuid.startswith(u'http://kulturnav.org'):
+            uuid = uuid.split('/')[-1]
+        # Check if already stored
+        if uuid in self.locations.keys():
+            if self.locations[uuid] is None:
+                return None
+            else:
+                qNo = u'Q%d' % self.locations[uuid]
+                return pywikibot.ItemPage(self.repo, qNo)
+
+        # retrieve uuid target and isolate geonames
+        geonames = self.extractGeonames(uuid)
+        if geonames:
+            # store as a reslved hit, in case wdq yields nothing
+            self.locations[uuid] = None
+            wdqQuery = u'STRING[%s:"%s"]' % (self.GEONAMES_ID_P, geonames)
+            wdqResult = self.wd.wdqLookup(wdqQuery)
+            if wdqResult and len(wdqResult) == 1:
+                self.locations[uuid] = wdqResult[0]
+                qNo = u'Q%d' % self.locations[uuid]
+                return pywikibot.ItemPage(self.repo, qNo)
+            # else:
+            # go to geonames and find wikidata from there
+            # add to self.locations[uuid]
+            # add GEONAMES_ID_P to the identified wikidata
+
+        # no (clean) hits
+        return None
+
+    def extractGeonames(self, uuid):
+        """
+        Given a kulturNav uuid return the corresponding geonames ID at
+        that target.
+
+        return string|None
+        """
+        needle = 'http://sws.geonames.org/'
+        queryurl = 'http://kulturnav.org/api/%s'
+        jsonData = json.load(urllib2.urlopen(queryurl % uuid))
+        if jsonData.get(u'properties'):
+            potentials = []
+            sameAs = jsonData.get('properties').get('entity.sameAs')
+            if sameAs:
+                potentials += sameAs
+            sourceUri = jsonData.get('properties') \
+                                .get('superconcept.sourceUri')
+            if sourceUri:
+                potentials += sourceUri
+            for p in potentials:
+                if p.get('value') and p.get('value').startswith(needle):
+                    return p.get('value').split('/')[-1]
+        return None
+
     def kulturnav2Wikidata(self, uuid):
         """
         Given a kulturNav uuid or url this returns the Wikidata entity
@@ -584,8 +656,10 @@ class KulturnavBot(object):
         NOTE that the WDQ results may be outdated
         return itemPage|None
         """
+        # Convert url to uuid
         if uuid.startswith(u'http://kulturnav.org'):
-            uuid.split('/')[-1]
+            uuid = uuid.split('/')[-1]
+
         if uuid in self.itemIds.keys():
             qNo = u'Q%d' % self.itemIds[uuid]
             return pywikibot.ItemPage(self.repo, qNo)

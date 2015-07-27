@@ -45,8 +45,8 @@ class KulturnavBotArkDes(KulturnavBot):
             u'firstName': None,
             u'gender': None,
             u'lastName': None,
-            u'name': None
-            # u'person.nationality': None
+            u'name': None,
+            u'person.nationality': None
         }
 
         def claims(self, values):
@@ -58,8 +58,7 @@ class KulturnavBotArkDes(KulturnavBot):
                     self.repo,
                     u'Q%s' % self.ARCHITECT_Q)
                 }
-            # P106 occupation
-            # P27 nationality
+            # P106 occupation - fieldOfActivityOfThePerson
 
             #    protoclaims[u'P20'] = self.dbpedia2Wikidata(values[u'deathPlace'])
             if values[u'deathDate']:
@@ -76,6 +75,10 @@ class KulturnavBotArkDes(KulturnavBot):
             if values[u'lastName']:
                 protoclaims[u'P734'] = self.dbName(values[u'lastName'],
                                                    u'lastName')
+            if values[u'person.nationality']:
+                protoclaims[u'P27'] = self.location2Wikidata(
+                    values[u'person.nationality'])
+
             return protoclaims
 
         def personTest(self, hitItem):

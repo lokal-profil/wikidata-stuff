@@ -8,6 +8,9 @@ License: MIT
 """
 import pywikibot
 
+# Needed only for wdqLookup
+import pywikibot.data.wikidataquery as wdquery
+
 # Needed only for WikidataStringSearch
 import os.path
 from WikidataStringSearch import WikidataStringSearch
@@ -22,7 +25,7 @@ class WikidataStuff(object):
 
     def __init__(self, repo):
         """
-        param: repo a pywikibot.Site().data_repository()
+        param repo: a pywikibot.Site().data_repository()
         """
         self.repo = repo
 
@@ -32,6 +35,23 @@ class WikidataStuff(object):
             "/replica.my.cnf")
         if self.onLabs:
             self.wdss = WikidataStringSearch()
+
+    def wdqLookup(self, query, cacheMaxAge=0):
+        """
+        Do a simple WDQ lookup returning the items ( less advanced than
+        fillCache() in KulturnavBot )
+
+        param query: a correctly formated wdq query
+        param cacheMaxAge: age of local cache, 0 = disabled
+        return list|None
+        """
+        wd_queryset = wdquery.QuerySet(query)
+        wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
+        data = wd_query.query(wd_queryset)
+
+        if data.get('status').get('error') == 'OK':
+            return data.get('items')
+        return None
 
     def searchGenerator(self, text, language):
         for q in self.wdss.search(text, language=language):
