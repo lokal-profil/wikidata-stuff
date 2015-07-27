@@ -28,7 +28,7 @@ DATASETS = {
         'fullName': u'Fartyg',
         'DATASET_ID': '9a816089-2156-42ce-a63a-e2c835b20688',
         'ENTITY_TYPE': 'NavalVessel',
-        'DATASET_Q': None},
+        'DATASET_Q': '20734454'},
     u'Fartygstyper': {
         'id': 1,
         'fullName': u'Fartygstyper',
@@ -78,6 +78,7 @@ class KulturnavBotSMM(KulturnavBot):
     GROUP_OF_PEOPLE_Q = '16334295'
     HUMAN_Q = '5'
     SHIPYARD_Q = '190928'
+    COMPANY_Q = '783794'
     IKNO_K = u'http://kulturnav.org/2c8a7e85-5b0c-4ceb-b56f-a229b6a71d2a'
 
     def run(self):
@@ -89,6 +90,8 @@ class KulturnavBotSMM(KulturnavBot):
             self.runPerson()
         elif self.DATASET == 'Varv':
             self.runVarv()
+        elif self.DATASET == 'Fartyg':
+            self.runFartyg()
         else:
             raise NotImplementedError("Please implement this dataset: %s"
                                       % self.DATASET)
@@ -197,8 +200,12 @@ class KulturnavBotSMM(KulturnavBot):
             return protoclaims
 
         def varvTest(self, hitItem):
-            # abort if already a IS_A_P claim and (one of them) isn't
-            # SHIPYARD_Q
+            '''
+            abort if already a IS_A_P claim and (one of them) isn't
+            SHIPYARD_Q
+            @todo: relax so that e.g. COMPANY_Q is allowed
+            return bool runOrNot
+            '''
             varv_item = pywikibot.ItemPage(
                 self.repo,
                 u'Q%s' % self.SHIPYARD_Q)
@@ -306,7 +313,7 @@ class KulturnavBotSMM(KulturnavBot):
         def fartygClaims(self, values):
             """
             To implement:
-                u'navalVessel.signalLetters
+                u'navalVessel.signalLetters': possibly P432
                 u'built.date':
                 u'built.location'
                 u'built.shipyard'
@@ -328,14 +335,14 @@ class KulturnavBotSMM(KulturnavBot):
             # ??? -- type (Örlogsskepp ? passar inte riktigt in... tror jag)
             #
 
-            # handle altNames with together with names
+            # handle altNames together with names
             # both could be either a dict or a list of dicts
             if isinstance(values[u'entity.name'], dict):
                     values[u'entity.name'] = [values[u'entity.name'], ]
             if values[u'altLabel'] is not None:
                 if isinstance(values[u'altLabel'], dict):
                     values[u'altLabel'] = [values[u'altLabel'], ]
-                values[u'entity.name'].append(values[u'altLabel'])
+                values[u'entity.name'] += values[u'altLabel']
             # convert from ALL-CAPS
             for i in range(0, len(values[u'entity.name'])):
                 n = values[u'entity.name'][i][u'@value']
@@ -355,19 +362,16 @@ class KulturnavBotSMM(KulturnavBot):
             if values[u'registration.number']:
                 # there can be multiple values
                 if not isinstance(values[u'registration.number'], list):
-                    values[u'registration.number'] = [
-                        values[u'registration.number'],
-                        ]
-                    values[u'registration.type'] = [
-                        values[u'registration.type'],
-                        ]
+                    values[u'registration.number'] = \
+                        [values[u'registration.number'], ]
+                    values[u'registration.type'] = \
+                        [values[u'registration.type'], ]
+
                 # only one type is currently mapped
                 claim = []
-                for i in range(0, values[u'registration.number']):
+                for i in range(0, len(values[u'registration.number'])):
                     if values[u'registration.type'][i] == self.IKNO_K:
-                        claim.append(
-                            self.kulturnav2Wikidata(
-                                values[u'registration.number'][i]))
+                        claim.append(values[u'registration.number'][i])
                 if len(claim) > 0:
                     protoclaims[u'P879'] = claim
             # ...
