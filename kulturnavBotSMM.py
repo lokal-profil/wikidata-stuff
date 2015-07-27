@@ -199,7 +199,13 @@ class KulturnavBotSMM(KulturnavBot):
             if values[u'agent.ownership.owner']:
                 protoclaims[u'P127'] = self.kulturnav2Wikidata(
                     values[u'agent.ownership.owner'])
-            # something with location
+            if values[u'location']:
+                location_Q = self.location2Wikidata(values[u'location'])
+                prop = self.getLocationProperty(location_Q)
+                if prop:
+                    protoclaims[prop] = self.location2Wikidata(
+                        values[u'location'])
+
             return protoclaims
 
         def varvTest(self, hitItem):
@@ -218,7 +224,7 @@ class KulturnavBotSMM(KulturnavBot):
                 if self.wd.hasClaim('P%s' % self.IS_A_P, varv_item, hitItem):
                     return True
                 else:
-                    pywikibot.output(u'%s is identified as something other'
+                    pywikibot.output(u'%s is identified as something other '
                                      u'than a shipyard. Check!' %
                                      hitItem.title())
                     return False

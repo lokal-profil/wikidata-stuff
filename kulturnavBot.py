@@ -62,6 +62,8 @@ class KulturnavBot(object):
     EDIT_SUMMARY = 'KulturnavBot'
     KULTURNAV_ID_P = '1248'
     GEONAMES_ID_P = '1566'
+    SWE_KOMMUNKOD_P = '525'
+    SWE_COUNTYKOD_P = '507'
     DATASET_Q = None
     STATED_IN_P = '248'
     IS_A_P = '31'
@@ -70,6 +72,8 @@ class KulturnavBot(object):
     DATASET_ID = None
     ENTITY_TYPE = None
     MAP_TAG = None
+    COUNTRIES = []  # a list of country Q's
+    ADMIN_UNITS = []  # a list of municipality+county Q's
     locations = {}  # a dict of uuid to wikidata location matches
 
     def __init__(self, dictGenerator, verbose=False):
@@ -87,6 +91,10 @@ class KulturnavBot(object):
 
         # set up WikidataStuff object
         self.wd = WikidataStuff(self.repo)
+
+        # load lists
+        self.COUNTRIES = self.wd.wdqLookup(u'TREE[6256][][31]')
+        self.ADMIN_UNITS = self.wd.wdqLookup(u'TREE[15284][][31]')
 
     @classmethod
     def setVariables(cls, dataset_q, dataset_id, entity_type,
@@ -604,10 +612,18 @@ class KulturnavBot(object):
                 qNo = u'Q%d' % self.locations[uuid]
                 return pywikibot.ItemPage(self.repo, qNo)
 
-        # retrieve uuid target and isolate geonames
-        geonames = self.extractGeonames(uuid)
+        # retrieve various sources
+        geoSources = self.getGeoSources(uuid)
+        kulturarvsdata = self.extractKulturarvsdataLocation(geoSources)
+        if kulturarvsdata:
+            self.locations[uuid] = kulturarvsdata
+            qNo = u'Q%d' % self.locations[uuid]
+            return pywikibot.ItemPage(self.repo, qNo)
+
+        # retrieve hit through geonames-lookup
+        geonames = self.extractGeonames(geoSources)
         if geonames:
-            # store as a reslved hit, in case wdq yields nothing
+            # store as a resolved hit, in case wdq yields nothing
             self.locations[uuid] = None
             wdqQuery = u'STRING[%s:"%s"]' % (self.GEONAMES_ID_P, geonames)
             wdqResult = self.wd.wdqLookup(wdqQuery)
@@ -623,28 +639,103 @@ class KulturnavBot(object):
         # no (clean) hits
         return None
 
-    def extractGeonames(self, uuid):
+    def getGeoSources(self, uuid):
         """
-        Given a kulturNav uuid return the corresponding geonames ID at
-        that target.
+        Given a kulturNav uuid return the corresponding properties of
+        that target which are likely to contain geosources.
+
+        return list
+        """
+        queryurl = 'http://kulturnav.org/api/%s'
+        jsonData = json.load(urllib2.urlopen(queryurl % uuid))
+        sources = []
+        if jsonData.get(u'properties'):
+            sameAs = jsonData.get('properties').get('entity.sameAs')
+            if sameAs:
+                sources += sameAs
+            sourceUri = jsonData.get('properties') \
+                                .get('superconcept.sourceUri')
+            if sourceUri:
+                sources += sourceUri
+        return sources
+
+    def extractGeonames(self, sources):
+        """
+        Given a list of extractGeoSources() return any geonames ID.
 
         return string|None
         """
         needle = 'http://sws.geonames.org/'
-        queryurl = 'http://kulturnav.org/api/%s'
-        jsonData = json.load(urllib2.urlopen(queryurl % uuid))
-        if jsonData.get(u'properties'):
-            potentials = []
-            sameAs = jsonData.get('properties').get('entity.sameAs')
-            if sameAs:
-                potentials += sameAs
-            sourceUri = jsonData.get('properties') \
-                                .get('superconcept.sourceUri')
-            if sourceUri:
-                potentials += sourceUri
-            for p in potentials:
-                if p.get('value') and p.get('value').startswith(needle):
-                    return p.get('value').split('/')[-1]
+        for s in sources:
+            if s.get('value') and s.get('value').startswith(needle):
+                return s.get('value').split('/')[-1]
+        return None
+
+    def extractKulturarvsdataLocation(self, sources):
+        """
+        Given a list of extractGeoSources() return any kulturarvsdata
+        geo authorities.
+
+        return string|None
+        """
+        needle = u'http://kulturarvsdata.se/resurser/aukt/geo/'
+        for s in sources:
+            if s.get('value') and s.get('value').startswith(needle):
+                s = s.get('value').split('/')[-1]
+                if s.startswith('municipality#'):
+                    code = s.split('#')[-1]
+                    wdqQuery = u'STRING[%s:"%s"]' % (self.SWE_KOMMUNKOD_P,
+                                                     code)
+                    wdqResult = self.wd.wdqLookup(wdqQuery)
+                    if wdqResult and len(wdqResult) == 1:
+                        self.ADMIN_UNITS.append(wdqResult[0])
+                        return wdqResult[0]
+                elif s.startswith('county#'):
+                    code = s.split('#')[-1]
+                    wdqQuery = u'STRING[%s:"%s"]' % (self.SWE_COUNTYKOD_P,
+                                                     code)
+                    wdqResult = self.wd.wdqLookup(wdqQuery)
+                    if wdqResult and len(wdqResult) == 1:
+                        self.ADMIN_UNITS.append(wdqResult[0])
+                        return wdqResult[0]
+                elif s.startswith('country#'):
+                    pass  # handle via geonames instead
+                elif s.startswith('parish#'):
+                    pass  # no id's in wikidata
+                else:
+                    print u'Unhandled KulturarvsdataLocation prefix'
+                    print s
+                    exit(1)
+        return None
+
+    def getLocationProperty(self, item, strict=True):
+        """
+        Given an ItemPage this returns the suitable property which
+        should be used to indicate its location
+
+        P17  - land
+        P131 - within administrative unit
+        P276 - place
+
+
+        param item: ItemPage|None
+        param strict: bool whether place should be returned if no land
+                      or admin_unit hit
+        return string|None
+        """
+        if item is not None:
+            q = int(item.title()[1:])
+            if q in self.COUNTRIES:
+                return u'P17'
+            elif q in self.ADMIN_UNITS:
+                return u'P131'
+            elif not strict:
+                return u'P276'
+            elif self.verbose:
+                item.exists()
+                pywikibot.output(u'Could not set location property for: '
+                                 u'%s (%s)' % (item.title(),
+                                               item.labels.get('sv')))
         return None
 
     def kulturnav2Wikidata(self, uuid):
