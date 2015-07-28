@@ -166,10 +166,12 @@ class KulturnavBot(object):
                 u'modified': None,
                 u'seeAlso': None,
                 u'sameAs': None,
+                u'exactMatch': None,
                 # not expected
                 u'wikidata': None,
                 u'libris-id': None,
-                u'viaf-id': None
+                u'viaf-id': None,
+                u'getty-id': None
             }
             rules.update(datasetRules)
 
@@ -192,6 +194,8 @@ class KulturnavBot(object):
                 protoclaims[u'P906'] = values[u'libris-id']
             if values[u'viaf-id']:
                 protoclaims[u'P214'] = values[u'viaf-id']
+            if values[u'getty-id']:
+                protoclaims[u'P1014'] = values[u'getty-id']
 
             # output info for testing
             if self.verbose:
@@ -316,20 +320,32 @@ class KulturnavBot(object):
                              u'changed. Crashing!')
             exit(1)
 
-        # dig into sameAs and seeAlso
-        # each can be either a list or a str/unicode
-        if isinstance(values[u'sameAs'], (str, unicode)):
-            values[u'sameAs'] = [values[u'sameAs'], ]
+        # merge sameAs and exactMatch
+        match = []
+        # each can be None, a list or a str/unicode
         if values[u'sameAs'] is not None:
-            for sa in values[u'sameAs']:
-                if u'wikidata' in sa:
-                    values[u'wikidata'] = sa.split('/')[-1]
-                elif u'libris-id' in values.keys() and \
-                        u'libris.kb.se/auth/' in sa:
-                    values[u'libris-id'] = sa.split('/')[-1]
-                elif u'viaf-id' in values.keys() and \
-                        u'viaf.org/viaf/' in sa:
-                    values[u'viaf-id'] = sa.split('/')[-1]
+            if isinstance(values[u'sameAs'], (str, unicode)):
+                values[u'sameAs'] = [values[u'sameAs'], ]
+            match += values[u'sameAs']
+        if values[u'exactMatch'] is not None:
+            if isinstance(values[u'exactMatch'], (str, unicode)):
+                values[u'exactMatch'] = [values[u'exactMatch'], ]
+            match += values[u'exactMatch']
+
+        # dig into sameAs/exactMatch and seeAlso
+        for sa in match:
+            if u'wikidata' in sa:
+                values[u'wikidata'] = sa.split('/')[-1]
+            elif u'libris-id' in values.keys() and \
+                    u'libris.kb.se/auth/' in sa:
+                values[u'libris-id'] = sa.split('/')[-1]
+            elif u'viaf-id' in values.keys() and \
+                    u'viaf.org/viaf/' in sa:
+                values[u'viaf-id'] = sa.split('/')[-1]
+            elif u'getty-id' in values.keys() and \
+                    u'vocab.getty.edu/aat/' in sa:
+                values[u'getty-id'] = sa.split('/')[-1]
+
         # we only care about seeAlso if we didn't find a Wikidata link
         if values[u'wikidata'] is None and values[u'seeAlso'] is not None:
             if isinstance(values[u'seeAlso'], (str, unicode)):
@@ -711,12 +727,10 @@ class KulturnavBot(object):
     def getLocationProperty(self, item, strict=True):
         """
         Given an ItemPage this returns the suitable property which
-        should be used to indicate its location
-
+        should be used to indicate its location.
         P17  - land
         P131 - within administrative unit
         P276 - place
-
 
         param item: ItemPage|None
         param strict: bool whether place should be returned if no land
