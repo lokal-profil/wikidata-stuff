@@ -338,6 +338,17 @@ class KulturnavBotSMM(KulturnavBot):
                 u'homePort.end'
                 u'navalVessel.isSubRecord'
                 u'navalVessel.hasSubRecord'
+
+                https://www.wikidata.org/wiki/Wikidata:WikiProject_Ships/Properties#Significant_events
+                Varv: P1071
+                hemmahamn:P504
+                Fartygsklass:P289 - Sökarklass
+                Instans av:P31 - Minläggare
+                Händelser: P793
+                e.g.: launched
+                    P793:Q596643
+                        P585:launch.date
+                        P276:launched.location
             """
             # P31 fartygstyp -- otherType (om målobjektet är i Svenska marinens klasser för örlogsfartyg)
             # P289 fartygsklass -- otherType (om målobjektet är i Fartygstyper)
@@ -383,6 +394,22 @@ class KulturnavBotSMM(KulturnavBot):
                         claim.append(values[u'registration.number'][i])
                 if len(claim) > 0:
                     protoclaims[u'P879'] = claim
+            # ...
+            if values[u'homePort.location']:
+                place = self.location2Wikidata(values[u'homePort.location'])
+                qual = []
+                if values[u'homePort.start']:
+                    qual.append(self.makeQual(
+                        self.START_P,
+                        itis=self.dbDate(values[u'homePort.start']),
+                        force=False))
+                if values[u'homePort.end']:
+                    qual.append(self.makeQual(
+                        self.END_P,
+                        itis=self.dbDate(values[u'homePort.end']),
+                        force=False))
+                # protoclaims[u'P504'] = (place, qual)
+
             # ...
             return protoclaims
 

@@ -467,7 +467,7 @@ class KulturnavBot(object):
                                        hitItem, ref)
         elif pcprop == u'P%s' % self.KULTURNAV_ID_P:
             qual = self.makeQual(self.CATALOG_P,
-                                 self.DATASET_Q,
+                                 Q=self.DATASET_Q,
                                  force=True)
             self.wd.addNewClaim(pcprop, pcvalue, hitItem,
                                 ref, qual=qual)
@@ -818,15 +818,26 @@ class KulturnavBot(object):
         }
         return ref
 
-    def makeQual(self, P, Q, force=False):
+    def makeQual(self, P, Q=None, itis=None, force=False):
         """
         Make a correctly formatted qualifier object for claims
+
+        param P: string the property for the qualifier
+        param Q: string the item for the qualifier value
+        param itis: an itis statement, for non itemPage claims
+        param force: bool whether qualifier should be added even to already
+                     sourced items
+        return dict
         """
+        if Q is not None:
+            itis = pywikibot.ItemPage(self.repo,
+                                      u'Q%s' % Q)
+        if itis is None:
+            pywikibot.output('makeQual() requires a Qno or an itis')
+            exit(1)
         qual = {
             u'prop': u'P%s' % P,
-            u'itis': pywikibot.ItemPage(
-                self.repo,
-                u'Q%s' % Q),
+            u'itis': itis,
             u'force': force
         }
         return qual
