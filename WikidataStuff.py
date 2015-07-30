@@ -18,10 +18,101 @@ from WikidataStringSearch import WikidataStringSearch
 
 class WikidataStuff(object):
     """
-    A freamwork of generally useful functions for interacting with
+    A framework of generally useful functions for interacting with
     Wikidata using pywikibot
     """
     repo = None
+
+    class Reference(object):
+        """
+        A class for encoding contents of a reference
+        @todo: should be done way more general
+               esentially a list of claims to test
+               esentially a list of claims not to test
+        source_P: a sourcing property
+        source: the source value, a valid claim
+                e.g. pywikibot.ItemPage(repo, "Q6581097")
+        time_P: a property which takes a time value
+        time: must be a pywikibot.WbTime object
+        """
+        def __init__(self, source_P, source, time_P, time):
+            """
+            @todo
+            """
+            self.source_P = u'P%s' % source_P.lstrip('P')
+            self.source = source
+            self.time_P = u'P%s' % time_P.lstrip('P')
+            self.time = time
+
+    class Qualifier(object):
+        """
+        A class for encoding contents of a qualifier
+        @todo: redo as SimpleClaim
+        @todo: throw exceptions instead
+        """
+        def __init__(self, P, Q=None, itis=None):
+            """
+            Make a correctly formatted qualifier object for claims
+
+            param P: string the property (with or without "P")
+            param Q: string the Q-item for value (with or without "Q")
+            param itis: an itis statement, for non itemPage claims
+            """
+            if Q is not None:
+                itis = pywikibot.ItemPage(self.repo,
+                                          u'Q%s' % Q.lstrip('Q'))
+            if itis is None:
+                pywikibot.output('Qualifier() requires a Qno or an itis')
+                exit(1)
+            self.prop = u'P%s' % P.lstrip('P')
+            self.itis = itis
+
+    class Statement(object):
+        """
+        A class for encoding contents of a statement meaning a value and
+        optional qualifiers
+        @todo: throw exceptions instead
+        @todo: itis test
+        """
+        def __init__(self, itis, special=False):
+            """
+            Make a correctly formatted statement object for claims
+            param itis: a valid claim e.g. pywikibot.ItemPage(repo, "Q6581097")
+            param special: bool if itis is actaually a snackvalue
+            """
+            if special:
+                if itis not in ['somevalue', 'novalue']:
+                    pywikibot.output(u'You tried to create a special'
+                                     u'statement with a non-allowed snakvalue'
+                                     u': %s' % itis)
+                    exit(1)
+            self.itis = itis
+            self.quals = []
+            self.special = special
+            self.force = False
+
+        def addQualifier(self, qual, force=False):
+            """
+            Add qualifer to the statement, returns self to allow chaining
+            param qual: Qualifier
+            param force: bool whether qualifier should be added even to
+                         already sourced items
+            return Statement
+            """
+            if isinstance(qual, WikidataStuff.Qualifier):
+                self.quals.append(qual)
+            else:
+                pywikibot.output('Qualifier() requires a Qno or an itis')
+                exit(1)
+            if force:
+                self.force = True
+            return self
+
+        def isNone(self):
+            """
+            Test if Statment was created with itis=None
+            """
+            return self.itis is None
 
     def __init__(self, repo):
         """
@@ -113,23 +204,18 @@ class WikidataStuff(object):
 
         param item: the item on which all of this happens
         param claim: the pywikibot.Claim to be sourced
-        ref: a dict with the folowing key-values
-             source_P: a sourcing property
-             source: the source value, a valid claim
-                          e.g. pywikibot.ItemPage(repo, "Q6581097")
-             time_P: a property which takes a time value
-             time: must be a pywikibot.WbTime object
+        ref: a Reference
         """
-        statedin = pywikibot.Claim(self.repo, ref[u'source_P'])
-        statedin.setTarget(ref[u'source'])
+        statedin = pywikibot.Claim(self.repo, ref.source_P)
+        statedin.setTarget(ref.source)
 
         # check if already present (with any date)
-        if self.hasRef(ref[u'source_P'], ref[u'source'], claim):
+        if self.hasRef(ref.source_P, ref.source, claim):
             return False
 
         # if not then add
-        retrieved = pywikibot.Claim(self.repo, ref[u'time_P'])
-        retrieved.setTarget(ref[u'time'])
+        retrieved = pywikibot.Claim(self.repo, ref.time_P)
+        retrieved.setTarget(ref.time)
 
         try:
             claim.addSources([statedin, retrieved])  # writes to database
@@ -145,42 +231,61 @@ class WikidataStuff(object):
                 pywikibot.output(e)
                 exit(1)
 
-    def hasQualifier(self, prop, itis, claim):
+    def hasAllQualifiers(self, quals, claim):
+        """
+        Checks if all qualifier are already present
+        param quals: list of Qualifier
+        param claim: Claim
+        """
+        for qual in quals:
+            if not self.hasQualifier(qual, claim):
+                return False
+        return True
+
+    def hasQualifier(self, qual, claim):
         """
         Checks if qualifier is already present
+        param qual: Qualifier
+        param claim: Claim
         """
         if claim.qualifiers:
-            if prop in claim.qualifiers.keys():
-                for s in claim.qualifiers[prop]:
-                    if self.bypassRedirect(s.getTarget()) == itis:
+            if qual.prop in claim.qualifiers.keys():
+                for s in claim.qualifiers[qual.prop]:
+                    if self.bypassRedirect(s.getTarget()) == qual.itis:
                         return True
                     # else:
                     #    pywikibot.output(s.getTarget())
         return False
 
-    def addQualifier(self, item, claim, prop, itis):
+    def addQualifier(self, item, claim, qual):
         """
         Check if a qualifier is present at the given claim,
         otherwise add it
 
         Known issue: This will qualify an already referenced claim
             this must therefore be tested before
+
+        param item: itemPage to check
+        param claim: Claim to check
+        param qual: Qualifier to check
         """
         # check if already present
-        if self.hasQualifier(prop, itis, claim):
+        if self.hasQualifier(qual, claim):
             return False
 
-        qClaim = pywikibot.Claim(self.repo, prop)
-        qClaim.setTarget(itis)
+        qClaim = pywikibot.Claim(self.repo, qual.prop)
+        qClaim.setTarget(qual.itis)
 
         try:
             claim.addQualifier(qClaim)  # writes to database
-            pywikibot.output('Adding qualifier to %s in %s' % (prop, item))
+            pywikibot.output('Adding qualifier to %s in %s' % (qual.prop,
+                                                               item))
             return True
         except pywikibot.data.api.APIError, e:
             if e.code == u'modification-failed':
                 pywikibot.output(u'modification-failed error: '
-                                 u'qualifier to %s in %s' % (prop, item))
+                                 u'qualifier to %s in %s' % (qual.prop,
+                                                             item))
                 return False
             else:
                 pywikibot.output(e)
@@ -206,7 +311,7 @@ class WikidataStuff(object):
                     return claim
         return None
 
-    def addNewClaim(self, prop, itis, item, ref, qual=None, snaktype=None):
+    def addNewClaim(self, prop, statement, item, ref):
         """
         Given an item, a property and a claim (in the itis format) this
         either adds the sourced claim, or sources it if already existing
@@ -216,79 +321,57 @@ class WikidataStuff(object):
         * Will source a claim with other qualifiers
 
         prop: a PXX code, unicode
-        itis: a valid claim e.g. pywikibot.ItemPage(repo, "Q6581097")
+        statement: a Statement() object
         item: the item being checked
-        ref: a referenc dict. see addReference() for requirements
-        qual: optional qualifier to add to claim, dict{prop, itis, force}
-            prop and itis: are formulated as those for the claim
-            force: (bool) add even to a sourced claim
-        snaktype: somevalue/novalue
-            (should only ever be set through addNewSpecialClaim)
+        ref: None|Reference
+        quals: None|list of Qualifiers
         """
         claim = pywikibot.Claim(self.repo, prop)
 
         # handle special cases
-        if snaktype is None:
-            claim.setTarget(itis)
-            priorClaim = self.hasClaim(prop, itis, item)
+        if statement.special:
+            claim.setSnakType(statement.itis)
+            priorClaim = self.hasSpecialClaim(prop, statement.itis, item)
         else:
-            claim.setSnakType(snaktype)
-            priorClaim = self.hasSpecialClaim(prop, snaktype, item)
+            claim.setTarget(statement.itis)
+            priorClaim = self.hasClaim(prop, statement.itis, item)
 
         # test reference and qualifier
-        if self.validReference(ref) is None:
+        if not isinstance(ref, WikidataStuff.Reference):
             pywikibot.output(u'No reference was given when making a new '
                              u'claim. Crashing')
             exit(1)
-        validQualifier = self.validQualifier(qual) is not None
 
-        if priorClaim and validQualifier:
+        if priorClaim and len(statement.quals) > 0:
             # cannot add a qualifier to a previously sourced claim
             if not priorClaim.sources:
                 # if unsourced
-                self.addQualifier(item, priorClaim,
-                                  qual[u'prop'], qual[u'itis'])
+                for qual in statement.quals:
+                    self.addQualifier(item, priorClaim, qual)
                 self.addReference(item, priorClaim, ref)
-            elif self.hasQualifier(qual[u'prop'], qual[u'itis'], priorClaim):
-                # if qualifier already present
+            elif self.hasAllQualifiers(statement.quals, priorClaim):
+                # if all qualifiers already present
                 self.addReference(item, priorClaim, ref)
-            elif qual[u'force']:
+            elif statement.force:
                 # if force is set
-                self.addQualifier(item, priorClaim,
-                                  qual[u'prop'], qual[u'itis'])
+                for qual in statement.quals:
+                    self.addQualifier(item, priorClaim, qual)
                 self.addReference(item, priorClaim, ref)
             else:
                 # add new qualified claim
                 item.addClaim(claim)
                 pywikibot.output('Adding %s claim to %s' % (prop, item))
-                self.addQualifier(item, claim, qual[u'prop'], qual[u'itis'])
+                for qual in statement.quals:
+                    self.addQualifier(item, claim, qual)
                 self.addReference(item, claim, ref)
         elif priorClaim:
             self.addReference(item, priorClaim, ref)
         else:
             item.addClaim(claim)
             pywikibot.output('Adding %s claim to %s' % (prop, item))
-            if validQualifier:
-                self.addQualifier(item, claim, qual[u'prop'], qual[u'itis'])
+            for qual in statement.quals:
+                self.addQualifier(item, claim, qual)
             self.addReference(item, claim, ref)
-
-    def addNewSpecialClaim(self, prop, snaktype, item, ref, qual=None):
-        """
-        addNewClaim() but for the special 'somevalue' and 'novalue'
-        """
-        if snaktype not in ['somevalue', 'novalue']:
-            pywikibot.output(u'You passed a non-allowed snakvalue to '
-                             u'addNewSpecialClaim(): %s' % snaktype)
-            exit(1)
-
-        # pass it on to addNewClaim with itis=None
-        self.addNewClaim(
-            prop,
-            None,
-            item,
-            ref,
-            qual=qual,
-            snaktype=snaktype)
 
     def bypassRedirect(self, item):
         """
@@ -309,32 +392,3 @@ class WikidataStuff(object):
             return item.getRedirectTarget()
         else:
             return item
-
-    def validQualifier(self, qual):
-        """
-        Tests that a given qualifier object exists and if so that it is valid
-        """
-        if qual is None:
-            return None
-        elif isinstance(qual, dict) and \
-                set(qual.keys()) == set(['prop', 'itis', 'force']):
-            return True
-        else:
-            pywikibot.output(u'The qualifier was not formatted correctly: %s'
-                             % qual)
-            exit(1)
-
-    def validReference(self, ref):
-        """
-        Tests that a given ref object exists and if so that it is valid
-        """
-        if ref is None:
-            return None
-        elif isinstance(ref, dict) and \
-                set(ref.keys()) == set(['source_P', 'source',
-                                        'time_P', 'time']):
-            return True
-        else:
-            pywikibot.output(u'The reference was not formatted correctly: %s'
-                             % ref)
-            exit(1)
