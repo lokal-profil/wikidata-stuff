@@ -19,6 +19,7 @@ Options (may be omitted):
 import pywikibot
 from kulturnavBot import KulturnavBot
 from kulturnavBot import Rule
+from WikidataStuff import WikidataStuff as WD
 
 # KulturNav based
 EDIT_SUMMARY = 'KulturnavBot(SMM)'
@@ -111,33 +112,40 @@ class KulturnavBotSMM(KulturnavBot):
 
         def personClaims(self, values):
             protoclaims = {
-                u'P31': pywikibot.ItemPage(  # instance of
+                # instance of
+                u'P31': WD.Statement(pywikibot.ItemPage(
                     self.repo,
-                    u'Q%s' % self.HUMAN_Q)
+                    u'Q%s' % self.HUMAN_Q))
                 }
             # P106 occupation - fieldOfActivityOfThePerson
 
             # if values[u'deathPlace']:
-            #    protoclaims[u'P20'] = self.dbpedia2Wikidata(
-            #        values[u'deathPlace'])
+            #    protoclaims[u'P20'] = WD.Statement(
+            #        self.dbpedia2Wikidata(values[u'deathPlace']))
             if values[u'deathDate']:
-                protoclaims[u'P570'] = self.dbDate(values[u'deathDate'])
+                protoclaims[u'P570'] = WD.Statement(
+                    self.dbDate(values[u'deathDate']))
             # if values[u'birthPlace']:
-            #    protoclaims[u'P19'] = self.dbpedia2Wikidata(
-            #        values[u'birthPlace'])
+            #    protoclaims[u'P19'] = WD.Statement(
+            #        self.dbpedia2Wikidata(values[u'birthPlace']))
             if values[u'birthDate']:
-                protoclaims[u'P569'] = self.dbDate(values[u'birthDate'])
+                protoclaims[u'P569'] = WD.Statement(
+                    self.dbDate(values[u'birthDate']))
             if values[u'gender']:
+                # dbGender returns a WD.Statement
                 protoclaims[u'P21'] = self.dbGender(values[u'gender'])
             if values[u'firstName']:
-                protoclaims[u'P735'] = self.dbName(values[u'firstName'],
-                                                   u'firstName')
+                protoclaims[u'P735'] = WD.Statement(
+                    self.dbName(values[u'firstName'],
+                                u'firstName'))
             if values[u'lastName']:
-                protoclaims[u'P734'] = self.dbName(values[u'lastName'],
-                                                   u'lastName')
+                protoclaims[u'P734'] = WD.Statement(
+                    self.dbName(values[u'lastName'],
+                                u'lastName'))
             if values[u'person.nationality']:
-                protoclaims[u'P27'] = self.location2Wikidata(
-                    values[u'person.nationality'])
+                protoclaims[u'P27'] = WD.Statement(
+                    self.location2Wikidata(
+                        values[u'person.nationality']))
 
             return protoclaims
 
@@ -184,27 +192,29 @@ class KulturnavBotSMM(KulturnavBot):
 
         def varvClaims(self, values):
             protoclaims = {
-                u'P31': pywikibot.ItemPage(  # instance of
+                # instance of
+                u'P31': WD.Statement(pywikibot.ItemPage(
                     self.repo,
-                    u'Q%s' % self.SHIPYARD_Q)
+                    u'Q%s' % self.SHIPYARD_Q))
             }
 
             # handle values
             if values[u'establishment.date']:
-                protoclaims[u'P571'] = self.dbDate(
-                    values[u'establishment.date'])
+                protoclaims[u'P571'] = WD.Statement(
+                    self.dbDate(values[u'establishment.date']))
             if values[u'termination.date']:
-                protoclaims[u'P576'] = self.dbDate(
-                    values[u'termination.date'])
+                protoclaims[u'P576'] = WD.Statement(
+                    self.dbDate(values[u'termination.date']))
             if values[u'agent.ownership.owner']:
-                protoclaims[u'P127'] = self.kulturnav2Wikidata(
-                    values[u'agent.ownership.owner'])
+                protoclaims[u'P127'] = WD.Statement(
+                    self.kulturnav2Wikidata(
+                        values[u'agent.ownership.owner']))
             if values[u'location']:
                 location_Q = self.location2Wikidata(values[u'location'])
                 prop = self.getLocationProperty(location_Q)
                 if prop:
-                    protoclaims[prop] = self.location2Wikidata(
-                        values[u'location'])
+                    protoclaims[prop] = WD.Statement(
+                        self.location2Wikidata(values[u'location']))
 
             return protoclaims
 
@@ -333,15 +343,11 @@ class KulturnavBotSMM(KulturnavBot):
                 u'decommissioned.date'
                 u'navalVessel.type':
                 u'navalVessel.otherType'
-                u'homePort.location'
-                u'homePort.start'
-                u'homePort.end'
                 u'navalVessel.isSubRecord'
                 u'navalVessel.hasSubRecord'
 
                 https://www.wikidata.org/wiki/Wikidata:WikiProject_Ships/Properties#Significant_events
                 Varv: P1071
-                hemmahamn:P504
                 Fartygsklass:P289 - Sökarklass
                 Instans av:P31 - Minläggare
                 Händelser: P793
@@ -391,24 +397,30 @@ class KulturnavBotSMM(KulturnavBot):
                 claim = []
                 for i in range(0, len(values[u'registration.number'])):
                     if values[u'registration.type'][i] == self.IKNO_K:
-                        claim.append(values[u'registration.number'][i])
+                        claim.append(
+                            WD.Statement(
+                                values[u'registration.number'][i]))
                 if len(claim) > 0:
                     protoclaims[u'P879'] = claim
-            # ...
+
+            # P504 - homeport
             if values[u'homePort.location']:
                 place = self.location2Wikidata(values[u'homePort.location'])
                 qual = []
                 if values[u'homePort.start']:
-                    qual.append(self.makeQual(
-                        self.START_P,
-                        itis=self.dbDate(values[u'homePort.start']),
-                        force=False))
+                    qual.append(
+                        WD.Qualifier(
+                            P=self.START_P,
+                            itis=self.dbDate(values[u'homePort.start'])))
                 if values[u'homePort.end']:
-                    qual.append(self.makeQual(
-                        self.END_P,
-                        itis=self.dbDate(values[u'homePort.end']),
-                        force=False))
-                # protoclaims[u'P504'] = (place, qual)
+                    qual.append(
+                        WD.Qualifier(
+                            P=self.END_P,
+                            itis=self.dbDate(values[u'homePort.end'])))
+                if place:
+                    protoclaims[u'P504'] = WD.Statement(place)
+                    for q in qual:
+                        protoclaims[u'P504'].addQualifier(q)
 
             # ...
             return protoclaims

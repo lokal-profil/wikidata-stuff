@@ -16,6 +16,7 @@ Options (may be omitted):
 """
 import pywikibot
 from kulturnavBot import KulturnavBot
+from WikidataStuff import WikidataStuff as WD
 
 # KulturNav based
 EDIT_SUMMARY = 'KulturnavBot(ArkDes)'
@@ -51,33 +52,44 @@ class KulturnavBotArkDes(KulturnavBot):
 
         def claims(self, values):
             protoclaims = {
-                u'P31': pywikibot.ItemPage(  # instance of
+                # instance of
+                u'P31': WD.Statement(pywikibot.ItemPage(
                     self.repo,
-                    u'Q%s' % self.HUMAN_Q),
-                u'P106': pywikibot.ItemPage(
+                    u'Q%s' % self.HUMAN_Q)),
+                # occupation
+                u'P106': WD.Statement(pywikibot.ItemPage(
                     self.repo,
-                    u'Q%s' % self.ARCHITECT_Q)
+                    u'Q%s' % self.ARCHITECT_Q))
                 }
             # P106 occupation - fieldOfActivityOfThePerson
 
-            #    protoclaims[u'P20'] = self.dbpedia2Wikidata(values[u'deathPlace'])
+            # if values[u'deathPlace']:
+            #    protoclaims[u'P20'] = WD.Statement(
+            #        self.dbpedia2Wikidata(values[u'deathPlace']))
             if values[u'deathDate']:
-                protoclaims[u'P570'] = self.dbDate(values[u'deathDate'])
+                protoclaims[u'P570'] = WD.Statement(
+                    self.dbDate(values[u'deathDate']))
             # if values[u'birthPlace']:
-            #    protoclaims[u'P19'] = self.dbpedia2Wikidata(values[u'birthPlace'])
+            #    protoclaims[u'P19'] = WD.Statement(
+            #        self.dbpedia2Wikidata(values[u'birthPlace']))
             if values[u'birthDate']:
-                protoclaims[u'P569'] = self.dbDate(values[u'birthDate'])
+                protoclaims[u'P569'] = WD.Statement(
+                    self.dbDate(values[u'birthDate']))
             if values[u'gender']:
+                # dbGender returns a WD.Statement
                 protoclaims[u'P21'] = self.dbGender(values[u'gender'])
             if values[u'firstName']:
-                protoclaims[u'P735'] = self.dbName(values[u'firstName'],
-                                                   u'firstName')
+                protoclaims[u'P735'] = WD.Statement(
+                    self.dbName(values[u'firstName'],
+                                u'firstName'))
             if values[u'lastName']:
-                protoclaims[u'P734'] = self.dbName(values[u'lastName'],
-                                                   u'lastName')
+                protoclaims[u'P734'] = WD.Statement(
+                    self.dbName(values[u'lastName'],
+                                u'lastName'))
             if values[u'person.nationality']:
-                protoclaims[u'P27'] = self.location2Wikidata(
-                    values[u'person.nationality'])
+                protoclaims[u'P27'] = WD.Statement(
+                    self.location2Wikidata(
+                        values[u'person.nationality']))
 
             return protoclaims
 
