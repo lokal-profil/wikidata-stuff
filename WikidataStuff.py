@@ -50,20 +50,13 @@ class WikidataStuff(object):
         @todo: redo as SimpleClaim
         @todo: throw exceptions instead
         """
-        def __init__(self, P, Q=None, itis=None):
+        def __init__(self, P, itis):
             """
             Make a correctly formatted qualifier object for claims
 
             param P: string the property (with or without "P")
-            param Q: string the Q-item for value (with or without "Q")
             param itis: an itis statement, for non itemPage claims
             """
-            if Q is not None:
-                itis = pywikibot.ItemPage(self.repo,
-                                          u'Q%s' % Q.lstrip('Q'))
-            if itis is None:
-                pywikibot.output('Qualifier() requires a Qno or an itis')
-                exit(1)
             self.prop = u'P%s' % P.lstrip('P')
             self.itis = itis
 

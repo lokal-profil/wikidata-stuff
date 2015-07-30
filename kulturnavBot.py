@@ -194,7 +194,9 @@ class KulturnavBot(object):
                 WD.Statement(values[u'identifier']).addQualifier(
                     WD.Qualifier(
                         P=self.CATALOG_P,
-                        Q=self.DATASET_Q),
+                        itis=pywikibot.ItemPage(
+                            self.repo,
+                            u'Q%s' % self.DATASET_Q)),
                     force=True)
 
             # authority control protoclaims
