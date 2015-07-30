@@ -154,11 +154,11 @@ class KulturnavBotSMM(KulturnavBot):
                 self.repo,
                 u'Q%s' % self.GROUP_OF_PEOPLE_Q)
             if self.wd.hasClaim('P%s' % self.IS_A_P, group_item, hitItem):
-                    pywikibot.output(u'%s is matched to a group of people, '
-                                     u'FIXIT' % hitItem.title())
-                    return False
+                pywikibot.output(u'%s is matched to a group of people, '
+                                 u'FIXIT' % hitItem.title())
+                return False
             else:
-                    return True
+                return True
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=personRules,
@@ -254,14 +254,16 @@ class KulturnavBotSMM(KulturnavBot):
         TODO:
             Match value to protoclaims
             Find sanityTest
-            test claim matches
         """
 
         fartygRules = {
-            u'entity.name': None,  # handle capitalisation
-            u'altLabel': None,  # should be added to the names array
+            u'entity.name': Rule(  # force to look in top level
+                keys=['inDataset', ],
+                values=None,
+                target='entity.name'),
+            u'altLabel': None,
             u'navalVessel.signalLetters': None,
-            u'entity.code': None,  # should be merged with signalLetters
+            u'entity.code': None,
             u'built.date': Rule(
                 keys=['navalVessel.built.navalVessel', ],
                 values={'@type': 'dbpedia-owl:Event'},
@@ -325,7 +327,11 @@ class KulturnavBotSMM(KulturnavBot):
                 keys=None,
                 values={},
                 target='navalVessel.registration',
-                viaId='registration.register')
+                viaId='registration.register'),
+            u'constructor': Rule(
+                keys=['navalVessel.constructed.navalVessel', ],
+                values={'@type': 'dbpedia-owl:Event'},
+                target='navalVessel.constructed.constructedBy')
             # navalVessel.measurement
         }
 
@@ -333,28 +339,17 @@ class KulturnavBotSMM(KulturnavBot):
             """
             To implement:
                 u'navalVessel.signalLetters': possibly P432
-                u'built.date':
-                u'built.location'
-                u'built.shipyard'
-                u'launched.date'
-                u'launched.location'
-                u'launched.shipyard'
                 u'delivered.date'
-                u'decommissioned.date'
                 u'navalVessel.type':
                 u'navalVessel.otherType'
                 u'navalVessel.isSubRecord'
                 u'navalVessel.hasSubRecord'
+                u'constructor'
 
-                https://www.wikidata.org/wiki/Wikidata:WikiProject_Ships/Properties#Significant_events
-                Varv: P1071
+                Probably combine type and otherType then select property
+                    depending on wdq lookup
                 Fartygsklass:P289 - Sökarklass
                 Instans av:P31 - Minläggare
-                Händelser: P793
-                e.g.: launched
-                    P793:Q596643
-                        P585:launch.date
-                        P276:launched.location
             """
             # P31 fartygstyp -- otherType (om målobjektet är i Svenska marinens klasser för örlogsfartyg)
             # P289 fartygsklass -- otherType (om målobjektet är i Fartygstyper)
@@ -422,12 +417,78 @@ class KulturnavBotSMM(KulturnavBot):
                     for q in qual:
                         protoclaims[u'P504'].addQualifier(q)
 
-            # ...
+            # P1071 - Shipyard
+            if values[u'built.shipyard'] or values[u'launched.shipyard']:
+                print values[u'built.shipyard'], values[u'launched.shipyard']
+                shipyard = []
+                if values[u'built.shipyard']:
+                    shipyard.append(values[u'built.shipyard'])
+                if values[u'launched.shipyard']:
+                    shipyard.append(values[u'launched.shipyard'])
+                shipyard = list(set(shipyard))
+                if len(shipyard) > 1:
+                    pywikibot.output(u'Found multiple shipyards, not sure how'
+                                     u'to proceed: %s' % values[u'identifier'])
+                else:
+                    protoclaims[u'P1071'] = WD.Statement(
+                        self.kulturnav2Wikidata(
+                            shipyard[0]))
+
+            # P793 - Events
+            #   built: Q474200
+            #   launched: Q596643
+            #   commissioned: Q14475832
+            #   decommissioned: Q7497952
+            events = []
+            if values[u'built.date']:
+                event = WD.Statement(
+                    pywikibot.ItemPage(self.repo, 'Q474200')
+                    ).addQualifier(
+                        WD.Qualifier(
+                            P=self.END_P,
+                            itis=self.dbDate(values[u'built.date'])))
+                if values[u'built.location']:
+                    event.addQualifier(
+                        WD.Qualifier(
+                            P=self.PLACE_P,
+                            itis=self.location2Wikidata(
+                                values[u'built.location'])))
+                # u'built.shipyard'
+                events.append(event)
+            if values[u'launched.date']:
+                event = WD.Statement(
+                    pywikibot.ItemPage(self.repo, 'Q596643')
+                    ).addQualifier(
+                        WD.Qualifier(
+                            P=self.TIME_P,
+                            itis=self.dbDate(values[u'launched.date'])))
+                if values[u'launched.location']:
+                    event.addQualifier(
+                        WD.Qualifier(
+                            P=self.PLACE_P,
+                            itis=self.location2Wikidata(
+                                values[u'launched.location'])))
+                # u'launched.shipyard'
+                events.append(event)
+            if values[u'delivered.date']:
+                pass
+            if values[u'decommissioned.date']:
+                event = WD.Statement(
+                    pywikibot.ItemPage(self.repo, 'Q7497952')
+                    ).addQualifier(
+                        WD.Qualifier(
+                            P=self.TIME_P,
+                            itis=self.dbDate(values[u'decommissioned.date'])))
+                events.append(event)
+            if len(events) > 0:
+                protoclaims[u'P793'] = events
+
             return protoclaims
 
         def fartygTest(self, hitItem):
             """
-            is there any way of testing that it is a ship... of some type
+            is there any way of testing that it is a ship... of some type?
+            Possibly if any of P31 is in wdqList for claim[31:2235308]
             """
             pass
 
@@ -437,6 +498,28 @@ class KulturnavBotSMM(KulturnavBot):
         self.runLayout(datasetRules=fartygRules,
                        datasetProtoclaims=fartygClaims,
                        datasetSanityTest=fartygTest,
+                       label=u'entity.name',
+                       shuffle=False)
+
+    def runKlasser(self):
+        """
+        TODO:
+            Match value to protoclaims
+            Find sanityTest
+        """
+
+        rules = {}
+
+        def claims(self, values):
+            pass
+
+        def test(self, hitItem):
+            pass
+
+        # pass settings on to runLayout()
+        self.runLayout(datasetRules=rules,
+                       datasetProtoclaims=claims,
+                       datasetSanityTest=test,
                        label=u'entity.name',
                        shuffle=False)
 
