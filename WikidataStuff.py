@@ -44,6 +44,11 @@ class WikidataStuff(object):
             self.time_P = u'P%s' % time_P.lstrip('P')
             self.time = time
 
+        def __repr__(self):
+            """Return a more complete string representation."""
+            return u'WD.Reference(%s, %s, %s, %s)' % (
+                self.source_P, self.source, self.time_P, self.time)
+
     class Qualifier(object):
         """
         A class for encoding contents of a qualifier
@@ -59,6 +64,10 @@ class WikidataStuff(object):
             """
             self.prop = u'P%s' % P.lstrip('P')
             self.itis = itis
+
+        def __repr__(self):
+            """Return a more complete string representation."""
+            return u'WD.Qualifier(%s, %s)' % (self.prop, self.itis)
 
     class Statement(object):
         """
@@ -92,11 +101,11 @@ class WikidataStuff(object):
                          already sourced items
             return Statement
             """
-            if isinstance(qual, WikidataStuff.Qualifier):
-                self.quals.append(qual)
-            else:
-                pywikibot.output('Qualifier() requires a Qno or an itis')
+            if not isinstance(qual, WikidataStuff.Qualifier):
+                pywikibot.output('addQualifier was called without a '
+                                 'Qualifier() object: %s' % qual)
                 exit(1)
+            self.quals.append(qual)
             if force:
                 self.force = True
             return self
@@ -106,6 +115,12 @@ class WikidataStuff(object):
             Test if Statment was created with itis=None
             """
             return self.itis is None
+
+        def __repr__(self):
+            """Return a more complete string representation."""
+            txt = u'WD.Statement(%s, %s, %s, %s)' % (
+                self.itis, self.quals, self.special, self.force)
+            return txt
 
     def __init__(self, repo):
         """
