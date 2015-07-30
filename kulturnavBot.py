@@ -54,6 +54,11 @@ class Rule():
         self.keys.append(target)
         self.viaId = viaId
 
+    def __repr__(self):
+        """Return a more complete string representation."""
+        return u'Rule(%s, %s, %s, %s)' % (
+            self.keys, self.values, self.target, self.viaId)
+
 
 class KulturnavBot(object):
     """
@@ -157,7 +162,7 @@ class KulturnavBot(object):
         """
         count = 0
         for hit in self.generator:
-            # print count, cutoff
+            # print count, self.cutoff
             if self.cutoff and count >= self.cutoff:
                 break
             # Required rules/values to search for
