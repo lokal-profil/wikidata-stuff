@@ -95,16 +95,24 @@ class WikidataStuff(object):
 
         def addQualifier(self, qual, force=False):
             """
-            Add qualifer to the statement, returns self to allow chaining
-            param qual: Qualifier
+            Add qualifer to the statement if not None,
+            returns self to allow chaining
+            param qual: Qualifier|None
             param force: bool whether qualifier should be added even to
                          already sourced items
             return Statement
             """
-            if not isinstance(qual, WikidataStuff.Qualifier):
-                pywikibot.output('addQualifier was called without a '
-                                 'Qualifier() object: %s' % qual)
+            # test input
+            if qual is None:
+                # simply skip any action
+                return self
+            elif not isinstance(qual, WikidataStuff.Qualifier):
+                pywikibot.output('addQualifier was called with something '
+                                 'other than a Qualifier|None object: %s' %
+                                 qual)
                 exit(1)
+
+            # register qualifier
             self.quals.append(qual)
             if force:
                 self.force = True
