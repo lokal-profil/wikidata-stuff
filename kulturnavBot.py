@@ -69,8 +69,13 @@ class KulturnavBot(object):
     GEONAMES_ID_P = '1566'
     SWE_KOMMUNKOD_P = '525'
     SWE_COUNTYKOD_P = '507'
+    PLACE_P = '276'
+    START_P = '580'  # start date
+    END_P = '582'  # end date
+    TIME_P = '585'   # date
     DATASET_Q = None
     STATED_IN_P = '248'
+    DISAMBIG_Q = '4167410'
     IS_A_P = '31'
     PUBLICATION_P = '577'
     CATALOG_P = '972'
@@ -221,7 +226,9 @@ class KulturnavBot(object):
             # Add information if a match was found
             if hitItem and hitItem.exists():
 
-                # make sure it passes the sanityTest
+                # make sure it passes the sanityTests
+                if not self.sanityTest(hitItem):
+                    continue
                 if not datasetSanityTest(self, hitItem):
                     continue
 
@@ -374,6 +381,21 @@ class KulturnavBot(object):
             pywikibot.output(u'Found an issue with %s (%s), skipping' %
                              (values['identifier'], values['wikidata']))
         return problemFree
+
+    def sanityTest(self, hitItem):
+        """
+        A generic sanitytest which should be run independent on dataset
+        return bool
+        """
+        disambig_item = pywikibot.ItemPage(
+            self.repo,
+            u'Q%s' % self.DISAMBIG_Q)
+        if self.wd.hasClaim('P%s' % self.IS_A_P, disambig_item, hitItem):
+            pywikibot.output(u'%s is matched to disambiguation page, '
+                             u'FIXIT' % hitItem.title())
+            return False
+        else:
+            return True
 
     def wikidataMatch(self, values):
         """
@@ -748,7 +770,7 @@ class KulturnavBot(object):
             elif q in self.ADMIN_UNITS:
                 return u'P131'
             elif not strict:
-                return u'P276'
+                return u'P%s' % self.PLACE_P
             elif self.verbose:
                 item.exists()
                 pywikibot.output(u'Could not set location property for: '
