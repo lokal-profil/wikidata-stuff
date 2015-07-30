@@ -25,7 +25,7 @@ import pywikibot
 from pywikibot import pagegenerators
 import urllib2
 import pywikibot.data.wikidataquery as wdquery
-from WikidataStuff import WikidataStuff
+from WikidataStuff import WikidataStuff as WD
 
 FOO_BAR = u'A multilingual result (or one with multiple options) was ' \
           u'encountered but I have yet to support that functionality'
@@ -90,7 +90,7 @@ class KulturnavBot(object):
         self.itemIds = self.fillCache()
 
         # set up WikidataStuff object
-        self.wd = WikidataStuff(self.repo)
+        self.wd = WD(self.repo)
 
         # load lists
         self.COUNTRIES = self.wd.wdqLookup(u'TREE[6256][][31]')
@@ -189,13 +189,21 @@ class KulturnavBot(object):
             # convert values to potential claims
             protoclaims = datasetProtoclaims(self, values)
 
-            protoclaims[u'P%s' % self.KULTURNAV_ID_P] = values[u'identifier']
+            # kulturnav protoclaim incl. qualifier
+            protoclaims[u'P%s' % self.KULTURNAV_ID_P] = \
+                WD.Statement(values[u'identifier']).addQualifier(
+                    WD.Qualifier(
+                        P=self.CATALOG_P,
+                        Q=self.DATASET_Q),
+                    force=True)
+
+            # authority control protoclaims
             if values[u'libris-id']:
-                protoclaims[u'P906'] = values[u'libris-id']
+                protoclaims[u'P906'] = WD.Statement(values[u'libris-id'])
             if values[u'viaf-id']:
-                protoclaims[u'P214'] = values[u'viaf-id']
+                protoclaims[u'P214'] = WD.Statement(values[u'viaf-id'])
             if values[u'getty-id']:
-                protoclaims[u'P1014'] = values[u'getty-id']
+                protoclaims[u'P1014'] = WD.Statement(values[u'getty-id'])
 
             # output info for testing
             if self.verbose:
@@ -214,10 +222,8 @@ class KulturnavBot(object):
                 if label is not None:
                     self.addNames(values[label], hitItem, shuffle=shuffle)
 
-                # get the "last modified" timestamp
+                # get the "last modified" timestamp and construct a Reference
                 date = self.dbDate(values[u'modified'])
-
-                # construct a refObject
                 ref = self.makeRef(date)
 
                 # add each property (if new) and source it
@@ -437,43 +443,24 @@ class KulturnavBot(object):
 
         param protoclaims: a dict of claims with a
             key: Prop number
-            val: statement (or list of statments)
+            val: Statement|list of Statments
         param hititem: the target entity
-        param ref: a refrence claim
+        param ref: Reference
         """
         for pcprop, pcvalue in protoclaims.iteritems():
             if pcvalue:
                 if isinstance(pcvalue, list):
                     pcvalue = set(pcvalue)  # eliminate potential duplicates
                     for val in pcvalue:
-                        if val is not None:  # stay paranoid
-                            self.addProperty(pcprop, val, hitItem, ref)
+                        # check if None or a Statement(None)
+                        if (val is not None) and (not val.isNone()):
+                            self.wd.addNewClaim(pcprop, val, hitItem, ref)
                             # reload item so that next call is aware of changes
                             hitItem = pywikibot.ItemPage(self.repo,
                                                          hitItem.title())
                             hitItem.exists()
-                else:
-                    self.addProperty(pcprop, pcvalue, hitItem, ref)
-
-    def addProperty(self, pcprop, pcvalue, hitItem, ref):
-        """
-        add a single property (if new) and source it
-        pcvalue must not be None
-        """
-        if isinstance(pcvalue, unicode) and \
-                pcvalue in (u'somevalue', u'novalue'):
-            # special cases
-            self.wd.addNewSpecialClaim(pcprop, pcvalue,
-                                       hitItem, ref)
-        elif pcprop == u'P%s' % self.KULTURNAV_ID_P:
-            qual = self.makeQual(self.CATALOG_P,
-                                 Q=self.DATASET_Q,
-                                 force=True)
-            self.wd.addNewClaim(pcprop, pcvalue, hitItem,
-                                ref, qual=qual)
-        else:
-            self.wd.addNewClaim(pcprop, pcvalue,
-                                hitItem, ref)
+                elif not pcvalue.isNone():
+                    self.wd.addNewClaim(pcprop, pcvalue, hitItem, ref)
 
     # KulturNav specific functions
     def dbpedia2Wikidata(self, item):
@@ -481,6 +468,7 @@ class KulturnavBot(object):
         Converts a dbpedia reference to the equivalent Wikidata item,
         if present
         param item: dict with @language, @value keys
+        return pywikibot.ItemPage|None
         """
         if KulturnavBot.foobar(item):
             return
@@ -492,15 +480,15 @@ class KulturnavBot(object):
         site = pywikibot.Site(item[u'@language'], 'wikipedia')
         page = pywikibot.Page(site, item[u'@value'])
         if u'wikibase_item' in page.properties() and \
-           page.properties()[u'wikibase_item']:
-            return pywikibot.ItemPage(
-                self.repo,
-                page.properties()[u'wikibase_item'])
+                page.properties()[u'wikibase_item']:
+            qNo = page.properties()[u'wikibase_item']
+            return pywikibot.ItemPage(self.repo, qNo)
 
     def dbDate(self, item):
         """
         Given a dbpprop date object (1922-09-17Z or 2014-07-11T08:14:46Z)
-        this returns the equivalent pywikibot.WbTime object
+        this returns the equivalent WbTime object
+        return pywikibot.WbTime
         """
         item = item[:len('YYYY-MM-DD')].split('-')
         if len(item) == 3 and all(self.is_int(x) for x in item):
@@ -534,6 +522,9 @@ class KulturnavBot(object):
     def dbGender(self, item):
         """
         Simply matches gender values to Q items
+        Note that this returns a Statment unlike most other functions
+        param item: string
+        return WD.Statement|None
         """
         known = {u'male': u'Q6581097',
                  u'female': u'Q6581072',
@@ -543,15 +534,21 @@ class KulturnavBot(object):
             return
 
         if known[item] in (u'somevalue', u'novalue'):
-            return known[item]
+            return WD.Statement(
+                known[item],
+                special=True)
         else:
-            return pywikibot.ItemPage(self.repo, known[item])
+            return WD.Statement(
+                pywikibot.ItemPage(
+                    self.repo,
+                    known[item]))
 
     def dbName(self, name, typ):
         """
         Given a plaintext name (first or last) this checks if there is
         a matching object of the right type
         param name = {'@language': 'xx', '@value': 'xxx'}
+        return pywikibot.ItemPage|None
         """
         if KulturnavBot.foobar(name):
             return
@@ -615,7 +612,7 @@ class KulturnavBot(object):
         using the GEONAMES_ID_P property (if any).
 
         NOTE that the WDQ results may be outdated
-        return itemPage|None
+        return pywikibot.ItemPage|None
         """
         # Convert url to uuid
         if uuid.startswith(u'http://kulturnav.org'):
@@ -732,7 +729,7 @@ class KulturnavBot(object):
         P131 - within administrative unit
         P276 - place
 
-        param item: ItemPage|None
+        param item: pywikibot.ItemPage|None
         param strict: bool whether place should be returned if no land
                       or admin_unit hit
         return string|None
@@ -759,7 +756,7 @@ class KulturnavBot(object):
         (if any).
 
         NOTE that the WDQ results may be outdated
-        return itemPage|None
+        return pywikibot.ItemPage|None
         """
         # Convert url to uuid
         if uuid.startswith(u'http://kulturnav.org'):
@@ -809,38 +806,13 @@ class KulturnavBot(object):
         """
         Make a correctly formatted ref object for claims
         """
-        ref = {
-            'source_P': u'P%s' % self.STATED_IN_P,
-            'source': pywikibot.ItemPage(self.repo,
-                                         u'Q%s' % self.DATASET_Q),
-            'time_P': u'P%s' % self.PUBLICATION_P,
-            'time': date,
-        }
+        ref = WD.Reference(
+            source_P=self.STATED_IN_P,
+            source=pywikibot.ItemPage(self.repo,
+                                      u'Q%s' % self.DATASET_Q),
+            time_P=self.PUBLICATION_P,
+            time=date)
         return ref
-
-    def makeQual(self, P, Q=None, itis=None, force=False):
-        """
-        Make a correctly formatted qualifier object for claims
-
-        param P: string the property for the qualifier
-        param Q: string the item for the qualifier value
-        param itis: an itis statement, for non itemPage claims
-        param force: bool whether qualifier should be added even to already
-                     sourced items
-        return dict
-        """
-        if Q is not None:
-            itis = pywikibot.ItemPage(self.repo,
-                                      u'Q%s' % Q)
-        if itis is None:
-            pywikibot.output('makeQual() requires a Qno or an itis')
-            exit(1)
-        qual = {
-            u'prop': u'P%s' % P,
-            u'itis': itis,
-            u'force': force
-        }
-        return qual
 
     def addLabelOrAlias(self, nameObj, item):
         """
