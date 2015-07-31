@@ -94,15 +94,13 @@ class KulturnavBotArkDes(KulturnavBot):
             return protoclaims
 
         def personTest(self, hitItem):
-            group_item = pywikibot.ItemPage(
-                self.repo,
-                u'Q%s' % self.GROUP_OF_PEOPLE_Q)
-            if self.wd.hasClaim('P%s' % self.IS_A_P, group_item, hitItem):
-                    pywikibot.output(u'%s is matched to a group of people, '
-                                     u'FIXIT' % hitItem.title())
-                    return False
-            else:
-                    return True
+            """
+            Fail if contains an is instance of group of people claim
+            """
+            return self.withoutClaimTest(hitItem,
+                                         self.IS_A_P,
+                                         self.GROUP_OF_PEOPLE_Q,
+                                         u'group of people')
 
         # pass settingson to runLayout()
         self.runLayout(datasetRules=rules,

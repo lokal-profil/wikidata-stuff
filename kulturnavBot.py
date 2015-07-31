@@ -387,14 +387,53 @@ class KulturnavBot(object):
         A generic sanitytest which should be run independent on dataset
         return bool
         """
-        disambig_item = pywikibot.ItemPage(
-            self.repo,
-            u'Q%s' % self.DISAMBIG_Q)
-        if self.wd.hasClaim('P%s' % self.IS_A_P, disambig_item, hitItem):
-            pywikibot.output(u'%s is matched to disambiguation page, '
-                             u'FIXIT' % hitItem.title())
+        return self.withoutClaimTest(hitItem,
+                                     self.IS_A_P,
+                                     self.DISAMBIG_Q,
+                                     u'disambiguation page')
+
+    def withoutClaimTest(self, hitItem, P, Q, descr):
+        """
+        Base test that an item does not contain a particular claim
+        parm hitItem: item to check
+        param P: the property to look for
+        param Q: the Q claim to look for
+        param descr: a descriptive text
+        return bool
+        """
+        P = u'P%s' % P.lstrip('P')
+        Q = u'Q%s' % Q.lstrip('Q')
+        testItem = pywikibot.ItemPage(self.repo, Q)
+        if self.wd.hasClaim(P, testItem, hitItem):
+            pywikibot.output(u'%s is matched to %s, '
+                             u'FIXIT' % (hitItem.title(), descr))
             return False
         else:
+            return True
+
+    def withClaimTest(self, hitItem, P, Q, descr, orNone=True):
+        """
+        Base test that an item contains a certain claim
+        parm hitItem: item to check
+        param P: the property to look for
+        param Q: the Q claim to look for
+        param descr: a descriptive text
+        param orNone: if no Claim is also ok
+        return bool
+        """
+        P = u'P%s' % P.lstrip('P')
+        Q = u'Q%s' % Q.lstrip('Q')
+        testItem = pywikibot.ItemPage(self.repo, Q)
+        # check claims
+        if P in hitItem.claims.keys():
+            if self.wd.hasClaim(P, testItem, hitItem):
+                return True
+            else:
+                pywikibot.output(u'%s is identified as something other '
+                                 u'than a %s. Check!' %
+                                 (hitItem.title(), descr))
+                return False
+        elif orNone:  # no P claim
             return True
 
     def wikidataMatch(self, values):
