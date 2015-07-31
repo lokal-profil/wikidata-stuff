@@ -54,7 +54,7 @@ DATASETS = {
         'fullName': u'Serietillverkade fartyg',
         'DATASET_ID': '6a98b348-8c90-4ccc-9da7-42351bd4feb7',
         'ENTITY_TYPE': 'NavalVessel',
-        'DATASET_Q': None},
+        'DATASET_Q': '20742975'},
     u'Klasser': {
         'id': 5,
         'fullName': u'Svenska marinens klasser för örlogsfartyg',
@@ -104,6 +104,8 @@ class KulturnavBotSMM(KulturnavBot):
             self.runFartygstyper()
         elif self.DATASET == 'Namngivna':
             self.runNamngivna()
+        elif self.DATASET == 'Serietillverkade':
+            self.runSerietillverkade()
         else:
             raise NotImplementedError("Please implement this dataset: %s"
                                       % self.DATASET)
@@ -297,7 +299,7 @@ class KulturnavBotSMM(KulturnavBot):
                 target='event.time'),
             u'navalVessel.type': None,
             u'navalVessel.otherType': None,  # can have multiple values
-            u'homePort.location': Rule(
+            u'homePort': Rule(
                 keys='navalVessel.homePort.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='P7_took_place_at',
@@ -327,7 +329,17 @@ class KulturnavBotSMM(KulturnavBot):
             u'constructor': Rule(
                 keys='navalVessel.constructed.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
-                target='navalVessel.constructed.constructedBy')
+                target='navalVessel.constructed.constructedBy'),
+            u'constructor.start': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.timespan',
+                viaId='startDate'),
+            u'constructor.end': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.timespan',
+                viaId='endDate')
             # navalVessel.measurement
         }
 
@@ -340,7 +352,6 @@ class KulturnavBotSMM(KulturnavBot):
                 u'navalVessel.otherType'
                 u'navalVessel.isSubRecord'
                 u'navalVessel.hasSubRecord'
-                u'constructor'
 
                 Probably combine type and otherType then select property
                     depending on wdq lookup
@@ -391,8 +402,8 @@ class KulturnavBotSMM(KulturnavBot):
                     protoclaims[u'P879'] = claim
 
             # P504 - homeport
-            if values[u'homePort.location']:
-                place = self.location2Wikidata(values[u'homePort.location'])
+            if values[u'homePort']:
+                place = self.location2Wikidata(values[u'homePort'])
                 qual = []
                 if values[u'homePort.start']:
                     qual.append(
@@ -422,6 +433,25 @@ class KulturnavBotSMM(KulturnavBot):
                     protoclaims[u'P176'] = WD.Statement(
                         self.kulturnav2Wikidata(
                             shipyard[0]))
+
+            # P287 - Designer (Constructor)
+            if values[u'constructor']:
+                designer = self.kulturnav2Wikidata(values[u'constructor'])
+                qual = []
+                if values[u'constructor.start']:
+                    qual.append(
+                        WD.Qualifier(
+                            P=self.START_P,
+                            itis=self.dbDate(values[u'constructor.start'])))
+                if values[u'constructor.end']:
+                    qual.append(
+                        WD.Qualifier(
+                            P=self.END_P,
+                            itis=self.dbDate(values[u'constructor.end'])))
+                if designer:
+                    protoclaims[u'P287'] = WD.Statement(designer)
+                    for q in qual:
+                        protoclaims[u'P287'].addQualifier(q)
 
             # P793 - Events
             #   commissioned: Q14475832
@@ -499,7 +529,21 @@ class KulturnavBotSMM(KulturnavBot):
                 target='entity.name'),
             u'navalVessel.type': None,  # a type or another class
             u'navalVessel.otherType': None,
-            u'altLabel': None
+            u'altLabel': None,
+            u'constructor': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='navalVessel.constructed.constructedBy'),
+            u'constructor.start': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.timespan',
+                viaId='startDate'),
+            u'constructor.end': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.timespan',
+                viaId='endDate')
             # navalVessle.measurement
         }
 
@@ -535,6 +579,25 @@ class KulturnavBotSMM(KulturnavBot):
                 if len(claims) > 0:
                     protoclaims[u'P279'] = claims
 
+            # P287 - Designer (Constructor)
+            if values[u'constructor']:
+                designer = self.kulturnav2Wikidata(values[u'constructor'])
+                qual = []
+                if values[u'constructor.start']:
+                    qual.append(
+                        WD.Qualifier(
+                            P=self.START_P,
+                            itis=self.dbDate(values[u'constructor.start'])))
+                if values[u'constructor.end']:
+                    qual.append(
+                        WD.Qualifier(
+                            P=self.END_P,
+                            itis=self.dbDate(values[u'constructor.end'])))
+                if designer:
+                    protoclaims[u'P287'] = WD.Statement(designer)
+                    for q in qual:
+                        protoclaims[u'P287'].addQualifier(q)
+
             return protoclaims
 
         def test(self, hitItem):
@@ -543,8 +606,9 @@ class KulturnavBotSMM(KulturnavBot):
             """
             return self.withClaimTest(hitItem,
                                       self.IS_A_P,
-                                      self.SHIPCLASS_Q,
-                                      u'ship class')
+                                      [self.SHIPCLASS_Q,
+                                       self.SHIPTYPE_Q],
+                                      u'ship class or type')
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
@@ -602,22 +666,22 @@ class KulturnavBotSMM(KulturnavBot):
                 keys='inDataset',
                 values=None,
                 target='entity.name'),
-            u'navalVessel.type': None,  # a type or another class
+            u'navalVessel.type': None,
             u'navalVessel.otherType': None
         }
 
         def claims(self, values):
+            # bundle type and otherType
+            values[u'navalVessel.type'] = self.bundleValues(
+                [values[u'navalVessel.type'],
+                 values[u'navalVessel.otherType']])
+
             protoclaims = {
                 # instance of
                 u'P31': WD.Statement(pywikibot.ItemPage(
                     self.repo,
                     u'Q%s' % self.SHIPTYPE_Q))
             }
-
-            # bundle type and otherType
-            values[u'navalVessel.type'] = self.bundleValues(
-                [values[u'navalVessel.type'],
-                 values[u'navalVessel.otherType']])
 
             # P279 - subgroup
             if values[u'navalVessel.type']:
@@ -649,19 +713,93 @@ class KulturnavBotSMM(KulturnavBot):
 
     def runSerietillverkade(self):
         rules = {
+            u'entity.name': Rule(  # force to look in top level
+                keys='inDataset',
+                values=None,
+                target='entity.name'),
+            u'altLabel': None,
+            u'navalVessel.type': None,
+            u'navalVessel.otherType': None,
+            u'constructor': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='navalVessel.constructed.constructedBy'),
+            u'constructor.start': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.timespan',
+                viaId='startDate'),
+            u'constructor.end': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.timespan',
+                viaId='endDate')
+            # navalVessel.measurement
         }
 
         def claims(self, values):
-            pass
+            # handle altNames together with names
+            values[u'entity.name'] = self.bundleValues(
+                [values[u'entity.name'],
+                 values[u'altLabel']])
+
+            # bundle type and otherType
+            values[u'navalVessel.type'] = self.bundleValues(
+                [values[u'navalVessel.type'],
+                 values[u'navalVessel.otherType']])
+
+            protoclaims = {
+                # instance of
+                u'P31': WD.Statement(pywikibot.ItemPage(
+                    self.repo,
+                    u'Q%s' % self.SHIPTYPE_Q))
+            }
+
+            # P279 - subgroup
+            if values[u'navalVessel.type']:
+                claims = []
+                for t in values[u'navalVessel.type']:
+                    item = self.kulturnav2Wikidata(t)
+                    if item:
+                        claims.append(WD.Statement(item))
+                if len(claims) > 0:
+                    protoclaims[u'P279'] = claims
+
+            # P287 - Designer (Constructor)
+            if values[u'constructor']:
+                designer = self.kulturnav2Wikidata(values[u'constructor'])
+                qual = []
+                if values[u'constructor.start']:
+                    qual.append(
+                        WD.Qualifier(
+                            P=self.START_P,
+                            itis=self.dbDate(values[u'constructor.start'])))
+                if values[u'constructor.end']:
+                    qual.append(
+                        WD.Qualifier(
+                            P=self.END_P,
+                            itis=self.dbDate(values[u'constructor.end'])))
+                if designer:
+                    protoclaims[u'P287'] = WD.Statement(designer)
+                    for q in qual:
+                        protoclaims[u'P287'].addQualifier(q)
+
+            return protoclaims
 
         def test(self, hitItem):
-            pass
+            """
+            Fail if has instance claims and none of them are ship type
+            """
+            return self.withClaimTest(hitItem,
+                                      self.IS_A_P,
+                                      self.SHIPTYPE_Q,
+                                      u'ship type')
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
                        datasetSanityTest=test,
-                       label=u'?',
+                       label=u'entity.name',
                        shuffle=False)
 
     @classmethod
