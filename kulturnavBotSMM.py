@@ -80,6 +80,7 @@ class KulturnavBotSMM(KulturnavBot):
     HUMAN_Q = '5'
     SHIPYARD_Q = '190928'
     SHIPCLASS_Q = '559026'
+    SHIPTYPE_Q = '2235308'
     SWENAVY_Q = '1141396'
     COMPANY_Q = '783794'
     IKNO_K = u'http://kulturnav.org/2c8a7e85-5b0c-4ceb-b56f-a229b6a71d2a'
@@ -99,6 +100,8 @@ class KulturnavBotSMM(KulturnavBot):
             self.runFartyg()
         elif self.DATASET == 'Klasser':
             self.runKlasser()
+        elif self.DATASET == 'Fartygstyper':
+            self.runFartygstyper()
         else:
             raise NotImplementedError("Please implement this dataset: %s"
                                       % self.DATASET)
@@ -156,15 +159,13 @@ class KulturnavBotSMM(KulturnavBot):
             return protoclaims
 
         def personTest(self, hitItem):
-            group_item = pywikibot.ItemPage(
-                self.repo,
-                u'Q%s' % self.GROUP_OF_PEOPLE_Q)
-            if self.wd.hasClaim('P%s' % self.IS_A_P, group_item, hitItem):
-                pywikibot.output(u'%s is matched to a group of people, '
-                                 u'FIXIT' % hitItem.title())
-                return False
-            else:
-                return True
+            """
+            Fail if contains an is instance of group of people claim
+            """
+            return self.withoutClaimTest(hitItem,
+                                         self.IS_A_P,
+                                         self.GROUP_OF_PEOPLE_Q,
+                                         u'group of people')
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=personRules,
@@ -226,27 +227,14 @@ class KulturnavBotSMM(KulturnavBot):
 
         def varvTest(self, hitItem):
             """
-            abort if already a IS_A_P claim and (one of them) isn't
-            SHIPYARD_Q
+            Fail if has instance claims and none of them are shipyard
             @todo: relax so that e.g. COMPANY_Q is allowed
-            return bool runOrNot
+            return bool
             """
-            varv_item = pywikibot.ItemPage(
-                self.repo,
-                u'Q%s' % self.SHIPYARD_Q)
-
-            # check claims
-            if 'P%s' % self.IS_A_P in hitItem.claims.keys():
-                if self.wd.hasClaim('P%s' % self.IS_A_P, varv_item, hitItem):
-                    return True
-                else:
-                    pywikibot.output(u'%s is identified as something other '
-                                     u'than a shipyard. Check!' %
-                                     hitItem.title())
-                    return False
-            else:
-                # no IS_A_P claim
-                return True
+            return self.withClaimTest(hitItem,
+                                      self.IS_A_P,
+                                      self.SHIPYARD_Q,
+                                      u'shipyard')
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=varvRules,
@@ -517,7 +505,6 @@ class KulturnavBotSMM(KulturnavBot):
 
         def claims(self, values):
             # handle altNames together with names
-            # both could be either a dict or a list of dicts
             values[u'entity.name'] = self.bundleValues(
                 [values[u'entity.name'],
                  values[u'altLabel']])
@@ -552,24 +539,12 @@ class KulturnavBotSMM(KulturnavBot):
 
         def test(self, hitItem):
             """
-            Fail if already only another instance of than ship class
+            Fail if has instance claims and none of them are ship class
             """
-            varv_item = pywikibot.ItemPage(
-                self.repo,
-                u'Q%s' % self.SHIPCLASS_Q)
-
-            # check claims
-            if 'P%s' % self.IS_A_P in hitItem.claims.keys():
-                if self.wd.hasClaim('P%s' % self.IS_A_P, varv_item, hitItem):
-                    return True
-                else:
-                    pywikibot.output(u'%s is identified as something other '
-                                     u'than a shipclass. Check!' %
-                                     hitItem.title())
-                    return False
-            else:
-                # no IS_A_P claim
-                return True
+            return self.withClaimTest(hitItem,
+                                      self.IS_A_P,
+                                      self.SHIPCLASS_Q,
+                                      u'ship class')
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
@@ -581,17 +556,38 @@ class KulturnavBotSMM(KulturnavBot):
     def runFartygstyper(self):
         rules = {
             u'prefLabel': None,
-            u'altLabel': None
-            # narrower
-            # broader
+            u'altLabel': None,
+            u'broader': None
         }
 
         def claims(self, values):
-            # merge prefLabel and altLabel
-            pass
+            # handle prefLabel together with altLabel
+            values[u'prefLabel'] = self.bundleValues(
+                [values[u'prefLabel'],
+                 values[u'altLabel']])
+
+            protoclaims = {
+                # instance of
+                u'P31': WD.Statement(pywikibot.ItemPage(
+                    self.repo,
+                    u'Q%s' % self.SHIPTYPE_Q))
+            }
+
+            # P279 - subgroup self.kulturnav2Wikidata(broader)
+            if values[u'broader']:
+                protoclaims[u'P279'] = WD.Statement(
+                    self.kulturnav2Wikidata(
+                        values[u'broader']))
+            return protoclaims
 
         def test(self, hitItem):
-            pass
+            """
+            Fail if has instance claims and none of them are ship type
+            """
+            return self.withClaimTest(hitItem,
+                                      self.IS_A_P,
+                                      self.SHIPTYPE_Q,
+                                      u'ship type')
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
