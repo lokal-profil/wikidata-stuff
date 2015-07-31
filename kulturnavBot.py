@@ -318,7 +318,10 @@ class KulturnavBot(object):
         for key, rule in rules.iteritems():
             if rule is not None and rule.viaId is not None:
                 if values[key] is not None and values[key] in ids.keys():
-                    values[key] = ids[values[key]][rule.viaId]
+                    if rule.viaId in ids[values[key]].keys():
+                        values[key] = ids[values[key]][rule.viaId]
+                    else:
+                        values[key] = None
         for key, rule in rules.iteritems():
             if rule is not None and \
                     rule.viaId is not None and \
@@ -416,18 +419,22 @@ class KulturnavBot(object):
         Base test that an item contains a certain claim
         parm hitItem: item to check
         param P: the property to look for
-        param Q: the Q claim to look for
+        param Q: (list) of Q claim to look for
         param descr: a descriptive text
         param orNone: if no Claim is also ok
         return bool
         """
         P = u'P%s' % P.lstrip('P')
-        Q = u'Q%s' % Q.lstrip('Q')
-        testItem = pywikibot.ItemPage(self.repo, Q)
+        Q = self.listify(Q)
+        testItems = []
+        for q in Q:
+            q = u'Q%s' % q.lstrip('Q')
+            testItems.append(pywikibot.ItemPage(self.repo, q))
         # check claims
         if P in hitItem.claims.keys():
-            if self.wd.hasClaim(P, testItem, hitItem):
-                return True
+            for testItem in testItems:
+                if self.wd.hasClaim(P, testItem, hitItem):
+                    return True
             else:
                 pywikibot.output(u'%s is identified as something other '
                                  u'than a %s. Check!' %
