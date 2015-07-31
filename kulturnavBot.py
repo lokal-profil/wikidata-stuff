@@ -37,16 +37,16 @@ class Rule():
     """
     def __init__(self, keys, values, target, viaId=None):
         """
-        keys: list|None of keys which must be present
+        keys: list|string|None of keys which must be present
               (in addition to value/target)
-        values: a list|None of key-value pairs which must be present
+        values: a dict|None of key-value pairs which must be present
         target: the key for which the value is wanted
         viaId: if not None then the value of target should be matched to
                an @id entry where this key should be used
         """
         self.keys = []
         if keys is not None:
-            self.keys += keys
+            self.keys += KulturnavBot.listify(keys)
         self.values = values
         if values is not None:
             self.keys += values.keys()
@@ -804,6 +804,38 @@ class KulturnavBot(object):
             return True
         except (ValueError, TypeError):
             return False
+
+    @staticmethod
+    def listify(value):
+        """
+        Given a value whihc might or might not be a list, return a list
+        param value list|any
+        return list|None
+        """
+        if value is None:
+            return None
+        elif isinstance(value, list):
+            return value
+        else:
+            return [value, ]
+
+    @staticmethod
+    def bundleValues(values):
+        """
+        Given a list of values (which might or might not be lists)
+        merge all into one list
+        param values list
+        return list|None
+        """
+        bundle = []
+        for v in values:
+            if v is not None:
+                v = KulturnavBot.listify(v)
+                bundle += v
+        if len(bundle) == 0:
+            return None
+        else:
+            return bundle
 
     @staticmethod
     def shuffleNames(nameObj):
