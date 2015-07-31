@@ -407,29 +407,24 @@ class KulturnavBotSMM(KulturnavBot):
                     for q in qual:
                         protoclaims[u'P504'].addQualifier(q)
 
-            # P1071 - Shipyard
+            # P176 - Manufacturer (Shipyard)
             if values[u'built.shipyard'] or values[u'launched.shipyard']:
-                print values[u'built.shipyard'], values[u'launched.shipyard']
-                shipyard = []
-                if values[u'built.shipyard']:
-                    shipyard.append(values[u'built.shipyard'])
-                if values[u'launched.shipyard']:
-                    shipyard.append(values[u'launched.shipyard'])
+                shipyard = self.bundleValues(
+                    [values[u'built.shipyard'],
+                     values[u'launched.shipyard']])
                 shipyard = list(set(shipyard))
                 if len(shipyard) > 1:
                     pywikibot.output(u'Found multiple shipyards, not sure how'
                                      u'to proceed: %s' % values[u'identifier'])
                 else:
-                    protoclaims[u'P1071'] = WD.Statement(
+                    protoclaims[u'P176'] = WD.Statement(
                         self.kulturnav2Wikidata(
                             shipyard[0]))
 
             # P793 - Events
-            #   built: Q474200
-            #   launched: Q596643
             #   commissioned: Q14475832
-            #   decommissioned: Q7497952
             events = []
+            # built: Q474200
             if values[u'built.date']:
                 event = WD.Statement(
                     pywikibot.ItemPage(self.repo, 'Q474200')
@@ -445,6 +440,8 @@ class KulturnavBotSMM(KulturnavBot):
                                 values[u'built.location'])))
                 # u'built.shipyard'
                 events.append(event)
+
+            # launched: Q596643
             if values[u'launched.date']:
                 event = WD.Statement(
                     pywikibot.ItemPage(self.repo, 'Q596643')
@@ -460,8 +457,8 @@ class KulturnavBotSMM(KulturnavBot):
                                 values[u'launched.location'])))
                 # u'launched.shipyard'
                 events.append(event)
-            if values[u'delivered.date']:
-                pass
+
+            # decommissioned: Q7497952
             if values[u'decommissioned.date']:
                 event = WD.Statement(
                     pywikibot.ItemPage(self.repo, 'Q7497952')
@@ -470,6 +467,7 @@ class KulturnavBotSMM(KulturnavBot):
                             P=self.TIME_P,
                             itis=self.dbDate(values[u'decommissioned.date'])))
                 events.append(event)
+            # set all events
             if len(events) > 0:
                 protoclaims[u'P793'] = events
 
