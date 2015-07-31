@@ -60,7 +60,7 @@ DATASETS = {
         'fullName': u'Svenska marinens klasser för örlogsfartyg',
         'DATASET_ID': 'fb4faa4b-984a-404b-bdf7-9c24a298591e',
         'ENTITY_TYPE': 'NavalVessel',
-        'DATASET_Q': None},
+        'DATASET_Q': '20742782'},
     u'Varv': {
         'id': 6,
         'fullName': u'Varv',
@@ -79,6 +79,8 @@ class KulturnavBotSMM(KulturnavBot):
     GROUP_OF_PEOPLE_Q = '16334295'
     HUMAN_Q = '5'
     SHIPYARD_Q = '190928'
+    SHIPCLASS_Q = '559026'
+    SWENAVY_Q = '1141396'
     COMPANY_Q = '783794'
     IKNO_K = u'http://kulturnav.org/2c8a7e85-5b0c-4ceb-b56f-a229b6a71d2a'
 
@@ -92,7 +94,11 @@ class KulturnavBotSMM(KulturnavBot):
         elif self.DATASET == 'Varv':
             self.runVarv()
         elif self.DATASET == 'Fartyg':
+            # make list of allowed ship types for testing
+            # make list of added Klasser for Klass-matching
             self.runFartyg()
+        elif self.DATASET == 'Klasser':
+            self.runKlasser()
         else:
             raise NotImplementedError("Please implement this dataset: %s"
                                       % self.DATASET)
@@ -176,15 +182,15 @@ class KulturnavBotSMM(KulturnavBot):
             u'name': None,
             u'agent.ownership.owner': None,
             u'establishment.date': Rule(
-                keys=['association.establishment.association', ],
+                keys='association.establishment.association',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='event.time'),
             u'termination.date': Rule(
-                keys=['association.termination.association', ],
+                keys='association.termination.association',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='event.time'),
             u'location': Rule(
-                keys=['agent.activity.activity', ],
+                keys='agent.activity.activity',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='P7_took_place_at',
                 viaId='location')
@@ -258,61 +264,61 @@ class KulturnavBotSMM(KulturnavBot):
 
         fartygRules = {
             u'entity.name': Rule(  # force to look in top level
-                keys=['inDataset', ],
+                keys='inDataset',
                 values=None,
                 target='entity.name'),
             u'altLabel': None,
             u'navalVessel.signalLetters': None,
             u'entity.code': None,
             u'built.date': Rule(
-                keys=['navalVessel.built.navalVessel', ],
+                keys='navalVessel.built.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='event.timespan',
                 viaId='startDate'),
             u'built.location': Rule(
-                keys=['navalVessel.built.navalVessel', ],
+                keys='navalVessel.built.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='P7_took_place_at',
                 viaId='location'),
             u'built.shipyard': Rule(
-                keys=['navalVessel.built.navalVessel', ],
+                keys='navalVessel.built.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='navalVessel.built.shipyard'),
             u'launched.date': Rule(
-                keys=['navalVessel.launched.navalVessel', ],
+                keys='navalVessel.launched.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='event.time'),
             u'launched.location': Rule(
-                keys=['navalVessel.launched.navalVessel', ],
+                keys='navalVessel.launched.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='P7_took_place_at',
                 viaId='location'),
             u'launched.shipyard': Rule(
-                keys=['navalVessel.launched.navalVessel', ],
+                keys='navalVessel.launched.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='navalVessel.launched.shipyard'),
             u'delivered.date': Rule(
-                keys=['navalVessel.delivered.navalVessel', ],
+                keys='navalVessel.delivered.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='event.time'),
             u'decommissioned.date': Rule(
-                keys=['navalVessel.decommissioned.navalVessel', ],
+                keys='navalVessel.decommissioned.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='event.time'),
             u'navalVessel.type': None,
             u'navalVessel.otherType': None,  # can have multiple values
             u'homePort.location': Rule(
-                keys=['navalVessel.homePort.navalVessel', ],
+                keys='navalVessel.homePort.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='P7_took_place_at',
                 viaId='location'),
             u'homePort.start': Rule(
-                keys=['navalVessel.homePort.navalVessel', ],
+                keys='navalVessel.homePort.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='event.timespan',
                 viaId='startDate'),
             u'homePort.end': Rule(
-                keys=['navalVessel.homePort.navalVessel', ],
+                keys='navalVessel.homePort.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='event.timespan',
                 viaId='endDate'),
@@ -329,7 +335,7 @@ class KulturnavBotSMM(KulturnavBot):
                 target='navalVessel.registration',
                 viaId='registration.register'),
             u'constructor': Rule(
-                keys=['navalVessel.constructed.navalVessel', ],
+                keys='navalVessel.constructed.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='navalVessel.constructed.constructedBy')
             # navalVessel.measurement
@@ -353,17 +359,14 @@ class KulturnavBotSMM(KulturnavBot):
             """
             # P31 fartygstyp -- otherType (om målobjektet är i Svenska marinens klasser för örlogsfartyg)
             # P289 fartygsklass -- otherType (om målobjektet är i Fartygstyper)
+            #   Se till att den inte hänger sig på bestämningsord på klass (ex lead ship)
             # ??? -- type (Örlogsskepp ? passar inte riktigt in... tror jag)
             #
 
             # handle altNames together with names
-            # both could be either a dict or a list of dicts
-            if isinstance(values[u'entity.name'], dict):
-                    values[u'entity.name'] = [values[u'entity.name'], ]
-            if values[u'altLabel'] is not None:
-                if isinstance(values[u'altLabel'], dict):
-                    values[u'altLabel'] = [values[u'altLabel'], ]
-                values[u'entity.name'] += values[u'altLabel']
+            values[u'entity.name'] = self.bundleValues(
+                [values[u'entity.name'],
+                 values[u'altLabel']])
             # convert from ALL-CAPS
             for i in range(0, len(values[u'entity.name'])):
                 n = values[u'entity.name'][i][u'@value']
@@ -382,11 +385,10 @@ class KulturnavBotSMM(KulturnavBot):
             # handle values
             if values[u'registration.number']:
                 # there can be multiple values
-                if not isinstance(values[u'registration.number'], list):
-                    values[u'registration.number'] = \
-                        [values[u'registration.number'], ]
-                    values[u'registration.type'] = \
-                        [values[u'registration.type'], ]
+                values[u'registration.number'] = self.listify(
+                    values[u'registration.number'])
+                values[u'registration.type'] = self.listify(
+                    values[u'registration.type'])
 
                 # only one type is currently mapped
                 claim = []
@@ -502,15 +504,90 @@ class KulturnavBotSMM(KulturnavBot):
                        shuffle=False)
 
     def runKlasser(self):
-        """
-        TODO:
-            Match value to protoclaims
-            Find sanityTest
-        """
-
-        rules = {}
+        rules = {
+            u'entity.name': Rule(  # force to look in top level
+                keys='inDataset',
+                values=None,
+                target='entity.name'),
+            u'navalVessel.type': None,  # a type or another class
+            u'navalVessel.otherType': None,
+            u'altLabel': None
+            # navalVessle.measurement
+        }
 
         def claims(self, values):
+            # handle altNames together with names
+            # both could be either a dict or a list of dicts
+            values[u'entity.name'] = self.bundleValues(
+                [values[u'entity.name'],
+                 values[u'altLabel']])
+
+            protoclaims = {
+                # instance of
+                u'P31': WD.Statement(pywikibot.ItemPage(
+                    self.repo,
+                    u'Q%s' % self.SHIPCLASS_Q)),
+                # operator, SwedishNavy
+                u'P137': WD.Statement(pywikibot.ItemPage(
+                    self.repo,
+                    u'Q%s' % self.SWENAVY_Q))
+            }
+
+            # bundle type and otherType
+            values[u'navalVessel.type'] = self.bundleValues(
+                [values[u'navalVessel.type'],
+                 values[u'navalVessel.otherType']])
+
+            # P279 - subgroup
+            if values[u'navalVessel.type']:
+                claims = []
+                for t in values[u'navalVessel.type']:
+                    item = self.kulturnav2Wikidata(t)
+                    if item:
+                        claims.append(WD.Statement(item))
+                if len(claims) > 0:
+                    protoclaims[u'P279'] = claims
+
+            return protoclaims
+
+        def test(self, hitItem):
+            """
+            Fail if already only another instance of than ship class
+            """
+            varv_item = pywikibot.ItemPage(
+                self.repo,
+                u'Q%s' % self.SHIPCLASS_Q)
+
+            # check claims
+            if 'P%s' % self.IS_A_P in hitItem.claims.keys():
+                if self.wd.hasClaim('P%s' % self.IS_A_P, varv_item, hitItem):
+                    return True
+                else:
+                    pywikibot.output(u'%s is identified as something other '
+                                     u'than a shipclass. Check!' %
+                                     hitItem.title())
+                    return False
+            else:
+                # no IS_A_P claim
+                return True
+
+        # pass settings on to runLayout()
+        self.runLayout(datasetRules=rules,
+                       datasetProtoclaims=claims,
+                       datasetSanityTest=test,
+                       label=u'entity.name',
+                       shuffle=False)
+
+    def runFartygstyper(self):
+        rules = {
+            u'prefLabel': None,
+            u'altLabel': None
+            # narrower
+            # broader
+        }
+
+        def claims(self, values):
+            # merge prefLabel and altLabel
             pass
 
         def test(self, hitItem):
@@ -520,7 +597,7 @@ class KulturnavBotSMM(KulturnavBot):
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
                        datasetSanityTest=test,
-                       label=u'entity.name',
+                       label=u'prefLabel',
                        shuffle=False)
 
     @classmethod
