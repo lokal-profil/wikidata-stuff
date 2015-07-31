@@ -42,7 +42,7 @@ DATASETS = {
         'fullName': u'Namngivna fartygstyper',
         'DATASET_ID': '51f2bd1f-7720-4f03-8d95-c22a85d26bbb',
         'ENTITY_TYPE': 'NavalVessel',
-        'DATASET_Q': None},
+        'DATASET_Q': '20742915'},
     u'Personer': {
         'id': 3,
         'fullName': u'Personer verksamma inom fartygs- och båtbyggeri',
@@ -102,6 +102,8 @@ class KulturnavBotSMM(KulturnavBot):
             self.runKlasser()
         elif self.DATASET == 'Fartygstyper':
             self.runFartygstyper()
+        elif self.DATASET == 'Namngivna':
+            self.runNamngivna()
         else:
             raise NotImplementedError("Please implement this dataset: %s"
                                       % self.DATASET)
@@ -592,6 +594,74 @@ class KulturnavBotSMM(KulturnavBot):
                        datasetProtoclaims=claims,
                        datasetSanityTest=test,
                        label=u'prefLabel',
+                       shuffle=False)
+
+    def runNamngivna(self):
+        rules = {
+            u'entity.name': Rule(  # force to look in top level
+                keys='inDataset',
+                values=None,
+                target='entity.name'),
+            u'navalVessel.type': None,  # a type or another class
+            u'navalVessel.otherType': None
+        }
+
+        def claims(self, values):
+            protoclaims = {
+                # instance of
+                u'P31': WD.Statement(pywikibot.ItemPage(
+                    self.repo,
+                    u'Q%s' % self.SHIPTYPE_Q))
+            }
+
+            # bundle type and otherType
+            values[u'navalVessel.type'] = self.bundleValues(
+                [values[u'navalVessel.type'],
+                 values[u'navalVessel.otherType']])
+
+            # P279 - subgroup
+            if values[u'navalVessel.type']:
+                claims = []
+                for t in values[u'navalVessel.type']:
+                    item = self.kulturnav2Wikidata(t)
+                    if item:
+                        claims.append(WD.Statement(item))
+                if len(claims) > 0:
+                    protoclaims[u'P279'] = claims
+
+            return protoclaims
+
+        def test(self, hitItem):
+            """
+            Fail if has instance claims and none of them are ship type
+            """
+            return self.withClaimTest(hitItem,
+                                      self.IS_A_P,
+                                      self.SHIPTYPE_Q,
+                                      u'ship type')
+
+        # pass settings on to runLayout()
+        self.runLayout(datasetRules=rules,
+                       datasetProtoclaims=claims,
+                       datasetSanityTest=test,
+                       label=u'entity.name',
+                       shuffle=False)
+
+    def runSerietillverkade(self):
+        rules = {
+        }
+
+        def claims(self, values):
+            pass
+
+        def test(self, hitItem):
+            pass
+
+        # pass settings on to runLayout()
+        self.runLayout(datasetRules=rules,
+                       datasetProtoclaims=claims,
+                       datasetSanityTest=test,
+                       label=u'?',
                        shuffle=False)
 
     @classmethod
