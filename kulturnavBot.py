@@ -414,6 +414,36 @@ class KulturnavBot(object):
         else:
             return True
 
+    def addStartEndStatement(self, itis, startVal, endVal):
+        """
+        Adds start/end qualifiers to a statement if non-None,
+        or returns None
+
+        param itis: Statement
+        param startVal: string|None
+        param endVal: string|None
+        return Statement|None
+        """
+        statement = WD.Statement(itis)
+        if statement.isNone():
+            return None
+
+        # add qualifiers
+        qual = []
+        if startVal:
+            qual.append(
+                WD.Qualifier(
+                    P=self.START_P,
+                    itis=self.dbDate(startVal)))
+        if endVal:
+            qual.append(
+                WD.Qualifier(
+                    P=self.END_P,
+                    itis=self.dbDate(endVal)))
+        for q in qual:
+            statement.addQualifier(q)
+        return statement
+
     def withClaimTest(self, hitItem, P, Q, descr, orNone=True):
         """
         Base test that an item contains a certain claim

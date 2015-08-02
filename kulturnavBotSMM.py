@@ -403,22 +403,10 @@ class KulturnavBotSMM(KulturnavBot):
 
             # P504 - homeport
             if values[u'homePort']:
-                place = self.location2Wikidata(values[u'homePort'])
-                qual = []
-                if values[u'homePort.start']:
-                    qual.append(
-                        WD.Qualifier(
-                            P=self.START_P,
-                            itis=self.dbDate(values[u'homePort.start'])))
-                if values[u'homePort.end']:
-                    qual.append(
-                        WD.Qualifier(
-                            P=self.END_P,
-                            itis=self.dbDate(values[u'homePort.end'])))
-                if place:
-                    protoclaims[u'P504'] = WD.Statement(place)
-                    for q in qual:
-                        protoclaims[u'P504'].addQualifier(q)
+                protoclaims[u'P504'] = self.addStartEndStatement(
+                    self.kulturnav2Wikidata(values[u'homePort']),
+                    values[u'homePort.start'],
+                    values[u'homePort.end'])
 
             # P176 - Manufacturer (Shipyard)
             if values[u'built.shipyard'] or values[u'launched.shipyard']:
@@ -436,22 +424,10 @@ class KulturnavBotSMM(KulturnavBot):
 
             # P287 - Designer (Constructor)
             if values[u'constructor']:
-                designer = self.kulturnav2Wikidata(values[u'constructor'])
-                qual = []
-                if values[u'constructor.start']:
-                    qual.append(
-                        WD.Qualifier(
-                            P=self.START_P,
-                            itis=self.dbDate(values[u'constructor.start'])))
-                if values[u'constructor.end']:
-                    qual.append(
-                        WD.Qualifier(
-                            P=self.END_P,
-                            itis=self.dbDate(values[u'constructor.end'])))
-                if designer:
-                    protoclaims[u'P287'] = WD.Statement(designer)
-                    for q in qual:
-                        protoclaims[u'P287'].addQualifier(q)
+                protoclaims[u'P287'] = self.addStartEndStatement(
+                    self.kulturnav2Wikidata(values[u'constructor']),
+                    values[u'constructor.start'],
+                    values[u'constructor.end'])
 
             # P793 - Events
             #   commissioned: Q14475832
@@ -581,22 +557,10 @@ class KulturnavBotSMM(KulturnavBot):
 
             # P287 - Designer (Constructor)
             if values[u'constructor']:
-                designer = self.kulturnav2Wikidata(values[u'constructor'])
-                qual = []
-                if values[u'constructor.start']:
-                    qual.append(
-                        WD.Qualifier(
-                            P=self.START_P,
-                            itis=self.dbDate(values[u'constructor.start'])))
-                if values[u'constructor.end']:
-                    qual.append(
-                        WD.Qualifier(
-                            P=self.END_P,
-                            itis=self.dbDate(values[u'constructor.end'])))
-                if designer:
-                    protoclaims[u'P287'] = WD.Statement(designer)
-                    for q in qual:
-                        protoclaims[u'P287'].addQualifier(q)
+                protoclaims[u'P287'] = self.addStartEndStatement(
+                    self.kulturnav2Wikidata(values[u'constructor']),
+                    values[u'constructor.start'],
+                    values[u'constructor.end'])
 
             return protoclaims
 
@@ -767,22 +731,10 @@ class KulturnavBotSMM(KulturnavBot):
 
             # P287 - Designer (Constructor)
             if values[u'constructor']:
-                designer = self.kulturnav2Wikidata(values[u'constructor'])
-                qual = []
-                if values[u'constructor.start']:
-                    qual.append(
-                        WD.Qualifier(
-                            P=self.START_P,
-                            itis=self.dbDate(values[u'constructor.start'])))
-                if values[u'constructor.end']:
-                    qual.append(
-                        WD.Qualifier(
-                            P=self.END_P,
-                            itis=self.dbDate(values[u'constructor.end'])))
-                if designer:
-                    protoclaims[u'P287'] = WD.Statement(designer)
-                    for q in qual:
-                        protoclaims[u'P287'].addQualifier(q)
+                protoclaims[u'P287'] = self.addStartEndStatement(
+                    self.kulturnav2Wikidata(values[u'constructor']),
+                    values[u'constructor.start'],
+                    values[u'constructor.end'])
 
             return protoclaims
 
