@@ -42,21 +42,21 @@ Here follows the mappings used between Kulturnav and Wikidata
 | Kulturnav                  | Wikidata | note |
 | :------                    | -----------:  |--------:|
 |                            | [P31](https://www.wikidata.org/wiki/Property:P31): [Q2235308](https://www.wikidata.org/wiki/Q2235308)  |
-| prefLabel / altLabel       | label/alias* |
+| prefLabel / altLabel       | *label/alias* |
 | broader                    | [P279](https://www.wikidata.org/wiki/Property:P279) |
 
 ## Named ship types
 | Kulturnav                  | Wikidata | note |
 | :------                    | -----------:  |--------:|
 |                            | [P31](https://www.wikidata.org/wiki/Property:P31): [Q2235308](https://www.wikidata.org/wiki/Q2235308)  |
-| entity.name                | label/alias* |
+| entity.name                | *label/alias* |
 | navalVessel.type / navalVessel.otherType | [P279](https://www.wikidata.org/wiki/Property:P279) |
 
 ## Serially produced ship types
 | Kulturnav                  | Wikidata | note |
 | :------                    | -----------:  |--------:|
 |                            | [P31](https://www.wikidata.org/wiki/Property:P31): [Q2235308](https://www.wikidata.org/wiki/Q2235308)  |
-| entity.name / altLabel     | label/alias* |
+| entity.name / altLabel     | *label/alias* |
 | navalVessel.type / navalVessel.otherType | [P279](https://www.wikidata.org/wiki/Property:P279) |
 | navalVessel.constructed.constructedBy     | [P287](https://www.wikidata.org/wiki/Property:P287) | &nbsp;&nbsp; with start/end qualifers
 | navalVessle.measurement    | | &nbsp;&nbsp; not used
@@ -64,7 +64,7 @@ Here follows the mappings used between Kulturnav and Wikidata
 ## Ships
 | Kulturnav                  | Wikidata | note |
 | :------                    | -----------:  |--------:|
-| entity.name / altLabel     | label/alias* |
+| entity.name / altLabel     | *label/alias* |
 | navalVessel.signalLetters  |  | possibly [P432](https://www.wikidata.org/wiki/Property:P432)
 | entity.code                |  | same as navalVessel.signalLetters
 | navalVessel.built.shipyard / navalVessel.launched.shipyard | [P176](https://www.wikidata.org/wiki/Property:P176) |
