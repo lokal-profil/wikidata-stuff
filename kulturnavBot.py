@@ -385,35 +385,6 @@ class KulturnavBot(object):
                              (values['identifier'], values['wikidata']))
         return problemFree
 
-    def sanityTest(self, hitItem):
-        """
-        A generic sanitytest which should be run independent on dataset
-        return bool
-        """
-        return self.withoutClaimTest(hitItem,
-                                     self.IS_A_P,
-                                     self.DISAMBIG_Q,
-                                     u'disambiguation page')
-
-    def withoutClaimTest(self, hitItem, P, Q, descr):
-        """
-        Base test that an item does not contain a particular claim
-        parm hitItem: item to check
-        param P: the property to look for
-        param Q: the Q claim to look for
-        param descr: a descriptive text
-        return bool
-        """
-        P = u'P%s' % P.lstrip('P')
-        Q = u'Q%s' % Q.lstrip('Q')
-        testItem = pywikibot.ItemPage(self.repo, Q)
-        if self.wd.hasClaim(P, testItem, hitItem):
-            pywikibot.output(u'%s is matched to %s, '
-                             u'FIXIT' % (hitItem.title(), descr))
-            return False
-        else:
-            return True
-
     def addStartEndStatement(self, itis, startVal, endVal):
         """
         Adds start/end qualifiers to a statement if non-None,
@@ -443,6 +414,35 @@ class KulturnavBot(object):
         for q in qual:
             statement.addQualifier(q)
         return statement
+
+    def sanityTest(self, hitItem):
+        """
+        A generic sanitytest which should be run independent on dataset
+        return bool
+        """
+        return self.withoutClaimTest(hitItem,
+                                     self.IS_A_P,
+                                     self.DISAMBIG_Q,
+                                     u'disambiguation page')
+
+    def withoutClaimTest(self, hitItem, P, Q, descr):
+        """
+        Base test that an item does not contain a particular claim
+        parm hitItem: item to check
+        param P: the property to look for
+        param Q: the Q claim to look for
+        param descr: a descriptive text
+        return bool
+        """
+        P = u'P%s' % P.lstrip('P')
+        Q = u'Q%s' % Q.lstrip('Q')
+        testItem = pywikibot.ItemPage(self.repo, Q)
+        if self.wd.hasClaim(P, testItem, hitItem):
+            pywikibot.output(u'%s is matched to %s, '
+                             u'FIXIT' % (hitItem.title(), descr))
+            return False
+        else:
+            return True
 
     def withClaimTest(self, hitItem, P, Q, descr, orNone=True):
         """
