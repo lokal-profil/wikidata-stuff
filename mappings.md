@@ -28,11 +28,11 @@ Here follows the mappings used between Kulturnav and Wikidata
 | association.termination:event.time         | [P576](https://www.wikidata.org/wiki/Property:P576) |
 | agent.activity:location    | [P17](https://www.wikidata.org/wiki/Property:P17)/[P131](https://www.wikidata.org/wiki/Property:P131)/[P276](https://www.wikidata.org/wiki/Property:P276) | &nbsp;&nbsp; Depending on what type of location is given.<br>[P276](https://www.wikidata.org/wiki/Property:P276) *not in use*
 
-## Ship classses
+## Ship classes
 | Kulturnav                  | Wikidata | note |
 | :------                    | -----------:  |--------:|
 |                            | [P31](https://www.wikidata.org/wiki/Property:P31): [Q559026](https://www.wikidata.org/wiki/Q559026)  |
-|                            | [P137](https://www.wikidata.org/wiki/Property:P137): [Q1141396](https://www.wikidata.org/wiki/Q1141396)  | &nbsp;&nbsp; since all are operated by the swedish navy
+|                            | [P137](https://www.wikidata.org/wiki/Property:P137): [Q1141396](https://www.wikidata.org/wiki/Q1141396)  | &nbsp;&nbsp; since all are operated by the Swedish Navy
 | entity.name / altLabel     |  *label/alias* |
 | navalVessel.type / navalVessel.otherType | [P279](https://www.wikidata.org/wiki/Property:P279) |
 | navalVessel.constructed.constructedBy     | [P287](https://www.wikidata.org/wiki/Property:P287) | &nbsp;&nbsp; with start/end qualifers
