@@ -84,6 +84,9 @@ class KulturnavBotSMM(KulturnavBot):
     SWENAVY_Q = '1141396'
     COMPANY_Q = '783794'
     IKNO_K = u'http://kulturnav.org/2c8a7e85-5b0c-4ceb-b56f-a229b6a71d2a'
+    classList = None
+    typeList = None
+    allShipTypes = None  # any item in the ship type tree
 
     def run(self):
         """
@@ -95,8 +98,17 @@ class KulturnavBotSMM(KulturnavBot):
         elif self.DATASET == 'Varv':
             self.runVarv()
         elif self.DATASET == 'Fartyg':
-            # make list of allowed ship types for testing
-            # make list of added Klasser for Klass-matching
+            self.classList = self.wd.wdqLookup(
+                u'CLAIM[1248]{CLAIM[972:%s]}' %
+                DATASETS[u'Klasser']['DATASET_Q'])
+            self.typeList = self.wd.wdqLookup(
+                u'CLAIM[1248]{'
+                u'CLAIM[972:%s] OR CLAIM[972:%s] OR CLAIM[972:%s]}' % (
+                    DATASETS[u'Fartygstyper']['DATASET_Q'],
+                    DATASETS[u'Namngivna']['DATASET_Q'],
+                    DATASETS[u'Serietillverkade']['DATASET_Q']))
+            self.allShipTypes = self.wd.wdqLookup(
+                u'CLAIM[31:%s]' % self.SHIPTYPE_Q)
             self.runFartyg()
         elif self.DATASET == 'Klasser':
             self.runKlasser()
@@ -179,10 +191,6 @@ class KulturnavBotSMM(KulturnavBot):
                        shuffle=True)
 
     def runVarv(self):
-        """
-        TODO:
-            Make a protoclaim using location
-        """
         varvRules = {
             u'name': None,
             u'agent.ownership.owner': None,
@@ -248,12 +256,6 @@ class KulturnavBotSMM(KulturnavBot):
                        shuffle=False)
 
     def runFartyg(self):
-        """
-        TODO:
-            Match value to protoclaims
-            Find sanityTest
-        """
-
         fartygRules = {
             u'entity.name': Rule(  # force to look in top level
                 keys='inDataset',
@@ -298,7 +300,7 @@ class KulturnavBotSMM(KulturnavBot):
                 values={'@type': 'dbpedia-owl:Event'},
                 target='event.time'),
             u'navalVessel.type': None,
-            u'navalVessel.otherType': None,  # can have multiple values
+            u'navalVessel.otherType': None,
             u'homePort': Rule(
                 keys='navalVessel.homePort.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
@@ -345,25 +347,12 @@ class KulturnavBotSMM(KulturnavBot):
 
         def fartygClaims(self, values):
             """
-            To implement:
+            @todo: implement:
                 u'navalVessel.signalLetters': possibly P432
                 u'delivered.date'
-                u'navalVessel.type':
-                u'navalVessel.otherType'
                 u'navalVessel.isSubRecord'
                 u'navalVessel.hasSubRecord'
-
-                Probably combine type and otherType then select property
-                    depending on wdq lookup
-                Fartygsklass:P289 - Sökarklass
-                Instans av:P31 - Minläggare
             """
-            # P31 fartygstyp -- otherType (om målobjektet är i Svenska marinens klasser för örlogsfartyg)
-            # P289 fartygsklass -- otherType (om målobjektet är i Fartygstyper)
-            #   Se till att den inte hänger sig på bestämningsord på klass (ex lead ship)
-            # ??? -- type (Örlogsskepp ? passar inte riktigt in... tror jag)
-            #
-
             # handle altNames together with names
             values[u'entity.name'] = self.bundleValues(
                 [values[u'entity.name'],
@@ -372,6 +361,11 @@ class KulturnavBotSMM(KulturnavBot):
             for i in range(0, len(values[u'entity.name'])):
                 n = values[u'entity.name'][i][u'@value']
                 values[u'entity.name'][i][u'@value'] = n.capitalize()
+
+            # bundle type and otherType
+            values[u'navalVessel.type'] = self.bundleValues(
+                [values[u'navalVessel.type'],
+                 values[u'navalVessel.otherType']])
 
             # check that we can always safely ignore entity.code
             if values[u'navalVessel.signalLetters'] != values[u'entity.code']:
@@ -383,7 +377,29 @@ class KulturnavBotSMM(KulturnavBot):
 
             protoclaims = {}
 
-            # handle values
+            # P31/P289 - ship type/class
+            if values[u'navalVessel.type']:
+                shipClass = []
+                shipType = []
+                for val in values[u'navalVessel.type']:
+                    item = self.kulturnav2Wikidata(val)
+                    if item:
+                        q = int(item.title()[1:])
+                        if q in self.classList:
+                            shipClass.append(WD.Statement(item))
+                        elif q in self.typeList:
+                            shipType.append(WD.Statement(item))
+                        else:
+                            pywikibot.output(u'Q%d not matched as either ship'
+                                             u'type or ship class' % q)
+                if len(shipClass) > 0:
+                    protoclaims[u'P289'] = shipClass
+                    print 'P289', shipClass
+                if len(shipType) > 0:
+                    protoclaims[u'P31'] = shipType
+                    print 'P31', shipType
+
+            # P879 - registration number
             if values[u'registration.number']:
                 # there can be multiple values
                 values[u'registration.number'] = self.listify(
@@ -486,9 +502,20 @@ class KulturnavBotSMM(KulturnavBot):
             is there any way of testing that it is a ship... of some type?
             Possibly if any of P31 is in wdqList for claim[31:2235308]
             """
-            pass
-
-            # return True|False
+            P = u'P31'
+            if P not in hitItem.claims.keys():
+                return True
+            claims = []
+            for claim in hitItem.claims[P]:
+                # add resolved Qno of each claim
+                target = self.wd.bypassRedirect(claim.getTarget())
+                claims.append(int(target.title()[1:]))
+            # check if any of the claims are recognised shipTypes
+            if any(x in claims for x in self.allShipTypes):
+                return True
+            pywikibot.output(u'%s is identified as something other than '
+                             u'a ship type. Check!' % hitItem.title())
+            return False
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=fartygRules,
@@ -529,6 +556,11 @@ class KulturnavBotSMM(KulturnavBot):
                 [values[u'entity.name'],
                  values[u'altLabel']])
 
+            # bundle type and otherType
+            values[u'navalVessel.type'] = self.bundleValues(
+                [values[u'navalVessel.type'],
+                 values[u'navalVessel.otherType']])
+
             protoclaims = {
                 # instance of
                 u'P31': WD.Statement(pywikibot.ItemPage(
@@ -539,11 +571,6 @@ class KulturnavBotSMM(KulturnavBot):
                     self.repo,
                     u'Q%s' % self.SWENAVY_Q))
             }
-
-            # bundle type and otherType
-            values[u'navalVessel.type'] = self.bundleValues(
-                [values[u'navalVessel.type'],
-                 values[u'navalVessel.otherType']])
 
             # P279 - subgroup
             if values[u'navalVessel.type']:
