@@ -633,6 +633,13 @@ class KulturnavBotSMM(KulturnavBot):
                 [values[u'prefLabel'],
                  values[u'altLabel']])
 
+            # remove comments from lables
+            for i in range(0, len(values[u'prefLabel'])):
+                if '(' in values[u'prefLabel'][i]['@value']:
+                    val = values[u'prefLabel'][i]['@value'] \
+                        .split('(')[0].strip()
+                    values[u'prefLabel'][i]['@value'] = val
+
             protoclaims = {
                 # instance of
                 u'P31': WD.Statement(pywikibot.ItemPage(

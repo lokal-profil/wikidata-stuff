@@ -164,7 +164,8 @@ class WikidataStuff(object):
         for q in self.wdss.search(text, language=language):
             yield pywikibot.ItemPage(self.repo, q)
 
-    def addLabelOrAlias(self, lang, name, item, prefix=None):
+    def addLabelOrAlias(self, lang, name, item, prefix=None,
+                        caseSensitive=False):
         """
         Adds a name as either a label (if none) or an alias
         in the given language
@@ -173,6 +174,7 @@ class WikidataStuff(object):
         param name: the value to be added
         param item: the item to which the label/alias should be added
         param prefix: a prefix for the edit summary
+        param caseSensitive: if the comparison is case sensitive
         """
         summary = u'Added [%s] %s to [[%s]]' % (lang, '%s', item.title())
         if prefix:
@@ -186,16 +188,32 @@ class WikidataStuff(object):
             pywikibot.output(summary)
         elif name != item.labels[lang]:
             # look at aliases
+            if not caseSensitive:
+                if name.lower() == item.labels[lang].lower():
+                    return None
             summary %= 'alias'
             if not item.aliases or lang not in item.aliases.keys():
                 aliases = {lang: [name, ]}
                 item.editAliases(aliases, summary=summary)
                 pywikibot.output(summary)
             elif name not in item.aliases[lang]:
+                if not caseSensitive:
+                    if name.lower() in self.listToLower(item.aliases[lang]):
+                        return None
                 aliases = {lang: item.aliases[lang]}
                 aliases[lang].append(name)
                 item.editAliases(aliases, summary=summary)
                 pywikibot.output(summary)
+
+    def listToLower(self, stringList):
+        """
+        Converts a list of strings to a list of the same strings but
+        lower case
+        """
+        lowList = []
+        for s in stringList:
+            lowList.append(s.lower())
+        return lowList
 
     # some more generic Wikidata methods
     def hasRef(self, prop, itis, claim):

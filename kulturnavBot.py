@@ -957,7 +957,7 @@ class KulturnavBot(object):
             time=date)
         return ref
 
-    def addLabelOrAlias(self, nameObj, item):
+    def addLabelOrAlias(self, nameObj, item, caseSensitive=False):
         """
         Adds a name as either a label (if none) or an alias.
         Essentially a filter for the more generic method in WikidatStuff
@@ -976,7 +976,8 @@ class KulturnavBot(object):
 
         # for a single entry
         self.wd.addLabelOrAlias(nameObj['@language'], nameObj['@value'],
-                                item, prefix=self.EDIT_SUMMARY)
+                                item, prefix=self.EDIT_SUMMARY,
+                                caseSensitive=caseSensitive)
 
     @classmethod
     def getKulturnavGenerator(cls, maxHits=250, delay=0):
