@@ -31,7 +31,7 @@ Here follows the mappings used between Kulturnav and Wikidata
 ## Ship classes
 | Kulturnav                  | Wikidata | note |
 | :------                    | -----------:  |--------:|
-|                            | [P31](https://www.wikidata.org/wiki/Property:P31): [Q559026](https://www.wikidata.org/wiki/Q559026)  |
+|                            | [P31](https://www.wikidata.org/wiki/Property:P31): [Q559026](https://www.wikidata.org/wiki/Q559026) / [Q1428357](https://www.wikidata.org/wiki/Q1428357)  |
 |                            | [P137](https://www.wikidata.org/wiki/Property:P137): [Q1141396](https://www.wikidata.org/wiki/Q1141396)  | &nbsp;&nbsp; since all are operated by the Swedish Navy
 | entity.name / altLabel     |  *label/alias* |
 | navalVessel.type / navalVessel.otherType | [P279](https://www.wikidata.org/wiki/Property:P279) |

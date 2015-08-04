@@ -80,6 +80,8 @@ class KulturnavBotSMM(KulturnavBot):
     HUMAN_Q = '5'
     SHIPYARD_Q = '190928'
     SHIPCLASS_Q = '559026'
+    SUBMARINECLASS_Q = '1428357'
+    SUBMARINETYPE_K = 'd7286bae-9e1f-4048-94b5-f70017d139f8'
     SHIPTYPE_Q = '2235308'
     SWENAVY_Q = '1141396'
     COMPANY_Q = '783794'
@@ -565,15 +567,21 @@ class KulturnavBotSMM(KulturnavBot):
                  values[u'navalVessel.otherType']])
 
             protoclaims = {
-                # instance of
-                u'P31': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.SHIPCLASS_Q)),
                 # operator, SwedishNavy
                 u'P137': WD.Statement(pywikibot.ItemPage(
                     self.repo,
                     u'Q%s' % self.SWENAVY_Q))
             }
+
+            # P31 - instance of
+            # ship class unless a submarine
+            class_Q = u'Q%s' % self.SHIPCLASS_Q
+            if values[u'navalVessel.type'] and \
+                    any(x.endswith(self.SUBMARINETYPE_K)
+                        for x in values[u'navalVessel.type']):
+                class_Q = u'Q%s' % self.SUBMARINECLASS_Q
+            protoclaims[u'P31'] = WD.Statement(
+                pywikibot.ItemPage(self.repo, class_Q))
 
             # P279 - subgroup
             if values[u'navalVessel.type']:
@@ -601,7 +609,8 @@ class KulturnavBotSMM(KulturnavBot):
             return self.withClaimTest(hitItem,
                                       self.IS_A_P,
                                       [self.SHIPCLASS_Q,
-                                       self.SHIPTYPE_Q],
+                                       self.SHIPTYPE_Q,
+                                       self.SUBMARINECLASS_Q],
                                       u'ship class or type')
 
         # pass settings on to runLayout()
