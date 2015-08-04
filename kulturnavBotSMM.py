@@ -83,6 +83,7 @@ class KulturnavBotSMM(KulturnavBot):
     SHIPTYPE_Q = '2235308'
     SWENAVY_Q = '1141396'
     COMPANY_Q = '783794'
+    ORGANISATION_Q = '43229'
     IKNO_K = u'http://kulturnav.org/2c8a7e85-5b0c-4ceb-b56f-a229b6a71d2a'
     classList = None
     typeList = None
@@ -123,7 +124,7 @@ class KulturnavBotSMM(KulturnavBot):
                                       % self.DATASET)
 
     def runPerson(self):
-        personRules = {
+        rules = {
             # u'deathPlace': None,
             u'deathDate': None,
             # u'birthPlace': None,
@@ -135,7 +136,7 @@ class KulturnavBotSMM(KulturnavBot):
             u'person.nationality': None
         }
 
-        def personClaims(self, values):
+        def claims(self, values):
             protoclaims = {
                 # instance of
                 u'P31': WD.Statement(pywikibot.ItemPage(
@@ -174,7 +175,7 @@ class KulturnavBotSMM(KulturnavBot):
 
             return protoclaims
 
-        def personTest(self, hitItem):
+        def test(self, hitItem):
             """
             Fail if contains an is instance of group of people claim
             """
@@ -184,14 +185,14 @@ class KulturnavBotSMM(KulturnavBot):
                                          u'group of people')
 
         # pass settings on to runLayout()
-        self.runLayout(datasetRules=personRules,
-                       datasetProtoclaims=personClaims,
-                       datasetSanityTest=personTest,
+        self.runLayout(datasetRules=rules,
+                       datasetProtoclaims=claims,
+                       datasetSanityTest=test,
                        label=u'name',
                        shuffle=True)
 
     def runVarv(self):
-        varvRules = {
+        rules = {
             u'name': None,
             u'agent.ownership.owner': None,
             u'establishment.date': Rule(
@@ -209,7 +210,7 @@ class KulturnavBotSMM(KulturnavBot):
                 viaId='location')
         }
 
-        def varvClaims(self, values):
+        def claims(self, values):
             protoclaims = {
                 # instance of
                 u'P31': WD.Statement(pywikibot.ItemPage(
@@ -237,26 +238,28 @@ class KulturnavBotSMM(KulturnavBot):
 
             return protoclaims
 
-        def varvTest(self, hitItem):
+        def test(self, hitItem):
             """
-            Fail if has instance claims and none of them are shipyard
-            @todo: relax so that e.g. COMPANY_Q is allowed
+            Fail if has instance claims and none of them are
+            shipyard/company/organisation
             return bool
             """
             return self.withClaimTest(hitItem,
                                       self.IS_A_P,
-                                      self.SHIPYARD_Q,
+                                      [self.SHIPYARD_Q,
+                                       self.COMPANY_Q,
+                                       self.ORGANISATION_Q],
                                       u'shipyard')
 
         # pass settings on to runLayout()
-        self.runLayout(datasetRules=varvRules,
-                       datasetProtoclaims=varvClaims,
-                       datasetSanityTest=varvTest,
+        self.runLayout(datasetRules=rules,
+                       datasetProtoclaims=claims,
+                       datasetSanityTest=test,
                        label=u'name',
                        shuffle=False)
 
     def runFartyg(self):
-        fartygRules = {
+        rules = {
             u'entity.name': Rule(  # force to look in top level
                 keys='inDataset',
                 values=None,
@@ -345,7 +348,7 @@ class KulturnavBotSMM(KulturnavBot):
             # navalVessel.measurement
         }
 
-        def fartygClaims(self, values):
+        def claims(self, values):
             """
             @todo: implement:
                 u'navalVessel.signalLetters': possibly P432
@@ -497,7 +500,7 @@ class KulturnavBotSMM(KulturnavBot):
 
             return protoclaims
 
-        def fartygTest(self, hitItem):
+        def test(self, hitItem):
             """
             is there any way of testing that it is a ship... of some type?
             Possibly if any of P31 is in wdqList for claim[31:2235308]
@@ -518,9 +521,9 @@ class KulturnavBotSMM(KulturnavBot):
             return False
 
         # pass settings on to runLayout()
-        self.runLayout(datasetRules=fartygRules,
-                       datasetProtoclaims=fartygClaims,
-                       datasetSanityTest=fartygTest,
+        self.runLayout(datasetRules=rules,
+                       datasetProtoclaims=claims,
+                       datasetSanityTest=test,
                        label=u'entity.name',
                        shuffle=False)
 
