@@ -35,7 +35,7 @@ DATASETS = {
         'fullName': u'Fartygstyper',
         'DATASET_ID': 'c43d8eba-030b-4542-b1ac-6a31a0ba6d00',
         'ENTITY_TYPE': 'Concept',
-        'MAP_TAG': 'concept.exactMatch',
+        'MAP_TAG': 'concept.exactMatch_s',
         'DATASET_Q': '20103697'},
     u'Namngivna': {
         'id': 2,
