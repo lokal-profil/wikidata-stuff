@@ -17,10 +17,13 @@ Options (may be omitted):
   -cutoff:INT       number of entries to process before terminating
   -maxHits:INT      number of items to request at a time from Kulturnav
                     (default 250)
+  -delay:INT        seconds to delay between each kulturnav request
+                    (default 0)
 
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 """
 import json
+import time
 import pywikibot
 from pywikibot import pagegenerators
 import urllib2
@@ -170,6 +173,9 @@ class KulturnavBot(object):
             # print count, self.cutoff
             if self.cutoff and count >= self.cutoff:
                 break
+            # some type of feedback
+            if count % 100 == 0 and count > 0:
+                pywikibot.output('%d entries handled...' % count)
             # Required rules/values to search for
             rules = {
                 u'identifier': None,
@@ -973,11 +979,13 @@ class KulturnavBot(object):
                                 item, prefix=self.EDIT_SUMMARY)
 
     @classmethod
-    def getKulturnavGenerator(cls, maxHits=500):
+    def getKulturnavGenerator(cls, maxHits=250, delay=0):
         """
         Generator of the entries at KulturNav based on a search for all items
         of given type in the given dataset which contains Wikidata as a
         given value.
+        param maxHits: max hits to request per search
+        param delay: delay in seconds between each kulturnav request
         """
         patterns = (u'http://www.wikidata.org/entity/',
                     u'https://www.wikidata.org/entity/')
@@ -1010,9 +1018,14 @@ class KulturnavBot(object):
             searchData = searchPage.read()
             overviewPage = json.loads(searchData)
 
+        # some feedback
+        pywikibot.output(u'Found %d matching entries in Kulturnav'
+                         % len(wdDict))
+
         # get the record for each of these entries
         for kulturnavId, wikidataId in wdDict.iteritems():
             # jsonData = json.load(urllib2.urlopen(queryurl % kulturnavId))
+            time.sleep(delay)
             recordPage = urllib2.urlopen(queryurl % kulturnavId)
             recordData = recordPage.read()
             jsonData = json.loads(recordData)
@@ -1026,6 +1039,7 @@ class KulturnavBot(object):
         # handle arguments
         cutoff = None
         maxHits = 250
+        delay = 0
 
         def if_arg_value(arg, name):
             if arg.startswith(name):
@@ -1036,8 +1050,11 @@ class KulturnavBot(object):
                 cutoff = int(v)
             for v in if_arg_value(arg, '-maxHits'):
                 maxHits = int(v)
+            for v in if_arg_value(arg, '-delay'):
+                delay = int(v)
 
-        kulturnavGenerator = cls.getKulturnavGenerator(maxHits=maxHits)
+        kulturnavGenerator = cls.getKulturnavGenerator(maxHits=maxHits,
+                                                       delay=delay)
 
         kulturnavBot = cls(kulturnavGenerator)
         kulturnavBot.cutoff = cutoff
