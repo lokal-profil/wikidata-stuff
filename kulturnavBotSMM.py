@@ -781,19 +781,13 @@ class KulturnavBotSMM(KulturnavBot):
                         values[u'constructor.start'],
                         values[u'constructor.end'])
                 else:  # i.e. if list
-                    if not isinstance(values[u'constructor.start'], list) and \
-                            not isinstance(values[u'constructor.end'], list):
-                        pywikibot.output('constructor as list but not start/end')
-                    elif len(values[u'constructor.start']) != len(values[u'constructor']) and \
-                            len(values[u'constructor.end']) != len(values[u'constructor']):
-                        pywikibot.output('constructor as list but not same length for start/end')
-                    else:
-                        claims = []
-                        for i in range(0, len(values[u'constructor'])):
-                            claims.append(self.addStartEndStatement(
-                                self.kulturnav2Wikidata(values[u'constructor'][i]),
-                                values[u'constructor.start'][i],
-                                values[u'constructor.end'][i]))
+                    claims = []
+                    for val in values[u'constructor']:
+                        claims.append(self.addStartEndStatement(
+                            self.kulturnav2Wikidata(val),
+                            values[u'constructor.start'],
+                            values[u'constructor.end']))
+                    if len(claims) > 0:
                         protoclaims[u'P287'] = claims
 
             return protoclaims
