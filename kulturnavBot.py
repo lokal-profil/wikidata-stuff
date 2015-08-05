@@ -584,7 +584,7 @@ class KulturnavBot(object):
         if KulturnavBot.foobar(item):
             return
         if not all(x in item.keys() for x in (u'@value', u'@language')):
-            print u'invalid dbpedia entry: %s' % item
+            pywikibot.output(u'invalid dbpedia entry: %s' % item)
             exit(1)
 
         # any site will work, this is just an example
@@ -827,8 +827,8 @@ class KulturnavBot(object):
                 elif s.startswith('parish#'):
                     pass  # no id's in wikidata
                 else:
-                    print u'Unhandled KulturarvsdataLocation prefix'
-                    print s
+                    pywikibot.output(u'Unhandled KulturarvsdataLocation '
+                                     u'prefix: %s' % s)
                     exit(1)
         return None
 
