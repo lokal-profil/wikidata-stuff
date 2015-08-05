@@ -399,10 +399,8 @@ class KulturnavBotSMM(KulturnavBot):
                                              u'type or ship class' % q)
                 if len(shipClass) > 0:
                     protoclaims[u'P289'] = shipClass
-                    print 'P289', shipClass
                 if len(shipType) > 0:
                     protoclaims[u'P31'] = shipType
-                    print 'P31', shipType
 
             # P879 - registration number
             if values[u'registration.number']:
@@ -777,10 +775,26 @@ class KulturnavBotSMM(KulturnavBot):
 
             # P287 - Designer (Constructor)
             if values[u'constructor']:
-                protoclaims[u'P287'] = self.addStartEndStatement(
-                    self.kulturnav2Wikidata(values[u'constructor']),
-                    values[u'constructor.start'],
-                    values[u'constructor.end'])
+                if isinstance(values[u'constructor'], (unicode, str)):
+                    protoclaims[u'P287'] = self.addStartEndStatement(
+                        self.kulturnav2Wikidata(values[u'constructor']),
+                        values[u'constructor.start'],
+                        values[u'constructor.end'])
+                else:  # i.e. if list
+                    if not isinstance(values[u'constructor.start'], list) and \
+                            not isinstance(values[u'constructor.end'], list):
+                        pywikibot.output('constructor as list but not start/end')
+                    elif len(values[u'constructor.start']) != len(values[u'constructor']) and \
+                            len(values[u'constructor.end']) != len(values[u'constructor']):
+                        pywikibot.output('constructor as list but not same length for start/end')
+                    else:
+                        claims = []
+                        for i in range(0, len(values[u'constructor'])):
+                            claims.append(self.addStartEndStatement(
+                                self.kulturnav2Wikidata(values[u'constructor'][i]),
+                                values[u'constructor.start'][i],
+                                values[u'constructor.end'][i]))
+                        protoclaims[u'P287'] = claims
 
             return protoclaims
 
