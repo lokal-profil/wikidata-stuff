@@ -81,6 +81,7 @@ class KulturnavBotSMM(KulturnavBot):
     SHIPYARD_Q = '190928'
     SHIPCLASS_Q = '559026'
     SUBMARINECLASS_Q = '1428357'
+    BOATTYPE_Q = '16103215'
     SUBMARINETYPE_K = 'd7286bae-9e1f-4048-94b5-f70017d139f8'
     SHIPTYPE_Q = '2235308'
     SWENAVY_Q = '1141396'
@@ -112,6 +113,8 @@ class KulturnavBotSMM(KulturnavBot):
                     DATASETS[u'Serietillverkade']['DATASET_Q']))
             self.allShipTypes = self.wd.wdqLookup(
                 u'CLAIM[31:%s]' % self.SHIPTYPE_Q)
+            self.allShipTypes += self.wd.wdqLookup(
+                u'CLAIM[31:%s]' % self.BOATTYPE_Q)
             self.runFartyg()
         elif self.DATASET == 'Klasser':
             self.runKlasser()
@@ -517,7 +520,7 @@ class KulturnavBotSMM(KulturnavBot):
             if any(x in claims for x in self.allShipTypes):
                 return True
             pywikibot.output(u'%s is identified as something other than '
-                             u'a ship type. Check!' % hitItem.title())
+                             u'a ship/boat type. Check!' % hitItem.title())
             return False
 
         # pass settings on to runLayout()
@@ -619,6 +622,10 @@ class KulturnavBotSMM(KulturnavBot):
                        shuffle=False)
 
     def runFartygstyper(self):
+        '''
+        @todo: if a boat_type then it should be possible to
+               add everything except P31
+        '''
         rules = {
             u'prefLabel': None,
             u'altLabel': None,
