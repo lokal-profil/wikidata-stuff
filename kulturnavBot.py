@@ -88,6 +88,9 @@ class KulturnavBot(object):
     COUNTRIES = []  # a list of country Q's
     ADMIN_UNITS = []  # a list of municipality+county Q's
     locations = {}  # a dict of uuid to wikidata location matches
+    names = {  # a dict of found first/last_name_Q lookups
+        u'lastName': {},
+        u'firstName': {}}
 
     def __init__(self, dictGenerator, verbose=False):
         """
@@ -231,6 +234,7 @@ class KulturnavBot(object):
 
             # Add information if a match was found
             if hitItem and hitItem.exists():
+                # if redirect then get target instead
 
                 # make sure it passes the sanityTests
                 if not self.sanityTest(hitItem):
@@ -654,11 +658,13 @@ class KulturnavBot(object):
                     self.repo,
                     known[item]))
 
-    def dbName(self, name, typ):
+    def dbName(self, name, typ, limit=75):
         """
         Given a plaintext name (first or last) this checks if there is
         a matching object of the right type
-        param name = {'@language': 'xx', '@value': 'xxx'}
+        param name dict: {'@language': 'xx', '@value': 'xxx'}
+        param typ string: lastName/firstName
+        param limit int: number of hits before skipping (if not on labs)
         return pywikibot.ItemPage|None
         """
         if KulturnavBot.foobar(name):
@@ -669,6 +675,11 @@ class KulturnavBot(object):
         # Skip any empty values
         if len(name['@value'].strip()) == 0:
             return
+
+        # Check if already looked up
+        shortname = u'%s¤%s' % (name['@value'], name['@language'])
+        if shortname in self.names[typ].keys():
+            return self.names[typ][shortname]
 
         # search for potential matches
         matches = []
@@ -692,7 +703,14 @@ class KulturnavBot(object):
                         namespaces=[0], site=self.repo)))
 
             # check if P31 and then if any of prop[typ] in P31
+            i = 0
             for obj in objgen:
+                i += 1
+                if i > limit:
+                    # better to skip than to crash when search times out
+                    # remove any matches (since incomplete) and exit loop
+                    matches = []
+                    break
                 # print obj.title()
                 if name['@value'] in (obj.get().get('labels').get('en'),
                                       obj.get().get('labels').get('sv'),
@@ -712,9 +730,14 @@ class KulturnavBot(object):
         # get rid of duplicates then check for uniqueness
         matches = list(set(matches))
         if len(matches) == 1:
-            return matches[0]
+            item = self.wd.bypassRedirect(matches[0])
+            self.names[typ][shortname] = item  # store for later reuse
+            return item
         elif len(matches) > 1:
             pywikibot.log(u'Possible duplicates: %s' % matches)
+
+        # getting here means no hits so store that for later reuse
+        self.names[typ][shortname] = None
 
     def location2Wikidata(self, uuid):
         """
