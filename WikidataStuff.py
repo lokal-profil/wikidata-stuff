@@ -331,7 +331,11 @@ class WikidataStuff(object):
         """
         if prop in item.claims.keys():
             for claim in item.claims[prop]:
-                if self.bypassRedirect(claim.getTarget()) == itis:
+                if isinstance(itis, pywikibot.WbTime):
+                    # WbTime compared differently
+                    if self.compareWbTimeClaim(claim.getTarget(), itis):
+                        return claim
+                elif self.bypassRedirect(claim.getTarget()) == itis:
                     return claim
         return None
 
@@ -426,3 +430,39 @@ class WikidataStuff(object):
             return item.getRedirectTarget()
         else:
             return item
+
+    def compareWbTimeClaim(self, target, itis):
+        """
+        Compares if two WbTime claims are the same (regarding precision)
+        thereby handling T107870
+        @todo: implement comparisons also for precisions more coarse
+               than a year
+        param target: any Claim
+        param itis: a WbTime
+        return bool
+        """
+        if not isinstance(target, pywikibot.WbTime):
+            return False
+        if itis.precision != target.precision:
+            return False
+
+        # comparison based on precision
+        PRECISION = pywikibot.WbTime.PRECISION
+        if itis.year != target.year:
+            return False
+        if itis.precision >= PRECISION['month']:
+            if itis.month != target.month:
+                return False
+            if itis.precision >= PRECISION['day']:
+                if itis.day != target.day:
+                    return False
+                if itis.precision >= PRECISION['hour']:
+                    if itis.hour != target.hour:
+                        return False
+                    if itis.precision >= PRECISION['minute']:
+                        if itis.minute != target.minute:
+                            return False
+                        if itis.precision >= PRECISION['second']:
+                            if itis.second != target.second:
+                                return False
+        return True
