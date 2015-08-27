@@ -9,14 +9,14 @@ Here follows the mappings used between Kulturnav and Wikidata
 |                            | [P31](https://www.wikidata.org/wiki/Property:P31): [Q5](https://www.wikidata.org/wiki/Q5)       ||
 | name                       | *label/alias* ||
 | deathDate                  | [P20](https://www.wikidata.org/wiki/Property:P20)           ||
-| deathPlace                 | [P570](https://www.wikidata.org/wiki/Property:P570)          ||
-| birthPlace                 | [P19](https://www.wikidata.org/wiki/Property:P19)           ||
-| birthDate                  | [P569](https://www.wikidata.org/wiki/Property:P569)          ||
-| firstName                  | [P735](https://www.wikidata.org/wiki/Property:P735)          ||
+| deathPlace                 | [P570](https://www.wikidata.org/wiki/Property:P570)         | falls back on deathDate:P7_took_place_at |
+| birthDate                  | [P569](https://www.wikidata.org/wiki/Property:P569)         ||
+| birthPlace                 | [P19](https://www.wikidata.org/wiki/Property:P19)           | falls back on birthDate:P7_took_place_at |
+| firstName                  | [P735](https://www.wikidata.org/wiki/Property:P735)         ||
 | gender                     | [P21](https://www.wikidata.org/wiki/Property:P21)           ||
-| lastName                   | [P734](https://www.wikidata.org/wiki/Property:P734)          ||
+| lastName                   | [P734](https://www.wikidata.org/wiki/Property:P734)         ||
 | person.nationality         | [P27](https://www.wikidata.org/wiki/Property:P27)           ||
-| fieldOfActivityOfThePerson | [P106](https://www.wikidata.org/wiki/Property:P106)          | &nbsp;&nbsp; *not dynamic* |
+| fieldOfActivityOfThePerson | [P106](https://www.wikidata.org/wiki/Property:P106)         | &nbsp;&nbsp; *not dynamic* |
 
 ## Shipyards
 | Kulturnav                  | Wikidata | note |
