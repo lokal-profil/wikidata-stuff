@@ -130,10 +130,20 @@ class KulturnavBotSMM(KulturnavBot):
 
     def runPerson(self):
         rules = {
-            u'deathPlace': None,
             u'deathDate': None,
-            u'birthPlace': None,
+            u'deathPlace': None,
+            u'deathPlace_P7': Rule(
+                keys='deathDate',
+                values={'@type': 'cidoc-crm:E69_Death'},
+                target='P7_took_place_at',
+                viaId='location'),
             u'birthDate': None,
+            u'birthPlace': None,
+            u'birthPlace_P7': Rule(
+                keys='birthDate',
+                values={'@type': 'cidoc-crm:E67_Birth'},
+                target='P7_took_place_at',
+                viaId='location'),
             u'firstName': None,
             u'gender': None,
             u'lastName': None,
@@ -150,18 +160,24 @@ class KulturnavBotSMM(KulturnavBot):
                 }
             # P106 occupation - fieldOfActivityOfThePerson
 
-            if values[u'deathPlace']:
-                protoclaims[u'P20'] = WD.Statement(
-                    self.dbpedia2Wikidata(values[u'deathPlace']))
             if values[u'deathDate']:
                 protoclaims[u'P570'] = WD.Statement(
                     self.dbDate(values[u'deathDate']))
-            if values[u'birthPlace']:
-                protoclaims[u'P19'] = WD.Statement(
-                    self.dbpedia2Wikidata(values[u'birthPlace']))
+            if values[u'deathPlace']:
+                protoclaims[u'P20'] = WD.Statement(
+                    self.dbpedia2Wikidata(values[u'deathPlace']))
+            elif values[u'deathPlace_P7']:
+                protoclaims[u'P20'] = WD.Statement(
+                    self.location2Wikidata(values[u'deathPlace_P7']))
             if values[u'birthDate']:
                 protoclaims[u'P569'] = WD.Statement(
                     self.dbDate(values[u'birthDate']))
+            if values[u'birthPlace']:
+                protoclaims[u'P19'] = WD.Statement(
+                    self.dbpedia2Wikidata(values[u'birthPlace']))
+            elif values[u'birthPlace_P7']:
+                protoclaims[u'P19'] = WD.Statement(
+                    self.location2Wikidata(values[u'birthPlace_P7']))
             if values[u'gender']:
                 # dbGender returns a WD.Statement
                 protoclaims[u'P21'] = self.dbGender(values[u'gender'])
