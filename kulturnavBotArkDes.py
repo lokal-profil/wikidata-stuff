@@ -39,9 +39,9 @@ class KulturnavBotArkDes(KulturnavBot):
         Starts the robot
         """
         rules = {
-            # u'deathPlace': None,
+            u'deathPlace': None,
             u'deathDate': None,
-            # u'birthPlace': None,
+            u'birthPlace': None,
             u'birthDate': None,
             u'firstName': None,
             u'gender': None,
@@ -63,15 +63,15 @@ class KulturnavBotArkDes(KulturnavBot):
                 }
             # P106 occupation - fieldOfActivityOfThePerson
 
-            # if values[u'deathPlace']:
-            #    protoclaims[u'P20'] = WD.Statement(
-            #        self.dbpedia2Wikidata(values[u'deathPlace']))
+            if values[u'deathPlace']:
+                protoclaims[u'P20'] = WD.Statement(
+                    self.dbpedia2Wikidata(values[u'deathPlace']))
             if values[u'deathDate']:
                 protoclaims[u'P570'] = WD.Statement(
                     self.dbDate(values[u'deathDate']))
-            # if values[u'birthPlace']:
-            #    protoclaims[u'P19'] = WD.Statement(
-            #        self.dbpedia2Wikidata(values[u'birthPlace']))
+            if values[u'birthPlace']:
+                protoclaims[u'P19'] = WD.Statement(
+                    self.dbpedia2Wikidata(values[u'birthPlace']))
             if values[u'birthDate']:
                 protoclaims[u'P569'] = WD.Statement(
                     self.dbDate(values[u'birthDate']))
