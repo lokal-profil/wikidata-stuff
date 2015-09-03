@@ -29,6 +29,7 @@ from pywikibot import pagegenerators
 import urllib2
 import pywikibot.data.wikidataquery as wdquery
 from WikidataStuff import WikidataStuff as WD
+import re
 
 FOO_BAR = u'A multilingual result (or one with multiple options) was ' \
           u'encountered but I have yet to support that functionality'
@@ -91,6 +92,7 @@ class KulturnavBot(object):
     names = {  # a dict of found first/last_name_Q lookups
         u'lastName': {},
         u'firstName': {}}
+    current_uuid = ''  # for debugging
 
     def __init__(self, dictGenerator, verbose=False):
         """
@@ -204,6 +206,7 @@ class KulturnavBot(object):
 
             # find the matching wikidata item
             hitItem = self.wikidataMatch(values)
+            self.current_uuid = values['identifier']
 
             # convert values to potential claims
             protoclaims = datasetProtoclaims(self, values)
@@ -793,6 +796,10 @@ class KulturnavBot(object):
 
         return list
         """
+        # debugging
+        if not self.isUuid(uuid):
+            return []
+
         queryurl = 'http://kulturnav.org/api/%s'
         jsonData = json.load(urllib2.urlopen(queryurl % uuid))
         sources = []
@@ -892,6 +899,10 @@ class KulturnavBot(object):
         NOTE that the WDQ results may be outdated
         return pywikibot.ItemPage|None
         """
+        # debugging
+        if not self.isUuid(uuid):
+            return None
+
         # Convert url to uuid
         if uuid.startswith(u'http://kulturnav.org'):
             uuid = uuid.split('/')[-1]
@@ -901,6 +912,21 @@ class KulturnavBot(object):
             return pywikibot.ItemPage(self.repo, qNo)
         else:
             return None
+
+    def isUuid(self, uuid):
+        """
+        tests if a string really is a uuid
+        """
+        if not isinstance(uuid, (str, unicode)):
+            print u'Not an uuid in %s: %s' % (self.current_uuid, uuid)
+            return False
+        uuid = uuid.split('/')[-1]  # in case of url
+        pattern = r'[0-9a-f]{8}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{12}'
+        m = re.search(pattern, uuid)
+        if not m or m.group(0) != uuid:
+            print u'Not an uuid in %s: %s' % (self.current_uuid, uuid)
+            return False
+        return True
 
     @staticmethod
     def is_int(s):
