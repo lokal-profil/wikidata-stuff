@@ -462,10 +462,15 @@ class KulturnavBotSMM(KulturnavBot):
 
             # P287 - Designer (Constructor)
             if values[u'constructor']:
-                protoclaims[u'P287'] = self.addStartEndStatement(
-                    self.kulturnav2Wikidata(values[u'constructor']),
-                    values[u'constructor.start'],
-                    values[u'constructor.end'])
+                values[u'constructor'] = self.listify(values[u'constructor'])
+                claims = []
+                for val in values[u'constructor']:
+                    claims.append(self.addStartEndStatement(
+                        self.kulturnav2Wikidata(val),
+                        values[u'constructor.start'],
+                        values[u'constructor.end']))
+                if len(claims) > 0:
+                    protoclaims[u'P287'] = claims
 
             # P793 - Events
             #   commissioned: Q14475832
@@ -798,20 +803,15 @@ class KulturnavBotSMM(KulturnavBot):
 
             # P287 - Designer (Constructor)
             if values[u'constructor']:
-                if isinstance(values[u'constructor'], (unicode, str)):
-                    protoclaims[u'P287'] = self.addStartEndStatement(
-                        self.kulturnav2Wikidata(values[u'constructor']),
+                values[u'constructor'] = self.listify(values[u'constructor'])
+                claims = []
+                for val in values[u'constructor']:
+                    claims.append(self.addStartEndStatement(
+                        self.kulturnav2Wikidata(val),
                         values[u'constructor.start'],
-                        values[u'constructor.end'])
-                else:  # i.e. if list
-                    claims = []
-                    for val in values[u'constructor']:
-                        claims.append(self.addStartEndStatement(
-                            self.kulturnav2Wikidata(val),
-                            values[u'constructor.start'],
-                            values[u'constructor.end']))
-                    if len(claims) > 0:
-                        protoclaims[u'P287'] = claims
+                        values[u'constructor.end']))
+                if len(claims) > 0:
+                    protoclaims[u'P287'] = claims
 
             return protoclaims
 
