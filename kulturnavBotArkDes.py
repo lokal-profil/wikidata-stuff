@@ -104,9 +104,15 @@ class KulturnavBotArkDes(KulturnavBot):
                     self.dbName(values[u'lastName'],
                                 u'lastName'))
             if values[u'person.nationality']:
-                protoclaims[u'P27'] = WD.Statement(
-                    self.location2Wikidata(
-                        values[u'person.nationality']))
+                # there can be multiple values
+                values[u'person.nationality'] = self.listify(
+                    values[u'person.nationality'])
+                claim = []
+                for pn in values[u'person.nationality']:
+                    claim.append(WD.Statement(
+                        self.location2Wikidata(pn)))
+                if len(claim) > 0:
+                    protoclaims[u'P27'] = claim
 
             return protoclaims
 
