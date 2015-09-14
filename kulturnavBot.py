@@ -751,6 +751,9 @@ class KulturnavBot(object):
         NOTE that the WDQ results may be outdated
         return pywikibot.ItemPage|None
         """
+        # Check if uuid
+        if not self.isUuid(uuid):
+            return None
         # Convert url to uuid
         if uuid.startswith(u'http://kulturnav.org'):
             uuid = uuid.split('/')[-1]
