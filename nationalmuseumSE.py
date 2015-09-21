@@ -7,6 +7,11 @@ Bot to import paintings from the Nationalmuseum (Sweden) to Wikidata.
 Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
     /bot/wikidata/rijksmuseum_import.py by Multichill
 
+TODO:
+    * Add P1476 (title) with all titles
+    * Source P217 (inv. nr) whenever unsourced and corresponds to claim
+    * Log whenever P217 (inv. nr) does not correspond to claim
+
 """
 import json
 import pywikibot
@@ -119,9 +124,9 @@ class PaintingsBot:
         for painting in self.generator:
             # paintingId = painting['object']['proxies'][0]['about'].replace(u'/proxy/provider/90402/', u'').replace(u'_', u'-')
             ids = painting['object']['proxies'][0]['dcIdentifier']['def']
-            paintingId = ids[0].replace('Inv. Nr.:', '').strip('( )')
+            paintingId = ids[0].replace('Inv Nr.:', '').strip('( )')
             objId = ids[1]
-            uri = u'http://emp-web-22.zetcom.ch/eMuseumPlus?service=ExternalInterface&module=collection&objectId=%s&viewType=detailView' % objId
+            uri = u'http://collection.nationalmuseum.se/eMuseumPlus?service=ExternalInterface&module=collection&objectId=%s&viewType=detailView' % objId
             europeanaUrl = u'http://europeana.eu/portal/record/%s.html' % (painting['object']['about'],)
 
             # the museum contains sevaral subcollections. Only deal with mapped ones
@@ -147,49 +152,38 @@ class PaintingsBot:
                 # print paintingItemTitle
                 paintingItem = pywikibot.ItemPage(self.repo, title=paintingItemTitle)
 
+                # check label
+                data = paintingItem.get()
+                labels = makeLabels(painting)
+                newLabels = {}
+                for lang, labelObj in labels.iteritems():
+                    if lang not in data.get('labels').keys():
+                        newLabels[lang] = labelObj['value']
+                if newLabels:
+                    pywikibot.output('Adding label to %s' % paintingItem.title())
+                    paintingItem.editLabels(newLabels)
+
+                # check description
+                descriptions, skip = makeDescriptions(painting)
+                if not skip:
+                    newDescr = {}
+                    for lang, descrObj in descriptions.iteritems():
+                        if lang not in data.get('descriptions').keys():
+                            newDescr[lang] = descrObj['value']
+                    if newDescr:
+                        pywikibot.output('Adding descriptions to %s' % paintingItem.title())
+                        paintingItem.editDescriptions(newDescr)
+
             elif addNew and not miniature:  # skip all new miniatures
                 # creating a new one
                 data = {'labels': {},
                         'descriptions': {},
                         }
-                
-                # skip items missing creator entirely (not the same as unknown)
-                dcCreatorName = None
-                try:
-                    dcCreatorName = painting['object']['proxies'][0]['dcCreator']['sv'][0].strip()
-                    # print dcCreatorName
-                except KeyError:
-                    # pywikibot.output(u'skipped due to weird creator settings in %s' % europeanaUrl)
-                    # continue
-                    pass
 
-                for dcTitleLang, dcTitle in painting['object']['proxies'][0]['dcTitle'].iteritems():
-                    data['labels'][dcTitleLang] = {'language': dcTitleLang,
-                                                   'value': dcTitle[0]}
-
-                if dcCreatorName:
-                    if dcCreatorName == u'Okänd':
-                        data['descriptions']['en'] = {'language': u'en', 'value': u'painting by unknown painter'}
-                        data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij van onbekende schilder'}
-                        data['descriptions']['sv'] = {'language': u'sv', 'value': u'målning av okänd konstnär'}
-                    elif dcCreatorName.startswith(u'Attributed to'):
-                        attribName = dcCreatorName[len(u'Attributed to'):].strip()
-                        data['descriptions']['en'] = {'language': u'en', 'value': u'painting attributed to %s' % (attribName,)}
-                        data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij toegeschreven aan %s' % (attribName,)}
-                        data['descriptions']['sv'] = {'language': u'sv', 'value': u'målning tillskriven %s' % (attribName,)}
-                    elif dcCreatorName.startswith(u'Manner of') or \
-                         dcCreatorName.startswith(u'Copy after') or \
-                         dcCreatorName.startswith(u'Workshop of') or \
-                         dcCreatorName.startswith(u'Circle of'):
-                        continue
-                    else:
-                        data['descriptions']['en'] = {'language': u'en', 'value': u'painting by %s' % (dcCreatorName,)}
-                        data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij van %s' % (dcCreatorName,)}
-                        data['descriptions']['sv'] = {'language': u'sv', 'value': u'målning av %s' % (dcCreatorName,)}
-                else:
-                    data['descriptions']['en'] = {'language': u'en', 'value': u'painting'}
-                    data['descriptions']['nl'] = {'language': u'nl', 'value': u'schilderij'}
-                    data['descriptions']['sv'] = {'language': u'sv', 'value': u'målning'}
+                data['labels'] = makeLabels(painting)
+                data['descriptions'], skip = makeDescriptions(painting)
+                if skip:
+                    continue
 
                 # print data
                 # create new empty item and request Q-number
@@ -252,7 +246,7 @@ class PaintingsBot:
 
             if paintingItem and paintingItem.exists():
 
-                data = paintingItem.get()
+                data = paintingItem.get(force=True)
                 claims = data.get('claims')
                 # print claims
 
@@ -407,6 +401,57 @@ class PaintingsBot:
             f.write(u'%d|%s\n' % (v, k))
         f.close()
 
+def makeDescriptions(painting):
+    """
+    Given a painitng object construct descriptions in en/nl/sv
+    also sets skip=True if problems are encountered
+    """
+    skip = False
+    dcCreatorName = None
+    try:
+        dcCreatorName = painting['object']['proxies'][0]['dcCreator']['sv'][0].strip()
+        # print dcCreatorName
+    except KeyError:
+        # pywikibot.output(u'skipped due to weird creator settings in %s' % europeanaUrl)
+        # skip = True
+        pass
+
+    descriptions = {}
+    if dcCreatorName:
+        if dcCreatorName == u'Okänd':
+            descriptions['en'] = {'language': u'en', 'value': u'painting by unknown painter'}
+            descriptions['nl'] = {'language': u'nl', 'value': u'schilderij van onbekende schilder'}
+            descriptions['sv'] = {'language': u'sv', 'value': u'målning av okänd konstnär'}
+        elif dcCreatorName.startswith(u'Attributed to'):
+            attribName = dcCreatorName[len(u'Attributed to'):].strip()
+            descriptions['en'] = {'language': u'en', 'value': u'painting attributed to %s' % (attribName,)}
+            descriptions['nl'] = {'language': u'nl', 'value': u'schilderij toegeschreven aan %s' % (attribName,)}
+            descriptions['sv'] = {'language': u'sv', 'value': u'målning tillskriven %s' % (attribName,)}
+        elif dcCreatorName.startswith(u'Manner of') or \
+             dcCreatorName.startswith(u'Copy after') or \
+             dcCreatorName.startswith(u'Workshop of') or \
+             dcCreatorName.startswith(u'Circle of'):
+            skip = True
+        else:
+            descriptions['en'] = {'language': u'en', 'value': u'painting by %s' % (dcCreatorName,)}
+            descriptions['nl'] = {'language': u'nl', 'value': u'schilderij van %s' % (dcCreatorName,)}
+            descriptions['sv'] = {'language': u'sv', 'value': u'målning av %s' % (dcCreatorName,)}
+    else:
+        descriptions['en'] = {'language': u'en', 'value': u'painting'}
+        descriptions['nl'] = {'language': u'nl', 'value': u'schilderij'}
+        descriptions['sv'] = {'language': u'sv', 'value': u'målning'}
+    return descriptions, skip
+
+
+def makeLabels(painting):
+    """
+    Given a painting object extract all labels
+    """
+    labels = {}
+    for dcTitleLang, dcTitle in painting['object']['proxies'][0]['dcTitle'].iteritems():
+        labels[dcTitleLang] = {'language': dcTitleLang, 'value': dcTitle[0]}
+    return labels
+
 
 def dbpedia2wikidata(dbpedia):
     """
@@ -432,15 +477,16 @@ def dbpedia2wikidata(dbpedia):
         jsonData = json.loads(dbData)
         dbPage.close()
     except ValueError, e:
-        pywikibot.output(u'dbpedia-skipp: %s, %s' % (dbpedia, e))
+        pywikibot.output(u'dbpedia-skip: %s, %s' % (dbpedia, e))
         return None
 
     if jsonData.get('@graph'):
         for g in jsonData.get('@graph'):
             if g.get('http://www.w3.org/2002/07/owl#sameAs'):
                 for same in g.get('http://www.w3.org/2002/07/owl#sameAs'):
-                    if same.startswith('http://wikidata.org/entity/'):
-                        return same[len('http://wikidata.org/entity/'):]
+                    if isinstance(same, (str, unicode)):
+                        if same.startswith('http://wikidata.org/entity/'):
+                            return same[len('http://wikidata.org/entity/'):]
                 return None
     return None
 
@@ -468,7 +514,7 @@ def getPaintingGenerator(query=u'', rows=MAX_ROWS, start=1):
     fail = False
     totalResults = overviewJsonData.get('totalResults')
     if start > totalResults:
-        pywikibot.output(u'To high start value. There are only %d results' % totalResults)
+        pywikibot.output(u'Too high start value. There are only %d results' % totalResults)
         exit(1)
 
     for item in overviewJsonData.get('items'):
@@ -503,15 +549,21 @@ def main(rows=MAX_ROWS, start=1, addNew=True):
 
 if __name__ == "__main__":
     usage = u'Usage:\tpython nationalmuseumSE.py rows start addNew\n' \
-            u'\twhere rows and start are optional positive integers' \
+            u'\twhere rows and start are optional positive integers\n' \
             u'\tand addNew is a boolean (defaults to true)'
     import sys
     argv = sys.argv[1:]
     if len(argv) == 0:
         main()
     elif len(argv) == 2:
-        main(rows=int(argv[0]), start=int(argv[1]))
+        if int(argv[0]) < 1 or int(argv[1]) < 1:
+            print usage
+        else:
+            main(rows=int(argv[0]), start=int(argv[1]))
     elif len(argv) == 3:
+        if int(argv[0]) < 1 or int(argv[1]) < 1:
+            print usage
+            exit(1)
         if argv[2] in ('t', 'T', 'True', 'true'):
             main(rows=int(argv[0]), start=int(argv[1]), addNew=True)
         elif argv[2] in ('f', 'F', 'False', 'false'):
