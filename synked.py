@@ -141,27 +141,27 @@ def compare(kDataset=None, wDataset=None):
     return response
 
 
-def testAll():
+def testAll(outDir):
     """All"""
     DATASET_ID = None
     DATASET_Q = None
     response = compare(DATASET_ID, DATASET_Q)
-    f = open('synk-All.json', 'w')
+    f = open('%ssynk-All.json' % outDir, 'w')
     f.write(json.dumps(response))
     f.close()
 
 
-def testArkDes():
+def testArkDes(outDir):
     """ArkDes"""
     DATASET_ID = '2b7670e1-b44e-4064-817d-27834b03067c'
     DATASET_Q = 'Q17373699'
     response = compare(DATASET_ID, DATASET_Q)
-    f = open('synk-Arkdes.json', 'w')
+    f = open('%ssynk-Arkdes.json' % outDir, 'w')
     f.write(json.dumps(response))
     f.close()
 
 
-def testSMM():
+def testSMM(outDir):
     """All SMM"""
     DATASET_ID = ['9a816089-2156-42ce-a63a-e2c835b20688',
                   'c43d8eba-030b-4542-b1ac-6a31a0ba6d00',
@@ -178,11 +178,19 @@ def testSMM():
                  'Q20742782',
                  'Q20669386']
     response = compare(DATASET_ID, DATASET_Q)
-    f = open('synk-SMM.json', 'w')
+    f = open('%ssynk-SMM.json' % outDir, 'w')
     f.write(json.dumps(response))
     f.close()
 
 if __name__ == "__main__":
-    testAll()
-    testArkDes()
-    testSMM()
+    import sys
+    usage = "Usage: python synked.py outdir\n" \
+            "\toutdir(optional): dir in which to stick output. " \
+            "Defaults to current."
+    argv = sys.argv[1:]
+    outDir = './'
+    if len(argv) == 1:
+        outDir = argv[0]
+    testAll(outDir)
+    testArkDes(outDir)
+    testSMM(outDir)
