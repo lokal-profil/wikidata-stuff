@@ -708,6 +708,7 @@ class KulturnavBot(object):
             # check if P31 and then if any of prop[typ] in P31
             i = 0
             for obj in objgen:
+                obj = self.wd.bypassRedirect(obj)
                 i += 1
                 if i > limit:
                     # better to skip than to crash when search times out
