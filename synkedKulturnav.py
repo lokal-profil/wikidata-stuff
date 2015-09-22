@@ -7,6 +7,7 @@ Quick bot for checking reciprocity of Wikidata-Kulturnav links
 """
 import json
 import urllib2
+import urllib
 
 
 def getWDQ(dataset=None, data=None):
@@ -98,6 +99,31 @@ def getKulturnav(dataset=None, data=None):
     return data
 
 
+def getReferences(owner=None):
+    """
+    Ask the query service for the number of statments being sourced
+    through Kulturnav.
+    """
+    baseUrl = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql?' \
+              'format=json&query='
+    query = "prefix wdt: <http://www.wikidata.org/prop/direct/>\n" \
+            "prefix prov: <http://www.w3.org/ns/prov#>\n" \
+            "prefix pr: <http://www.wikidata.org/prop/reference/>\n" \
+            "PREFIX wd: <http://www.wikidata.org/entity/>\n" \
+            "SELECT (count(?statement) as ?mentions) WHERE {\n" \
+            "   ?statement prov:wasDerivedFrom ?ref .\n" \
+            "   ?ref pr:P248 ?dataset .\n" \
+            "   ?dataset wdt:P31 wd:Q1172284 .\n" \
+            "   ?dataset wdt:P361 wd:Q16323066 .\n"
+    if owner is not None:
+        query += "   ?dataset wdt:P127 wd:%s .\n" % owner
+    query += "}"
+
+    # performe query
+    j = json.load(urllib2.urlopen(baseUrl + urllib.quote(query)))
+    return int(j['results']['bindings'][0]['mentions']['value'])
+
+
 def compare(kDataset=None, wDataset=None):
     """
     Compare the links from Wikidata to Kulturnav and vice versa
@@ -146,6 +172,7 @@ def testAll(outDir):
     DATASET_ID = None
     DATASET_Q = None
     response = compare(DATASET_ID, DATASET_Q)
+    response['_status']['source_references'] = getReferences()
     f = open('%ssynk-All.json' % outDir, 'w')
     f.write(json.dumps(response))
     f.close()
@@ -155,7 +182,9 @@ def testArkDes(outDir):
     """ArkDes"""
     DATASET_ID = '2b7670e1-b44e-4064-817d-27834b03067c'
     DATASET_Q = 'Q17373699'
+    OWNER_Q = 'Q4356728'
     response = compare(DATASET_ID, DATASET_Q)
+    response['_status']['source_references'] = getReferences(OWNER_Q)
     f = open('%ssynk-Arkdes.json' % outDir, 'w')
     f.write(json.dumps(response))
     f.close()
@@ -177,14 +206,16 @@ def testSMM(outDir):
                  'Q20742975',
                  'Q20742782',
                  'Q20669386']
+    OWNER_Q = 'Q10677695'
     response = compare(DATASET_ID, DATASET_Q)
+    response['_status']['source_references'] = getReferences(OWNER_Q)
     f = open('%ssynk-SMM.json' % outDir, 'w')
     f.write(json.dumps(response))
     f.close()
 
 if __name__ == "__main__":
     import sys
-    usage = "Usage: python synked.py outdir\n" \
+    usage = "Usage: python synkedKulturnav.py outdir\n" \
             "\toutdir(optional): dir in which to stick output. " \
             "Defaults to current."
     argv = sys.argv[1:]
