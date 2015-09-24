@@ -11,6 +11,7 @@ TODO:
     * Add P1476 (title) with all titles
     * Source P217 (inv. nr) whenever unsourced and corresponds to claim
     * Log whenever P217 (inv. nr) does not correspond to claim
+    * Allow the image updates to run wihtout having to hammer the Europeana api
 
 """
 import json
@@ -127,7 +128,7 @@ class PaintingsBot:
             paintingId = ids[0].replace('Inv Nr.:', '').strip('( )')
             objId = ids[1]
             uri = u'http://collection.nationalmuseum.se/eMuseumPlus?service=ExternalInterface&module=collection&objectId=%s&viewType=detailView' % objId
-            europeanaUrl = u'http://europeana.eu/portal/record/%s.html' % (painting['object']['about'],)
+            europeanaUrl = u'http://europeana.eu/portal/record%s.html' % (painting['object']['about'],)
 
             # the museum contains sevaral subcollections. Only deal with mapped ones
             if paintingId.split(' ')[0] not in PREFIX_MAP.keys():
@@ -520,7 +521,12 @@ def getPaintingGenerator(query=u'', rows=MAX_ROWS, start=1):
     for item in overviewJsonData.get('items'):
         apiPage = urllib.urlopen(url % item.get('id'))
         apiData = apiPage.read()
-        jsonData = json.loads(apiData)
+        try:
+            jsonData = json.loads(apiData)
+        except ValueError, e:
+            print e
+            print url % item.get('id')
+            exit(1)
 
         apiPage.close()
         if jsonData.get(u'success'):
