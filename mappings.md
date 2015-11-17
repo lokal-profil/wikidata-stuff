@@ -65,7 +65,7 @@ Here follows the mappings used between Kulturnav and Wikidata
 | Kulturnav                  | Wikidata | note |
 | :------                    | -----------:  |--------:|
 | entity.name / altLabel     | *label/alias* |
-| navalVessel.signalLetters  |  | possibly [P432](https://www.wikidata.org/wiki/Property:P432)
+| navalVessel.signalLetters  |  [P2317](https://www.wikidata.org/wiki/Property:P2317)
 | entity.code                |  | same as navalVessel.signalLetters
 | navalVessel.built.shipyard / navalVessel.launched.shipyard | [P176](https://www.wikidata.org/wiki/Property:P176) |
 | navalVessel.built          | [P793](https://www.wikidata.org/wiki/Property:P793):[Q474200](https://www.wikidata.org/wiki/Q474200) | with end/location qualifers

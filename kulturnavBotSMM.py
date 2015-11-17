@@ -378,7 +378,6 @@ class KulturnavBotSMM(KulturnavBot):
         def claims(self, values):
             """
             @todo: implement:
-                u'navalVessel.signalLetters': possibly P432
                 u'delivered.date'
                 u'navalVessel.isSubRecord'
                 u'navalVessel.hasSubRecord'
@@ -451,6 +450,11 @@ class KulturnavBotSMM(KulturnavBot):
                     self.kulturnav2Wikidata(values[u'homePort']),
                     values[u'homePort.start'],
                     values[u'homePort.end'])
+
+            # P2317 - call sign
+            if values[u'navalVessel.signalLetters']:
+                protoclaims[u'P2317'] = WD.Statement(
+                    values[u'navalVessel.signalLetters'])
 
             # P176 - Manufacturer (Shipyard)
             if values[u'built.shipyard'] or values[u'launched.shipyard']:
