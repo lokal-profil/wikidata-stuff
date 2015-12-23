@@ -27,8 +27,8 @@ class WikidataStuff(object):
         """
         A class for encoding contents of a reference
         @todo: should be done way more general
-               esentially a list of claims to test
-               esentially a list of claims not to test
+               esentially a list of claims to test (during comparison)
+               esentially a list of claims not to test (during comparison)
         source_P: a sourcing property
         source: the source value, a valid claim
                 e.g. pywikibot.ItemPage(repo, "Q6581097")
@@ -435,19 +435,25 @@ class WikidataStuff(object):
         """
         Compares if two WbTime claims are the same (regarding precision)
         thereby handling T107870
-        @todo: implement comparisons also for precisions more coarse
-               than a year
+
         param target: any Claim
         param itis: a WbTime
+        raises: pywikibot.Error
         return bool
         """
         if not isinstance(target, pywikibot.WbTime):
             return False
         if itis.precision != target.precision:
             return False
+        if itis.calendarmodel != target.calendarmodel:
+            return False
 
         # comparison based on precision
         PRECISION = pywikibot.WbTime.PRECISION
+        if itis.precision < PRECISION['year']:
+            raise pywikibot.Error(
+                "Comparison cannot be done if precision is more coarse "
+                "than a year")
         if itis.year != target.year:
             return False
         if itis.precision >= PRECISION['month']:
