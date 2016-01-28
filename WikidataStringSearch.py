@@ -1,17 +1,21 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
-"""
-A database hookup (to be run from labs) for doing text string searches
-(SQL LIKE style) in labels, aliases and descriptions of items
+"""Database hookup for doing text string searches.
+
+Must be run from labs and does these (SQL LIKE style) in
+labels, aliases and descriptions of items.
 """
 import MySQLdb
 
 
 class WikidataStringSearch:
+    """Run string searches on Wikidata from labs."""
+
     def __init__(self, verbose=False):
-        """
-        Sets up connection and fetches allowed languages and types
-        param verbose: outputs queries if true (default: False)
+        """Set up connection and fetches allowed languages and types.
+
+        @param verbose: if output (errors, queries) should be printed
+            (default: False)
+        @type verbose: bool
         """
         # Make one d/b connection for all queries - more efficient I believe
         self.conn = MySQLdb.connect(read_default_file="~/replica.my.cnf",
@@ -28,43 +32,54 @@ class WikidataStringSearch:
         self.cursor.execute("SELECT DISTINCT term_type FROM wb_terms;")
         for t in self.cursor.fetchall():
             self.term_types += t
-        if self.verbose:
-            print 'found %d term_types' % len(self.term_types)
+        self._print('found %d term_types' % len(self.term_types))
 
         # get languages
         self.cursor.execute("SELECT DISTINCT term_language FROM wb_terms;")
         for l in self.cursor.fetchall():
             self.languages += l
-        if self.verbose:
-            print 'found %d languages' % len(self.languages)
+        self._print('found %d languages' % len(self.languages))
 
     def close_connection(self):
+        """Close database connection."""
         self.conn.close()
 
-    def testInput(self, text, language, term_type=None, entities=None):
-        """
-        Test that the user input makes sense
+    def testInput(self, text, language=None, term_type=None, entities=None):
+        """Test that the user input is valid.
+
+        @param text: the text to search for
+        @type text: str, unicode
+        @param language: the language to search in, defaults to None=any
+        @type language: str, unicode, or None
+        @param entities: the language to search in, defaults to None=any
+        @type entities: list (of str, unicode), or None
+        @param term_type: field to search in, defaults
+            to None=['label', 'alias']
+        @type term_type: str, unicode, or None
+        @return: if input is valid
+        @rtype: bool
         """
         # test text
-        if len(text.strip()) == 0:
-            print 'You cannot send stringSearch an empty string'
+        if not text.strip():
+            self._print('You cannot send stringSearch an empty string')
             return False
 
         # test language
-        if language not in self.languages:
-            print '%s is not a recognised language' % language
-            return False
+        if language:
+            if language not in self.languages:
+                self._print('%s is not a recognised language' % language)
+                return False
 
         # test term_type
         if term_type:
             if term_type not in self.term_types:
-                print '%s is not a recognised term_type' % term_type
+                self._print('%s is not a recognised term_type' % term_type)
                 return False
 
         # test list of entities
         if entities:
-            if not isinstance(entities, (tuple, list)) or len(entities) == 0:
-                print 'Entities must be a non-zero list'
+            if not isinstance(entities, (tuple, list)) or not entities:
+                self._print('Entities must be a non-zero list')
                 return False
 
             # Check each is correctly formatted
@@ -72,87 +87,109 @@ class WikidataStringSearch:
                        isinstance(e, (str, unicode)) and
                        WikidataStringSearch.is_int(e[1:])
                        for e in entities):
-                print 'Each entity must be a string like Q<integer>'
+                self._print('Each entity must be a string like Q<integer>')
                 return False
 
         # nothing flagged
         return True
 
     def search(self, text, language='sv', term_type=None):
+        """Search for a given string in a specified language and field.
+
+        Deprecated.
+        Calls basic_search with entities=None and language defaulting to 'sv'
         """
-        Search for a given string in a specified language and field
-        Exact match or SQL like wildcards
-        term_type defaults to ('label', 'alias')
-        """
-        if not self.testInput(text,
-                              language,
-                              term_type=term_type):
-            return None
-
-        # set default term_type
-        if term_type is None:
-            term_type = ('label', 'alias')
-        else:
-            term_type = (term_type, )
-
-        # construct and execute query
-        query = """#==Search on string in a given language==
-SELECT CONCAT('Q',term_entity_id), term_text, term_type FROM wb_terms
-WHERE term_entity_type='item' AND term_type IN ('%s') AND term_language=%%s
-AND term_text LIKE %%s
-LIMIT 100;""" % "', '".join(term_type)
-        self.cursor.execute(query, (language, text))
-        if self.verbose:
-            print self.cursor._last_executed
-
-        qs = []
-        for q, t, tt in self.cursor.fetchall():
-            qs.append(q)
-
-        return qs
+        return self.basic_search(text,
+                                 language=language,
+                                 entities=None,
+                                 term_type=term_type)
 
     def searchInEntities(self, text, entities, language='sv', term_type=None):
+        """search() but limit results to a provided list of entities.
+
+        Deprecated.
+        Calls basic_search with language defaulting to 'sv'
         """
-        As search() but limit results to a provided list of entities
-        term_type defaults to ('label', 'alias')
+        return self.basic_search(text,
+                                 language=language,
+                                 entities=entities,
+                                 term_type=term_type)
+
+    def basic_search(self, text, language=None, entities=None, term_type=None):
+        """Search for a given string through exact match or SQL like wildcards.
+
+        Results can be limited to a specific language, a certain field or
+        to within a list of entities.
+
+        @param text: the text to search for
+        @type text: str, unicode
+        @param language: the language to search in, defaults to None=any
+        @type language: str, unicode, or None
+        @param entities: the language to search in, defaults to None=any
+        @type entities: list (of str, unicode), or None
+        @param term_type: field to search in, defaults
+            to None=['label', 'alias']
+        @type term_type: str, unicode, or None
+        @return: list of matching Q values
+        @rtype: list (of str)
         """
-        if not self.testInput(text,
-                              language,
-                              term_type=term_type,
-                              entities=entities):
+        # validate input
+        if not self.testInput(text, language, term_type, entities):
             return None
 
         # set default term_type
         if term_type is None:
-            term_type = ('label', 'alias')
+            term_type = ['label', 'alias']
         else:
-            term_type = (term_type, )
+            term_type = [term_type, ]
 
-        # convert to a list of int strings
-        tmp = []
-        for e in entities:
-            tmp.append(int(e[1:]))
-        entities = tmp
+        # prepare entities by converting to a list of int strings
+        if entities:
+            tmp = []
+            for e in entities:
+                tmp.append(int(e[1:]))
+            entities = tmp
 
-        # construct and execute query
-        query = """#==Search on string in a given language==
-SELECT CONCAT('Q',term_entity_id), term_text, term_type FROM wb_terms
-WHERE term_entity_type='item' AND term_type IN ('%s') AND term_language=%%s
-AND term_entity_id IN %%s
-AND term_text LIKE %%s
-LIMIT 100;""" % "', '".join(term_type)
-        self.cursor.execute(query, (language, entities, text))
-        if self.verbose:
-            print self.cursor._last_executed
+        # construct query
+        params = [term_type, ]
+        query = "SELECT CONCAT('Q',term_entity_id), term_text, term_type " \
+                "FROM wb_terms " \
+                "WHERE term_entity_type='item' AND term_type IN %%s "
+        if language:
+            params.append(language)
+            query += "AND term_language=%%s "
+        if entities:
+            params.append(entities)
+            query += "AND term_entity_id IN %%s "
+        params.append(text)
+        query += "AND term_text LIKE %%s " \
+                 "LIMIT 100;"
 
+        # execute query
+        self.cursor.execute(query, tuple(params))
+        self._print(self.cursor._last_executed)
+
+        # handle response
         qs = []
         for q, t, tt in self.cursor.fetchall():
             qs.append(q)
 
         return qs
+
+    def _print(self, s):
+        """Print text if verbose."""
+        if self.verbose:
+            print s
 
     @staticmethod
     def is_int(s):
+        """Check if value is an int.
+
+        @param s: value to test
+        @type s: any
+        @return: if value can be interpreted as an integer
+        @rtype: bool
+        """
         try:
             int(s)
             return True
