@@ -168,7 +168,7 @@ class RiksdagsBot(object):
         param value: str|unicode
         return: WD.Statement|None
         """
-        if value is None or len(value.strip()) == 0:
+        if value is None or not value.strip():
             return None
         return WD.Statement(helpers.ISO_to_WbTime(value))
 
@@ -190,9 +190,9 @@ class RiksdagsBot(object):
         param name: str|unicode
         return: WD.Statement|None
         """
-        if iort is None or len(iort.strip()) == 0:
+        if iort is None or not iort.strip():
             return None
-        elif name is None or len(name.strip()) == 0:
+        elif name is None or not name.strip():
             return None
 
         alias = u'%s i %s' % (name, iort)

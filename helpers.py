@@ -172,7 +172,7 @@ def match_name(name, typ, wd, limit=75):
             u'firstName': (u'Q12308941', u'Q11879590', u'Q202444')}
 
     # Skip any empty values
-    if len(name.strip()) == 0:
+    if not name.strip():
         return
 
     # Check if already looked up

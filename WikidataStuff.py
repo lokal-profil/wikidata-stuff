@@ -380,7 +380,7 @@ class WikidataStuff(object):
                              u'claim. Crashing')
             exit(1)
 
-        if priorClaim and len(statement.quals) > 0:
+        if priorClaim and statement.quals:
             # cannot add a qualifier to a previously sourced claim
             if not priorClaim.sources:
                 # if unsourced
