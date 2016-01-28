@@ -170,7 +170,7 @@ class RiksdagsBot(object):
         """
         if value is None or not value.strip():
             return None
-        return WD.Statement(helpers.ISO_to_WbTime(value))
+        return WD.Statement(helpers.iso_to_WbTime(value))
 
     def matchDeath(self, value):
         """Extract death date from status.
@@ -180,7 +180,7 @@ class RiksdagsBot(object):
         """
         if value and value.startswith('Avliden'):
             value = value[len('Avliden'):].strip()
-            return WD.Statement(helpers.ISO_to_WbTime(value))
+            return WD.Statement(helpers.iso_to_WbTime(value))
         return None
 
     def makeIortAlias(self, iort, name):
@@ -368,9 +368,8 @@ class RiksdagsBot(object):
         param date: ISO date string
         return: str|None
         """
-        if helpers.is_int(date[:4]):
-            if int(date[:4]) < self.FUTURE_YEAR:
-                return date
+        if helpers.is_int(date[:4]) and int(date[:4]) < self.FUTURE_YEAR:
+            return date
         return None
 
     def addOrdinal(self, value, statement):

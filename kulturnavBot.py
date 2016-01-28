@@ -216,7 +216,7 @@ class KulturnavBot(object):
                     self.addNames(values[label], hitItem, shuffle=shuffle)
 
                 # get the "last modified" timestamp and construct a Reference
-                date = helpers.ISO_to_WbTime(values[u'modified'])
+                date = helpers.iso_to_WbTime(values[u'modified'])
                 ref = self.makeRef(date)
 
                 # add each property (if new) and source it
@@ -547,10 +547,10 @@ class KulturnavBot(object):
 
     def dbDate(self, item):
         """
-        Deprecated in favour of helpers.ISO_to_WbTime
+        Deprecated in favour of helpers.iso_to_WbTime
         """
         print 'call to deprecated KulturnavBot.dbDate()'
-        return helpers.ISO_to_WbTime(item)
+        return helpers.iso_to_WbTime(item)
 
     def dbGender(self, item):
         """

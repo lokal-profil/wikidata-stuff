@@ -65,20 +65,18 @@ class WikidataStringSearch:
             return False
 
         # test language
-        if language:
-            if language not in self.languages:
-                self._print('%s is not a recognised language' % language)
-                return False
+        if language and language not in self.languages:
+            self._print('%s is not a recognised language' % language)
+            return False
 
         # test term_type
-        if term_type:
-            if term_type not in self.term_types:
-                self._print('%s is not a recognised term_type' % term_type)
-                return False
+        if term_type and term_type not in self.term_types:
+            self._print('%s is not a recognised term_type' % term_type)
+            return False
 
         # test list of entities
         if entities:
-            if not isinstance(entities, (tuple, list)) or not entities:
+            if not isinstance(entities, (tuple, list)):
                 self._print('Entities must be a non-zero list')
                 return False
 

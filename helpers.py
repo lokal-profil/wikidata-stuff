@@ -74,7 +74,7 @@ def fill_cache(ID_P, queryoverride=u'', cacheMaxAge=0):
     return result
 
 
-def ISO_to_WbTime(date):
+def iso_to_WbTime(date):
     """Convert ISO date string into WbTime object.
 
     Given an ISO date object (1922-09-17Z or 2014-07-11T08:14:46Z)
@@ -138,12 +138,12 @@ def add_start_end_qualifiers(statement, startVal, endVal):
         quals.append(
             WD.Qualifier(
                 P=START_P,
-                itis=ISO_to_WbTime(startVal)))
+                itis=iso_to_WbTime(startVal)))
     if endVal:
         quals.append(
             WD.Qualifier(
                 P=END_P,
-                itis=ISO_to_WbTime(endVal)))
+                itis=iso_to_WbTime(endVal)))
     for q in quals:
         statement.addQualifier(q)
     return statement
