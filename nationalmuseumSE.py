@@ -499,7 +499,7 @@ def dbpedia2wikidata(dbpedia):
     return None
 
 
-def getPaintingGenerator(query=u'', rows=MAX_ROWS, start=1):
+def getPaintingGenerator(rows=MAX_ROWS, start=1):
     """
     Get objects from Europeanas API.
     API call specifies:

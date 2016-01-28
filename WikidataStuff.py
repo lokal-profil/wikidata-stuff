@@ -79,7 +79,7 @@ class WikidataStuff(object):
         def __init__(self, itis, special=False):
             """
             Make a correctly formatted statement object for claims
-            param itis: a valid claim e.g. pywikibot.ItemPage(repo, "Q6581097")
+            param itis: a valid claim e.g. pywikibot.ItemPage
             param special: bool if itis is actaually a snackvalue
             """
             if special:
@@ -126,7 +126,7 @@ class WikidataStuff(object):
 
         def __repr__(self):
             """Return a more complete string representation."""
-            txt = u'WD.Statement(%s, %s, %s, %s)' % (
+            txt = u'WD.Statement(%s, %s, special:%s, force:%s)' % (
                 self.itis, self.quals, self.special, self.force)
             return txt
 
@@ -162,7 +162,7 @@ class WikidataStuff(object):
 
     def searchGenerator(self, text, language):
         for q in self.wdss.search(text, language=language):
-            yield pywikibot.ItemPage(self.repo, q)
+            yield self.QtoItemPage(q)
 
     def addLabelOrAlias(self, lang, name, item, prefix=None,
                         caseSensitive=False):
@@ -380,7 +380,7 @@ class WikidataStuff(object):
                              u'claim. Crashing')
             exit(1)
 
-        if priorClaim and len(statement.quals) > 0:
+        if priorClaim and statement.quals:
             # cannot add a qualifier to a previously sourced claim
             if not priorClaim.sources:
                 # if unsourced
@@ -452,8 +452,8 @@ class WikidataStuff(object):
         PRECISION = pywikibot.WbTime.PRECISION
         if itis.precision < PRECISION['year']:
             raise pywikibot.Error(
-                "Comparison cannot be done if precision is more coarse "
-                "than a year")
+                u'Comparison cannot be done if precision is more coarse '
+                u'than a year')
         if itis.year != target.year:
             return False
         if itis.precision >= PRECISION['month']:
@@ -472,3 +472,13 @@ class WikidataStuff(object):
                             if itis.second != target.second:
                                 return False
         return True
+
+    def QtoItemPage(self, Q):
+        """
+        Wrapper for pywikibot.ItemPage()
+        param Q: string the Q-item for value (with or without "Q")
+        return pywikibot.ItemPage
+        """
+        return pywikibot.ItemPage(
+            self.repo,
+            u'Q%s' % Q.lstrip('Q'))

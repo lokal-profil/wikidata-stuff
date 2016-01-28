@@ -81,7 +81,7 @@ def getKulturnav(dataset=None, data=None):
         offset = 0
         url = urlbase + u'%s:%s/' % (match, searchStr)
         j = json.load(urllib2.urlopen(url + '%d/%d' % (offset, batchSize)))
-        while len(j) > 0:
+        while j:
             tag = match.split('_')[0]
             for i in j:
                 # extract uuid and wikidata qid

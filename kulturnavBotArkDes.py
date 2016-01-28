@@ -35,7 +35,7 @@ class KulturnavBotArkDes(KulturnavBot):
     GROUP_OF_PEOPLE_Q = '16334295'
     HUMAN_Q = '5'
 
-    def run(self, cutoff=None):
+    def run(self):
         """
         Starts the robot
         """

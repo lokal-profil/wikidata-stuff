@@ -107,7 +107,7 @@ class KulturnavBot(object):
         # trigger wdq query
         self.itemIds = self.fillCache()
 
-        # set up WikidataStuff object
+        # set up WikidataStuff instance
         self.wd = WD(self.repo)
 
         # load lists
