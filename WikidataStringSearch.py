@@ -151,18 +151,22 @@ class WikidataStringSearch:
             entities = tmp
 
         # construct query
-        params = [term_type, ]
+        params = []
         query = "SELECT CONCAT('Q',term_entity_id), term_text, term_type " \
                 "FROM wb_terms " \
-                "WHERE term_entity_type='item' AND term_type IN %%s "
+                "WHERE term_entity_type='item' "
+        params += term_type
+        query += "AND term_type IN %s " % \
+                 WikidataStringSearch.sql_in_format(term_type)
         if language:
             params.append(language)
-            query += "AND term_language=%%s "
+            query += "AND term_language=%s "
         if entities:
-            params.append(entities)
-            query += "AND term_entity_id IN %%s "
+            params += entities
+            query += "AND term_entity_id IN %s " % \
+                     WikidataStringSearch.sql_in_format(entities)
         params.append(text)
-        query += "AND term_text LIKE %%s " \
+        query += "AND term_text LIKE %s " \
                  "LIMIT 100;"
 
         # execute query
@@ -177,9 +181,25 @@ class WikidataStringSearch:
         return qs
 
     def _print(self, s):
-        """Print text if verbose."""
+        """Print text if verbose.
+
+        @param s: text to print
+        @type s: string or unicode
+        """
         if self.verbose:
             print s
+
+    @staticmethod
+    def sql_in_format(l):
+        """Given a list of parameters output an sql compatible list of args.
+
+        @param l: value to test
+        @type l: list or tuple
+        @return: sql compatible list of args
+        @rtype: string
+        """
+        string_format = ', '.join(['%s'] * len(l))
+        return '(%s)' % string_format
 
     @staticmethod
     def is_int(s):
