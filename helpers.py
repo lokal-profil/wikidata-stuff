@@ -2,7 +2,8 @@
 """Common non-fundamental methods used by WikidataStuff bots.
 
 Methods comonly shared by Wikidata-stuff bots but not fundamental
-enough to be in WikidataStuff.py
+enough to be in WikidataStuff.py or limited to kulturNav (in which case they
+are in kulturnavBot.py)
 """
 import os
 import json
@@ -60,7 +61,7 @@ def fill_cache(ID_P, queryoverride=u'', cacheMaxAge=0):
         expectedItems = data.get('status').get('items')
         props = data.get('props').get(str(ID_P))
         for prop in props:
-            if prop[2] in result.keys():
+            if prop[2] in result.keys() and prop[0] != result[prop[2]]:
                 # Detect id's that are used more than once.
                 raise pywikibot.Error('Double ids in Wikidata: %s, %s' %
                                       (prop[0], result[prop[2]]))

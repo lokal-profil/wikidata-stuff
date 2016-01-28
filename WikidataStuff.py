@@ -73,7 +73,6 @@ class WikidataStuff(object):
         """
         A class for encoding contents of a statement meaning a value and
         optional qualifiers
-        @todo: throw exceptions instead
         @todo: itis test
         """
         def __init__(self, itis, special=False):
@@ -82,12 +81,10 @@ class WikidataStuff(object):
             param itis: a valid claim e.g. pywikibot.ItemPage
             param special: bool if itis is actaually a snackvalue
             """
-            if special:
-                if itis not in ['somevalue', 'novalue']:
-                    pywikibot.output(u'You tried to create a special'
-                                     u'statement with a non-allowed snakvalue'
-                                     u': %s' % itis)
-                    exit(1)
+            if special and itis not in ['somevalue', 'novalue']:
+                raise pywikibot.Error(
+                    'You tried to create a special statement with a '
+                    'non-allowed snakvalue: %s' % itis)
             self.itis = itis
             self.quals = []
             self.special = special
@@ -107,10 +104,9 @@ class WikidataStuff(object):
                 # simply skip any action
                 return self
             elif not isinstance(qual, WikidataStuff.Qualifier):
-                pywikibot.output('addQualifier was called with something '
-                                 'other than a Qualifier|None object: %s' %
-                                 qual)
-                exit(1)
+                raise pywikibot.Error(
+                    'addQualifier was called with something other '
+                    'than a Qualifier|None object: %s' % qual)
 
             # register qualifier
             self.quals.append(qual)

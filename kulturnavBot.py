@@ -25,10 +25,9 @@ See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 import json
 import time
 import pywikibot
-from pywikibot import pagegenerators
 import urllib2
-import pywikibot.data.wikidataquery as wdquery
 from WikidataStuff import WikidataStuff as WD
+import helpers
 import re
 
 FOO_BAR = u'A multilingual result (or one with multiple options) was ' \
@@ -50,7 +49,7 @@ class Rule():
         """
         self.keys = []
         if keys is not None:
-            self.keys += KulturnavBot.listify(keys)
+            self.keys += helpers.listify(keys)
         self.values = values
         if values is not None:
             self.keys += values.keys()
@@ -74,8 +73,6 @@ class KulturnavBot(object):
     SWE_KOMMUNKOD_P = '525'
     SWE_COUNTYKOD_P = '507'
     PLACE_P = '276'
-    START_P = '580'  # start date
-    END_P = '582'  # end date
     TIME_P = '585'   # date
     DATASET_Q = None
     STATED_IN_P = '248'
@@ -89,9 +86,6 @@ class KulturnavBot(object):
     COUNTRIES = []  # a list of country Q's
     ADMIN_UNITS = []  # a list of municipality+county Q's
     locations = {}  # a dict of uuid to wikidata location matches
-    names = {  # a dict of found first/last_name_Q lookups
-        u'lastName': {},
-        u'firstName': {}}
     current_uuid = ''  # for debugging
 
     def __init__(self, dictGenerator, verbose=False):
@@ -105,7 +99,7 @@ class KulturnavBot(object):
         self.verbose = verbose
 
         # trigger wdq query
-        self.itemIds = self.fillCache()
+        self.itemIds = helpers.fill_cache(self.KULTURNAV_ID_P)
 
         # set up WikidataStuff instance
         self.wd = WD(self.repo)
@@ -123,34 +117,6 @@ class KulturnavBot(object):
         cls.MAP_TAG = map_tag
         if edit_summary is not None:
             cls.EDIT_SUMMARY = edit_summary
-
-    def fillCache(self, queryoverride=u'', cacheMaxAge=0):
-        """
-        Query Wikidata to fill the cache of entities which have an object
-        """
-        result = {}
-        if queryoverride:
-            query = queryoverride
-        else:
-            query = u'CLAIM[%s]' % self.KULTURNAV_ID_P
-        wd_queryset = wdquery.QuerySet(query)
-
-        wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
-        data = wd_query.query(wd_queryset, props=[str(self.KULTURNAV_ID_P), ])
-
-        if data.get('status').get('error') == 'OK':
-            expectedItems = data.get('status').get('items')
-            props = data.get('props').get(str(self.KULTURNAV_ID_P))
-            for prop in props:
-                # FIXME: This will overwrite id's that are used more than once.
-                # Use with care and clean up your dataset first
-                result[prop[2]] = prop[0]
-
-            if expectedItems == len(result):
-                pywikibot.output('I now have %s items in cache' %
-                                 expectedItems)
-
-        return result
 
     def run(self):
         """
@@ -250,7 +216,7 @@ class KulturnavBot(object):
                     self.addNames(values[label], hitItem, shuffle=shuffle)
 
                 # get the "last modified" timestamp and construct a Reference
-                date = self.dbDate(values[u'modified'])
+                date = helpers.ISO_to_WbTime(values[u'modified'])
                 ref = self.makeRef(date)
 
                 # add each property (if new) and source it
@@ -400,33 +366,10 @@ class KulturnavBot(object):
 
     def addStartEndStatement(self, itis, startVal, endVal):
         """
-        Adds start/end qualifiers to a statement if non-None,
-        or returns None
-
-        param itis: Statement
-        param startVal: string|None
-        param endVal: string|None
-        return Statement|None
+        Deprecated in favour of helpers.add_start_end_qualifiers
         """
-        statement = WD.Statement(itis)
-        if statement.isNone():
-            return None
-
-        # add qualifiers
-        qual = []
-        if startVal:
-            qual.append(
-                WD.Qualifier(
-                    P=self.START_P,
-                    itis=self.dbDate(startVal)))
-        if endVal:
-            qual.append(
-                WD.Qualifier(
-                    P=self.END_P,
-                    itis=self.dbDate(endVal)))
-        for q in qual:
-            statement.addQualifier(q)
-        return statement
+        print 'call to deprecated KulturnavBot.addStartEndStatement()'
+        return helpers.add_start_end_qualifiers(itis, startVal, endVal)
 
     def sanityTest(self, hitItem):
         """
@@ -468,7 +411,7 @@ class KulturnavBot(object):
         return bool
         """
         P = u'P%s' % P.lstrip('P')
-        Q = self.listify(Q)
+        Q = helpers.listify(Q)
         testItems = []
         for q in Q:
             q = u'Q%s' % q.lstrip('Q')
@@ -604,38 +547,10 @@ class KulturnavBot(object):
 
     def dbDate(self, item):
         """
-        Given a dbpprop date object (1922-09-17Z or 2014-07-11T08:14:46Z)
-        this returns the equivalent WbTime object
-        return pywikibot.WbTime
+        Deprecated in favour of helpers.ISO_to_WbTime
         """
-        item = item[:len('YYYY-MM-DD')].split('-')
-        if len(item) == 3 and all(self.is_int(x) for x in item):
-            # 1921-09-17Z or 2014-07-11T08:14:46Z
-            d = int(item[2])
-            if d == 0:
-                d = None
-            m = int(item[1])
-            if m == 0:
-                m = None
-            return pywikibot.WbTime(
-                year=int(item[0]),
-                month=m,
-                day=d)
-        elif len(item) == 1 and self.is_int(item[0][:len('YYYY')]):
-            # 1921Z
-            return pywikibot.WbTime(year=int(item[0][:len('YYYY')]))
-        elif len(item) == 2 and \
-                all(self.is_int(x) for x in (item[0], item[1][:len('MM')])):
-            # 1921-09Z
-            m = int(item[1][:len('MM')])
-            if m == 0:
-                m = None
-            return pywikibot.WbTime(
-                year=int(item[0]),
-                month=m)
-        else:
-            pywikibot.output(u'invalid dbpprop date entry: %s' % item)
-            exit(1)
+        print 'call to deprecated KulturnavBot.dbDate()'
+        return helpers.ISO_to_WbTime(item)
 
     def dbGender(self, item):
         """
@@ -661,87 +576,17 @@ class KulturnavBot(object):
                     self.repo,
                     known[item]))
 
-    def dbName(self, name, typ, limit=75):
+    def dbName(self, nameObj, typ, limit=75):
         """
-        Given a plaintext name (first or last) this checks if there is
-        a matching object of the right type
-        param name dict: {'@language': 'xx', '@value': 'xxx'}
+        A wrapper for helpers.match_name() to send it the relevant part of a
+        nameObj
+
+        param nameObj = {'@language': 'xx', '@value': 'xxx'}
         param typ string: lastName/firstName
         param limit int: number of hits before skipping (if not on labs)
         return pywikibot.ItemPage|None
         """
-        if KulturnavBot.foobar(name):
-            return
-        prop = {u'lastName': (u'Q101352',),
-                u'firstName': (u'Q12308941', u'Q11879590', u'Q202444')}
-
-        # Skip any empty values
-        if len(name['@value'].strip()) == 0:
-            return
-
-        # Check if already looked up
-        shortname = u'%s¤%s' % (name['@value'], name['@language'])
-        if shortname in self.names[typ].keys():
-            return self.names[typ][shortname]
-
-        # search for potential matches
-        matches = []
-        if self.wd.onLabs:
-            objgen = pagegenerators.PreloadingItemGenerator(
-                self.wd.searchGenerator(
-                    name['@value'], name['@language']))
-            for obj in objgen:
-                if u'P%s' % self.IS_A_P in obj.get().get('claims'):
-                    # print 'claims:', obj.get().get('claims')[u'P31']
-                    values = obj.get().get('claims')[u'P%s' % self.IS_A_P]
-                    for v in values:
-                        # print u'val:', v.getTarget()
-                        if v.getTarget().title() in prop[typ]:
-                            matches.append(obj)
-        else:
-            objgen = pagegenerators.PreloadingItemGenerator(
-                pagegenerators.WikibaseItemGenerator(
-                    pagegenerators.SearchPageGenerator(
-                        name['@value'], step=None, total=10,
-                        namespaces=[0], site=self.repo)))
-
-            # check if P31 and then if any of prop[typ] in P31
-            i = 0
-            for obj in objgen:
-                obj = self.wd.bypassRedirect(obj)
-                i += 1
-                if i > limit:
-                    # better to skip than to crash when search times out
-                    # remove any matches (since incomplete) and exit loop
-                    matches = []
-                    break
-                # print obj.title()
-                if name['@value'] in (obj.get().get('labels').get('en'),
-                                      obj.get().get('labels').get('sv'),
-                                      obj.get().get('aliases').get('en'),
-                                      obj.get().get('aliases').get('sv')):
-                    # print 'labels en:', obj.get().get('labels').get('en')
-                    # print 'labels sv:', obj.get().get('labels').get('sv')
-                    # Check if right type of object
-                    if u'P%s' % self.IS_A_P in obj.get().get('claims'):
-                        # print 'claims:', obj.get().get('claims')[u'P31']
-                        values = obj.get().get('claims')[u'P%s' % self.IS_A_P]
-                        for v in values:
-                            # print u'val:', v.getTarget()
-                            if v.getTarget().title() in prop[typ]:
-                                matches.append(obj)
-
-        # get rid of duplicates then check for uniqueness
-        matches = list(set(matches))
-        if len(matches) == 1:
-            item = self.wd.bypassRedirect(matches[0])
-            self.names[typ][shortname] = item  # store for later reuse
-            return item
-        elif len(matches) > 1:
-            pywikibot.log(u'Possible duplicates: %s' % matches)
-
-        # getting here means no hits so store that for later reuse
-        self.names[typ][shortname] = None
+        return helpers.match_name(nameObj['@value'], typ, self.wd, limit=limit)
 
     def location2Wikidata(self, uuid):
         """
@@ -934,25 +779,19 @@ class KulturnavBot(object):
 
     @staticmethod
     def is_int(s):
-        try:
-            int(s)
-            return True
-        except (ValueError, TypeError):
-            return False
+        """
+        Deprecated in favour of helpers.listify
+        """
+        print 'call to deprecated KulturnavBot.is_int()'
+        return helpers.is_int(s)
 
     @staticmethod
     def listify(value):
         """
-        Given a value whihc might or might not be a list, return a list
-        param value list|any
-        return list|None
+        Deprecated in favour of helpers.listify
         """
-        if value is None:
-            return None
-        elif isinstance(value, list):
-            return value
-        else:
-            return [value, ]
+        print 'call to deprecated KulturnavBot.listify()'
+        return helpers.listify(value)
 
     @staticmethod
     def bundleValues(values):
@@ -965,7 +804,7 @@ class KulturnavBot(object):
         bundle = []
         for v in values:
             if v is not None:
-                v = KulturnavBot.listify(v)
+                v = helpers.listify(v)
                 bundle += v
         if len(bundle) == 0:
             return None
@@ -975,28 +814,18 @@ class KulturnavBot(object):
     @staticmethod
     def shuffleNames(nameObj):
         """
-        Detects if a @value string is "Last, First" and if so returns
-        it as "First Last".
-        Strings without commas are returned as is.
-        Strings with multiple commas result in an None being returned.
+        A wrapper for helpers.reorder_names() to send it the relevant part of a
+        nameObj
 
         param nameObj = {'@language': 'xx', '@value': 'xxx'}
         return nameObj|None
         """
-        name = nameObj['@value']
-        if name.find(',') > 0 and len(name.split(',')) == 2:
-            p = name.split(',')
-            name = u'%s %s' % (p[1].strip(), p[0].strip())
-            nameObj = nameObj.copy()
-            nameObj['@value'] = name
-            return nameObj
-        elif name.find(',') == -1:
-            # no comma means just a nickname e.g. Michelangelo
-            return nameObj
-        else:
-            # e.g. more than 1 comma
-            pywikibot.output(u'unexpectedly formatted name: %s' % name)
+        name = helpers.reorder_names(nameObj['@value'])
+        if name is None:
             return None
+        nameObj = nameObj.copy()
+        nameObj['@value'] = name
+        return nameObj
 
     def makeRef(self, date):
         """
