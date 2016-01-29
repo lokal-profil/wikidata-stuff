@@ -1,11 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-"""
-Generally useful functions for interacting with Wikidata using pywikibot
-
-Author: Lokal_Profil
-License: MIT
-"""
+#
+# Author: Lokal_Profil
+# License: MIT
+#
+"""Generally useful methods for interacting with Wikidata using pywikibot."""
 import pywikibot
 
 # Needed only for wdqLookup
@@ -17,50 +16,73 @@ from WikidataStringSearch import WikidataStringSearch
 
 
 class WikidataStuff(object):
-    """
-    A framework of generally useful functions for interacting with
-    Wikidata using pywikibot
-    """
+    """Useful methods for interacting with Wikidata using pywikibot."""
+
     repo = None
 
     class Reference(object):
+        """A class for encoding the contents of a reference.
+
+        Makes a distinction between the elements which should be included in a
+        comparison with other references and those which shouldn't.
+
+        e.g. for "reference URL: some URL", "retrieved: some_date" you would
+        want to compare sources on the URL but not the date.
+
+        A comparison will fail if ANY of the source_test sources are present.
         """
-        A class for encoding contents of a reference
-        @todo: should be done way more general
-               esentially a list of claims to test (during comparison)
-               esentially a list of claims not to test (during comparison)
-        source_P: a sourcing property
-        source: the source value, a valid claim
-                e.g. pywikibot.ItemPage(repo, "Q6581097")
-        time_P: a property which takes a time value
-        time: must be a pywikibot.WbTime object
-        """
-        def __init__(self, source_P, source, time_P, time):
+
+        def __init__(self, source_test=[], source_notest=[]):
+            """Make a Reference object from the provided sources.
+
+            param source_test: claims which should be included in
+                comparison tests
+            type source_test: pywikibot.Claim|list of pywikibot.Claim
+            param source_notest: claims which should be excluded from
+                comparison tests
+            type source_notest: pywikibot.Claim|list of pywikibot.Claim
             """
-            @todo
-            """
-            self.source_P = u'P%s' % source_P.lstrip('P')
-            self.source = source
-            self.time_P = u'P%s' % time_P.lstrip('P')
-            self.time = time
+            # standardise the two types of allowed input
+            self.source_test = listify(source_test)
+            self.source_notest = listify(source_notest)
+
+            # validate input
+            self.validate_sources()
+
+        def validate_sources(self):
+            """Validate the sources of a Reference."""
+            sources = self.get_all_sources()
+            if not sources:
+                raise pywikibot.Error(
+                    'You tried to create a reference without any sources')
+            if not all(isinstance(s, pywikibot.Claim) for s in sources):
+                raise pywikibot.Error(
+                    'You tried to create a reference with a non-Claim source')
+
+        def get_all_sources(self):
+            """Return all the sources of a Reference."""
+            return self.source_test + self.source_notest
 
         def __repr__(self):
             """Return a more complete string representation."""
-            return u'WD.Reference(%s, %s, %s, %s)' % (
-                self.source_P, self.source, self.time_P, self.time)
+            return u'WD.Reference(test: %s, no_test: %s)' % (
+                self.source_test, self.source_notest)
 
     class Qualifier(object):
+        """A class for encoding the contents of a qualifier.
+
+        Essentially pywikibot.Claim without having to provide an instantiated
+        repo.
+
+        @todo: redo as SimpleClaim (if so reuse in Reference) or
+               retire in favour of pywikibot.Claim
         """
-        A class for encoding contents of a qualifier
-        @todo: redo as SimpleClaim
-        @todo: throw exceptions instead
-        """
+
         def __init__(self, P, itis):
-            """
-            Make a correctly formatted qualifier object for claims
+            """Make a correctly formatted qualifier object for claims.
 
             param P: string the property (with or without "P")
-            param itis: an itis statement, for non itemPage claims
+            param itis: a valid claim target e.g. pywikibot.ItemPage
             """
             self.prop = u'P%s' % P.lstrip('P')
             self.itis = itis
@@ -70,15 +92,16 @@ class WikidataStuff(object):
             return u'WD.Qualifier(%s, %s)' % (self.prop, self.itis)
 
     class Statement(object):
-        """
-        A class for encoding contents of a statement meaning a value and
-        optional qualifiers
+        """A class for encoding the contents of a statement.
+
+        Meaning a value and optional qualifiers
         @todo: itis test
         """
+
         def __init__(self, itis, special=False):
-            """
-            Make a correctly formatted statement object for claims
-            param itis: a valid claim e.g. pywikibot.ItemPage
+            """Make a correctly formatted statement object for claims.
+
+            param itis: a valid claim target e.g. pywikibot.ItemPage
             param special: bool if itis is actaually a snackvalue
             """
             if special and itis not in ['somevalue', 'novalue']:
@@ -115,16 +138,13 @@ class WikidataStuff(object):
             return self
 
         def isNone(self):
-            """
-            Test if Statment was created with itis=None
-            """
+            """Test if Statment was created with itis=None."""
             return self.itis is None
 
         def __repr__(self):
             """Return a more complete string representation."""
-            txt = u'WD.Statement(%s, %s, special:%s, force:%s)' % (
+            return u'WD.Statement(itis:%s, quals:%s, special:%s, force:%s)' % (
                 self.itis, self.quals, self.special, self.force)
-            return txt
 
     def __init__(self, repo):
         """
@@ -138,6 +158,11 @@ class WikidataStuff(object):
             "/replica.my.cnf")
         if self.onLabs:
             self.wdss = WikidataStringSearch()
+
+        # extend pywikibot.Claim with a __repr__ method
+        def new_repr(self):
+            return u'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
+        pywikibot.Claim.__repr__ = new_repr
 
     def wdqLookup(self, query, cacheMaxAge=0):
         """
@@ -194,61 +219,45 @@ class WikidataStuff(object):
                 pywikibot.output(summary)
             elif name not in item.aliases[lang]:
                 if not caseSensitive:
-                    if name.lower() in self.listToLower(item.aliases[lang]):
+                    if name.lower() in list_to_lower(item.aliases[lang]):
                         return None
                 aliases = {lang: item.aliases[lang]}
                 aliases[lang].append(name)
                 item.editAliases(aliases, summary=summary)
                 pywikibot.output(summary)
 
-    def listToLower(self, stringList):
-        """
-        Converts a list of strings to a list of the same strings but
-        lower case
-        """
-        lowList = []
-        for s in stringList:
-            lowList.append(s.lower())
-        return lowList
-
     # some more generic Wikidata methods
     def hasRef(self, prop, itis, claim):
         """
-        Checks if a given reference is already present at the given claim
+        Check if a given reference is already present at the given claim.
+
+        param prop: the source property
+        param itis: the source target value
+        param claim: the pywikibot.Claim to be checked
         """
         if claim.sources:
-            for i in range(0, len(claim.sources)):
-                if prop in claim.sources[i].keys():
-                    for s in claim.sources[i][prop]:
+            for i, source in enumerate(claim.sources):
+                if prop in source.keys():
+                    for s in source[prop]:
                         if self.bypassRedirect(s.getTarget()) == itis:
                             return True
-                        # else:
-                        #    pywikibot.output(s.getTarget())
         return False
 
     def addReference(self, item, claim, ref):
-        """
-        Add a reference with a source statement and a timestamp.
-        Checks that no such source statement already exists (independent
-        of timestamp)
+        """Add a reference if not already present.
 
         param item: the item on which all of this happens
         param claim: the pywikibot.Claim to be sourced
-        ref: a Reference
+        param ref: the WD.Reference to add
         """
-        statedin = pywikibot.Claim(self.repo, ref.source_P)
-        statedin.setTarget(ref.source)
-
-        # check if already present (with any date)
-        if self.hasRef(ref.source_P, ref.source, claim):
+        # check if any of the sources are already present
+        # note that this can be in any of its references
+        if any(self.hasRef(source.getID(), source.getTarget(), claim)
+                for source in ref.source_test):
             return False
 
-        # if not then add
-        retrieved = pywikibot.Claim(self.repo, ref.time_P)
-        retrieved.setTarget(ref.time)
-
         try:
-            claim.addSources([statedin, retrieved])  # writes to database
+            claim.addSources(ref.get_all_sources())  # writes to database
             pywikibot.output('Adding reference claim to %s in %s' %
                              (claim.getID(), item))
             return True
@@ -258,8 +267,8 @@ class WikidataStuff(object):
                                  u'ref to %s in %s' % (claim.getID(), item))
                 return False
             else:
-                pywikibot.output(e)
-                exit(1)
+                raise pywikibot.Error(
+                    'Something went very wrong trying to add a source: %s' % e)
 
     def hasAllQualifiers(self, quals, claim):
         """
@@ -303,8 +312,7 @@ class WikidataStuff(object):
         if self.hasQualifier(qual, claim):
             return False
 
-        qClaim = pywikibot.Claim(self.repo, qual.prop)
-        qClaim.setTarget(qual.itis)
+        qClaim = self.make_simple_claim(qual.prop, qual.itis)
 
         try:
             claim.addQualifier(qClaim)  # writes to database
@@ -318,8 +326,9 @@ class WikidataStuff(object):
                                                              item))
                 return False
             else:
-                pywikibot.output(e)
-                exit(1)
+                raise pywikibot.Error(
+                    'Something went very wrong trying to add a qualifier: %s' %
+                    e)
 
     def hasClaim(self, prop, itis, item):
         """
@@ -370,12 +379,12 @@ class WikidataStuff(object):
             claim.setTarget(statement.itis)
             priorClaim = self.hasClaim(prop, statement.itis, item)
 
-        # test reference and qualifier
+        # test reference
         if not isinstance(ref, WikidataStuff.Reference):
-            pywikibot.output(u'No reference was given when making a new '
-                             u'claim. Crashing')
-            exit(1)
+            raise pywikibot.Error('No reference was given when making a new '
+                                  'claim. Crashing')
 
+        # test qualifier
         if priorClaim and statement.quals:
             # cannot add a qualifier to a previously sourced claim
             if not priorClaim.sources:
@@ -470,11 +479,51 @@ class WikidataStuff(object):
         return True
 
     def QtoItemPage(self, Q):
-        """
-        Wrapper for pywikibot.ItemPage()
+        """Make a pywikibot.ItemPage given a Q value.
+
         param Q: string the Q-item for value (with or without "Q")
         return pywikibot.ItemPage
         """
         return pywikibot.ItemPage(
             self.repo,
             u'Q%s' % Q.lstrip('Q'))
+
+    def make_simple_claim(self, prop, target):
+        """Make a pywikibot.Claim given a property and target.
+
+        param prop: string the P-property (with or without "P")
+        param target: the target of the Claim
+        return pywikibot.Claim
+        """
+        claim = pywikibot.Claim(self.repo, u'P%s' % prop.lstrip('P'))
+        claim.setTarget(target)
+        return claim
+
+
+# generic methods which are used already here and so could not be in helpers
+# since that would cause a cyclical import
+def list_to_lower(string_list):
+    """Convert every string in a list to lower case.
+
+    param string_list: list of strings
+    return: list of lower case strings
+    """
+    lower_list = []
+    for s in string_list:
+        lower_list.append(s.lower())
+    return lower_list
+
+
+def listify(value):
+    """Turn the given value, which might or might not be a list, into a list.
+
+    @param value: The value to listify
+    @type value: any
+    @return list, or None
+    """
+    if value is None:
+        return None
+    elif isinstance(value, list):
+        return value
+    else:
+        return [value, ]

@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 """Common non-fundamental methods used by WikidataStuff bots.
 
-Methods comonly shared by Wikidata-stuff bots but not fundamental
-enough to be in WikidataStuff.py or limited to kulturNav (in which case they
-are in kulturnavBot.py)
+Methods comonly shared by Wikidata-stuff bots which are:
+* not fundamental enough to be in WikidataStuff.py
+* not limited to kulturNav (in which case they are in kulturnavBot.py)
+* unrelated to Wikidata but reused throughout, if also needed in
+  WikidataStuff.py then it is defined there and a wrapper provided here.
 """
 import os
 import json
 import codecs
 import pywikibot
-import pywikibot.data.wikidataquery as wdquery
 from pywikibot import pagegenerators
+import pywikibot.data.wikidataquery as wdquery
+import WikidataStuff
 from WikidataStuff import WikidataStuff as WD
 START_P = 'P580'  # start date
 END_P = 'P582'  # end date
@@ -289,21 +292,6 @@ def is_int(value):
         return False
 
 
-def listify(value):
-    """Turn the given value, which might or might not be a list, into a list.
-
-    @param value: The value to listify
-    @type value: any
-    @return list, or None
-    """
-    if value is None:
-        return None
-    elif isinstance(value, list):
-        return value
-    else:
-        return [value, ]
-
-
 def reorder_names(name):
     """Detect a "Last, First" string and return as "First Last".
 
@@ -349,3 +337,15 @@ def find_files(path, fileExts, subdir=True):
         for subdir in subdirs:
             files += find_files(path=subdir, fileExts=fileExts)
     return files
+
+
+# generic methods which are needed in WikidataStuff.py are defined there to
+# avoid a cyclical import
+def listify(value):
+    """Wrapper for WikidataStuff instance of the method."""
+    return WikidataStuff.listify(value)
+
+
+def list_to_lower(string_list):
+    """Wrapper for WikidataStuff instance of the method."""
+    return WikidataStuff.list_to_lower(string_list)

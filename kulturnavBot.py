@@ -19,6 +19,8 @@ Options (may be omitted):
                     (default 250)
   -delay:INT        seconds to delay between each kulturnav request
                     (default 0)
+Can also handle any pywikibot options. Most importantly:
+  -simulate         don't write to databse
 
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 """
@@ -182,9 +184,7 @@ class KulturnavBot(object):
                 WD.Statement(values[u'identifier']).addQualifier(
                     WD.Qualifier(
                         P=self.CATALOG_P,
-                        itis=pywikibot.ItemPage(
-                            self.repo,
-                            u'Q%s' % self.DATASET_Q)),
+                        itis=self.wd.QtoItemPage(self.DATASET_Q)),
                     force=True)
 
             # authority control protoclaims
@@ -391,8 +391,7 @@ class KulturnavBot(object):
         return bool
         """
         P = u'P%s' % P.lstrip('P')
-        Q = u'Q%s' % Q.lstrip('Q')
-        testItem = pywikibot.ItemPage(self.repo, Q)
+        testItem = self.wd.QtoItemPage(Q)
         if self.wd.hasClaim(P, testItem, hitItem):
             pywikibot.output(u'%s is matched to %s, '
                              u'FIXIT' % (hitItem.title(), descr))
@@ -414,8 +413,7 @@ class KulturnavBot(object):
         Q = helpers.listify(Q)
         testItems = []
         for q in Q:
-            q = u'Q%s' % q.lstrip('Q')
-            testItems.append(pywikibot.ItemPage(self.repo, q))
+            testItems.append(self.wd.QtoItemPage(q))
         # check claims
         if P in hitItem.claims.keys():
             for testItem in testItems:
@@ -441,8 +439,8 @@ class KulturnavBot(object):
                 (self.itemIds.get(values[u'identifier']),)
             if values[u'wikidata'] != hitItemTitle:
                 # this may be caused by either being a redirect
-                wd = pywikibot.ItemPage(self.repo, values[u'wikidata'])
-                wi = pywikibot.ItemPage(self.repo, hitItemTitle)
+                wd = self.wd.QtoItemPage(values[u'wikidata'])
+                wi = self.wd.QtoItemPage(hitItemTitle)
                 if wd.isRedirectPage() and wd.getRedirectTarget() == wi:
                     pass
                 elif wi.isRedirectPage() and wi.getRedirectTarget() == wd:
@@ -462,9 +460,7 @@ class KulturnavBot(object):
 
         # create ItemPage, bypassing any redirect
         hitItem = self.wd.bypassRedirect(
-            pywikibot.ItemPage(
-                self.repo,
-                hitItemTitle))
+            self.wd.QtoItemPage(hitItemTitle))
         # in case of redirect
         values[u'wikidata'] = hitItem.title()
 
@@ -506,7 +502,7 @@ class KulturnavBot(object):
             key: Prop number
             val: Statement|list of Statments
         param hititem: the target entity
-        param ref: Reference
+        param ref: WD.Reference
         """
         for pcprop, pcvalue in protoclaims.iteritems():
             if pcvalue:
@@ -517,8 +513,7 @@ class KulturnavBot(object):
                         if (val is not None) and (not val.isNone()):
                             self.wd.addNewClaim(pcprop, val, hitItem, ref)
                             # reload item so that next call is aware of changes
-                            hitItem = pywikibot.ItemPage(self.repo,
-                                                         hitItem.title())
+                            hitItem = self.wd.QtoItemPage(hitItem.title())
                             hitItem.exists()
                 elif not pcvalue.isNone():
                     self.wd.addNewClaim(pcprop, pcvalue, hitItem, ref)
@@ -543,7 +538,7 @@ class KulturnavBot(object):
         if u'wikibase_item' in page.properties() and \
                 page.properties()[u'wikibase_item']:
             qNo = page.properties()[u'wikibase_item']
-            return pywikibot.ItemPage(self.repo, qNo)
+            return self.wd.QtoItemPage(qNo)
 
     def dbDate(self, item):
         """
@@ -572,9 +567,7 @@ class KulturnavBot(object):
                 special=True)
         else:
             return WD.Statement(
-                pywikibot.ItemPage(
-                    self.repo,
-                    known[item]))
+                self.wd.QtoItemPage(known[item]))
 
     def dbName(self, nameObj, typ, limit=75):
         """
@@ -609,7 +602,7 @@ class KulturnavBot(object):
                 return None
             else:
                 qNo = u'Q%d' % self.locations[uuid]
-                return pywikibot.ItemPage(self.repo, qNo)
+                return self.wd.QtoItemPage(qNo)
 
         # retrieve various sources
         geoSources = self.getGeoSources(uuid)
@@ -617,7 +610,7 @@ class KulturnavBot(object):
         if kulturarvsdata:
             self.locations[uuid] = kulturarvsdata
             qNo = u'Q%d' % self.locations[uuid]
-            return pywikibot.ItemPage(self.repo, qNo)
+            return self.wd.QtoItemPage(qNo)
 
         # retrieve hit through geonames-lookup
         geonames = self.extractGeonames(geoSources)
@@ -629,7 +622,7 @@ class KulturnavBot(object):
             if wdqResult and len(wdqResult) == 1:
                 self.locations[uuid] = wdqResult[0]
                 qNo = u'Q%d' % self.locations[uuid]
-                return pywikibot.ItemPage(self.repo, qNo)
+                return self.wd.QtoItemPage(qNo)
             # else:
             # go to geonames and find wikidata from there
             # add to self.locations[uuid]
@@ -758,7 +751,7 @@ class KulturnavBot(object):
 
         if uuid in self.itemIds.keys():
             qNo = u'Q%d' % self.itemIds[uuid]
-            return pywikibot.ItemPage(self.repo, qNo)
+            return self.wd.QtoItemPage(qNo)
         else:
             return None
 
@@ -832,11 +825,12 @@ class KulturnavBot(object):
         Make a correctly formatted ref object for claims
         """
         ref = WD.Reference(
-            source_P=self.STATED_IN_P,
-            source=pywikibot.ItemPage(self.repo,
-                                      u'Q%s' % self.DATASET_Q),
-            time_P=self.PUBLICATION_P,
-            time=date)
+            source_test=self.wd.make_simple_claim(
+                self.STATED_IN_P,
+                self.wd.QtoItemPage(self.DATASET_Q)),
+            source_notest=self.wd.make_simple_claim(
+                self.PUBLICATION_P,
+                date))
         return ref
 
     def addLabelOrAlias(self, nameObj, item, caseSensitive=False):
@@ -852,7 +846,7 @@ class KulturnavBot(object):
             for n in nameObj:
                 self.addLabelOrAlias(n, item)
                 # reload item so that next call is aware of any changes
-                item = pywikibot.ItemPage(self.repo, item.title())
+                item = self.wd.QtoItemPage(item.title())
                 item.exists()
             return
 
