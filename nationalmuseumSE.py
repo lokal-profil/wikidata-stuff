@@ -13,13 +13,14 @@ TODO:
     * Log whenever P217 (inv. nr) does not correspond to claim
     * Allow the image updates to run without having to hammer the Europeana api
 """
-import json
 import pywikibot
 from pywikibot import pagegenerators
-import urllib
 import pywikibot.data.wikidataquery as wdquery
-import datetime
 import config as config
+import helpers
+import json
+import urllib
+import datetime
 import codecs
 import time
 
@@ -85,45 +86,12 @@ class PaintingsBot:
                 collections.add(k['subcol'].strip('Q'))
         self.collections = list(collections)
 
+        # prepare WDQ query
         self.paintingIdProperty = paintingIdProperty
-        self.paintingIds = self.fillCache(self.paintingIdProperty)
-
-    def fillCache(self, propertyId, queryoverride=u'', cacheMaxAge=0):
-        """
-        Query Wikidata to fill the cache of paintings we already have an
-        object for
-        """
-        result = {}
-        if queryoverride:
-            query = queryoverride
-        else:
-            query = u'CLAIM[195:%s] AND CLAIM[%s]' % \
-                    (',195:'.join(self.collections), propertyId)  # collection
-        wd_queryset = wdquery.QuerySet(query)
-
-        wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
-        data = wd_query.query(wd_queryset, props=[str(propertyId), ])
-
-        if data.get('status').get('error') == 'OK':
-            expectedItems = data.get('status').get('items')
-            props = data.get('props').get(str(propertyId))
-            dupesFound = False
-            for prop in props:
-                if prop[2] in result.keys() and prop[0] != result[prop[2]]:
-                    # Check for Q-numbers claiming to be the same painting
-                    # second conditional needed since wdq sometimes returns same result twice (if object has been merged?)
-                    pywikibot.output(u'%s is a dupliate of %s' % (prop[0], result[prop[2]]))
-                    dupesFound = True
-                else:
-                    result[prop[2]] = prop[0]
-            if dupesFound:
-                pywikibot.output('Dupes found. Fix these before moving on')
-                exit(1)
-
-            if expectedItems == len(result):
-                pywikibot.output('I now have %s items in cache' % expectedItems)
-
-        return result
+        query = u'CLAIM[195:%s] AND CLAIM[%s]' % \
+                (',195:'.join(self.collections), self.paintingIdProperty)
+        self.paintingIds = helpers.fill_cache(self.paintingIdProperty,
+                                              queryoverride=query)
 
     def run(self, addNew=True):
         """
@@ -436,9 +404,9 @@ def makeDescriptions(painting):
             descriptions['nl'] = {'language': u'nl', 'value': u'schilderij toegeschreven aan %s' % (attribName,)}
             descriptions['sv'] = {'language': u'sv', 'value': u'målning tillskriven %s' % (attribName,)}
         elif dcCreatorName.startswith(u'Manner of') or \
-             dcCreatorName.startswith(u'Copy after') or \
-             dcCreatorName.startswith(u'Workshop of') or \
-             dcCreatorName.startswith(u'Circle of'):
+                dcCreatorName.startswith(u'Copy after') or \
+                dcCreatorName.startswith(u'Workshop of') or \
+                dcCreatorName.startswith(u'Circle of'):
             skip = True
         else:
             descriptions['en'] = {'language': u'en', 'value': u'painting by %s' % (dcCreatorName,)}
@@ -507,12 +475,12 @@ def getPaintingGenerator(rows=MAX_ROWS, start=1):
     what=paintings
     """
     searchurl = 'http://www.europeana.eu/api/v2/search.json?wskey=' \
-               + config.APIKEY \
-               + '&profile=minimal&rows=' \
-               + str(min(MAX_ROWS, rows)) \
-               + '&start=' \
-               + str(start) \
-               + '&query=*%3A*&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22&qf=what%3A+paintings'
+                + config.APIKEY \
+                + '&profile=minimal&rows=' \
+                + str(min(MAX_ROWS, rows)) \
+                + '&start=' \
+                + str(start) \
+                + '&query=*%3A*&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22&qf=what%3A+paintings'
     url = 'http://europeana.eu/api/v2/record/%s.json?wskey=' + config.APIKEY + '&profile=full'
 
     overviewPage = urllib.urlopen(searchurl)
