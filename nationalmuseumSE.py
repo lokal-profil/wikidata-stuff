@@ -534,7 +534,7 @@ if __name__ == "__main__":
             u'\tand addNew is a boolean (defaults to true)'
     import sys
     argv = sys.argv[1:]
-    if len(argv) == 0:
+    if not argv:
         main()
     elif len(argv) == 2:
         if int(argv[0]) < 1 or int(argv[1]) < 1:

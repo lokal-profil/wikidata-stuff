@@ -197,7 +197,7 @@ class KulturnavBotSMM(KulturnavBot):
                 for pn in values[u'person.nationality']:
                     claim.append(WD.Statement(
                         self.location2Wikidata(pn)))
-                if len(claim) > 0:
+                if claim:
                     protoclaims[u'P27'] = claim
 
             return protoclaims
@@ -387,9 +387,8 @@ class KulturnavBotSMM(KulturnavBot):
                 [values[u'entity.name'],
                  values[u'altLabel']])
             # convert from ALL-CAPS
-            for i in range(0, len(values[u'entity.name'])):
-                n = values[u'entity.name'][i][u'@value']
-                values[u'entity.name'][i][u'@value'] = n.capitalize()
+            for i, v in enumerate(values[u'entity.name']):
+                values[u'entity.name'][i][u'@value'] = v[u'@value'].capitalize()
 
             # bundle type and otherType
             values[u'navalVessel.type'] = self.bundleValues(
@@ -421,9 +420,9 @@ class KulturnavBotSMM(KulturnavBot):
                         else:
                             pywikibot.output(u'Q%d not matched as either ship'
                                              u'type or ship class' % q)
-                if len(shipClass) > 0:
+                if shipClass:
                     protoclaims[u'P289'] = shipClass
-                if len(shipType) > 0:
+                if shipType:
                     protoclaims[u'P31'] = shipType
 
             # P879 - registration number
@@ -436,12 +435,10 @@ class KulturnavBotSMM(KulturnavBot):
 
                 # only one type is currently mapped
                 claim = []
-                for i in range(0, len(values[u'registration.number'])):
+                for i, v in enumerate(values[u'registration.number']):
                     if values[u'registration.type'][i] == self.IKNO_K:
-                        claim.append(
-                            WD.Statement(
-                                values[u'registration.number'][i]))
-                if len(claim) > 0:
+                        claim.append(WD.Statement(v))
+                if claim:
                     protoclaims[u'P879'] = claim
 
             # P504 - homeport
@@ -479,7 +476,7 @@ class KulturnavBotSMM(KulturnavBot):
                         self.kulturnav2Wikidata(val),
                         values[u'constructor.start'],
                         values[u'constructor.end']))
-                if len(claims) > 0:
+                if claims:
                     protoclaims[u'P287'] = claims
 
             # P793 - Events
@@ -529,7 +526,7 @@ class KulturnavBotSMM(KulturnavBot):
                             itis=self.dbDate(values[u'decommissioned.date'])))
                 events.append(event)
             # set all events
-            if len(events) > 0:
+            if events:
                 protoclaims[u'P793'] = events
 
             return protoclaims
@@ -622,7 +619,7 @@ class KulturnavBotSMM(KulturnavBot):
                     item = self.kulturnav2Wikidata(t)
                     if item:
                         claims.append(WD.Statement(item))
-                if len(claims) > 0:
+                if claims:
                     protoclaims[u'P279'] = claims
 
             # P287 - Designer (Constructor)
@@ -670,10 +667,9 @@ class KulturnavBotSMM(KulturnavBot):
                  values[u'altLabel']])
 
             # remove comments from lables
-            for i in range(0, len(values[u'prefLabel'])):
-                if '(' in values[u'prefLabel'][i]['@value']:
-                    val = values[u'prefLabel'][i]['@value'] \
-                        .split('(')[0].strip()
+            for i, v in enumerate(values[u'prefLabel']):
+                if '(' in v['@value']:
+                    val = v['@value'].split('(')[0].strip()
                     values[u'prefLabel'][i]['@value'] = val
 
             protoclaims = {
@@ -736,7 +732,7 @@ class KulturnavBotSMM(KulturnavBot):
                     item = self.kulturnav2Wikidata(t)
                     if item:
                         claims.append(WD.Statement(item))
-                if len(claims) > 0:
+                if claims:
                     protoclaims[u'P279'] = claims
 
             return protoclaims
@@ -808,7 +804,7 @@ class KulturnavBotSMM(KulturnavBot):
                     item = self.kulturnav2Wikidata(t)
                     if item:
                         claims.append(WD.Statement(item))
-                if len(claims) > 0:
+                if claims:
                     protoclaims[u'P279'] = claims
 
             # P287 - Designer (Constructor)
@@ -820,7 +816,7 @@ class KulturnavBotSMM(KulturnavBot):
                         self.kulturnav2Wikidata(val),
                         values[u'constructor.start'],
                         values[u'constructor.end']))
-                if len(claims) > 0:
+                if claims:
                     protoclaims[u'P287'] = claims
 
             return protoclaims

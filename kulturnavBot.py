@@ -489,7 +489,7 @@ class KulturnavBot(object):
                 else:
                     pywikibot.output(u'unexpectedly formatted name'
                                      u'object: %s' % names)
-                if len(namelist) > 0:
+                if namelist:
                     self.addLabelOrAlias(namelist, hitItem)
             else:
                 self.addLabelOrAlias(names, hitItem)
@@ -799,7 +799,7 @@ class KulturnavBot(object):
             if v is not None:
                 v = helpers.listify(v)
                 bundle += v
-        if len(bundle) == 0:
+        if not bundle:
             return None
         else:
             return bundle
@@ -882,7 +882,7 @@ class KulturnavBot(object):
         searchData = searchPage.read()
         overviewPage = json.loads(searchData)
 
-        while len(overviewPage) > 0:
+        while overviewPage:
             for o in overviewPage:
                 sameAs = o[u'properties'][cls.MAP_TAG[:cls.MAP_TAG.rfind('_')]]
                 for s in sameAs:
