@@ -437,8 +437,8 @@ class WikidataStuff(object):
             return item
 
     def compareWbTimeClaim(self, target, itis):
-        """
-        Compares if two WbTime claims are the same (regarding precision)
+        """Compare if two WbTime claims are the same (regarding precision).
+
         thereby handling T107870
 
         param target: any Claim
@@ -479,23 +479,26 @@ class WikidataStuff(object):
         return True
 
     def QtoItemPage(self, Q):
-        """Make a pywikibot.ItemPage given a Q value.
+        """Make a pywikibot.ItemPage given a Q-value.
 
-        param Q: string the Q-item for value (with or without "Q")
-        return pywikibot.ItemPage
+        @param Q: the Q-id of the item (with or without "Q")
+        @type Q: string or int
+        @rtype pywikibot.ItemPage
         """
         return pywikibot.ItemPage(
             self.repo,
-            u'Q%s' % Q.lstrip('Q'))
+            u'Q%s' % str(Q).lstrip('Q'))
 
     def make_simple_claim(self, prop, target):
         """Make a pywikibot.Claim given a property and target.
 
-        param prop: string the P-property (with or without "P")
-        param target: the target of the Claim
-        return pywikibot.Claim
+        @param prop: the P-id of a property (with or without "P")
+        @type prop: str or int
+        @param target: the target of the Claim
+        @type target: object
+        @rtype: pywikibot.Claim
         """
-        claim = pywikibot.Claim(self.repo, u'P%s' % prop.lstrip('P'))
+        claim = pywikibot.Claim(self.repo, u'P%s' % str(prop).lstrip('P'))
         claim.setTarget(target)
         return claim
 
@@ -505,8 +508,9 @@ class WikidataStuff(object):
 def list_to_lower(string_list):
     """Convert every string in a list to lower case.
 
-    param string_list: list of strings
-    return: list of lower case strings
+    @param string_list: list of strings to convert
+    @type string_list: list (of str)
+    @rtype: list (of str)
     """
     lower_list = []
     for s in string_list:
@@ -519,7 +523,7 @@ def listify(value):
 
     @param value: The value to listify
     @type value: any
-    @return list, or None
+    @rtype: list, or None
     """
     if value is None:
         return None
