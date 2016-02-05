@@ -591,13 +591,21 @@ def getPaintingGenerator(rows=MAX_ROWS, start=1):
     DATA_PROVIDER=Nationalmuseum (Sweden)
     what=paintings
     """
+    # Search url limits hits to
+    # * paintings
+    # * in Nationalmuseum, Sweden
+    # * aggregated through AthenaPlus
     searchurl = 'http://www.europeana.eu/api/v2/search.json?wskey=' \
                 + config.APIKEY \
                 + '&profile=minimal&rows=' \
                 + str(min(MAX_ROWS, rows)) \
                 + '&start=' \
                 + str(start) \
-                + '&query=*%3A*&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22&qf=what%3A+paintings'
+                + '&query=*%3A*' \
+                + '&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22' \
+                + '&qf=what%3A+paintings' \
+                + '&qf=PROVIDER%3A%22AthenaPlus%22'
+
     url = 'http://europeana.eu/api/v2/record/%s.json?wskey=' \
           + config.APIKEY \
           + '&profile=full'
@@ -614,7 +622,7 @@ def getPaintingGenerator(rows=MAX_ROWS, start=1):
         exit(1)
 
     for item in overviewJsonData.get('items'):
-        apiPage = urllib.urlopen(url % item.get('id'))
+        apiPage = urllib.urlopen(url % item.get('id').lstrip('/'))
         apiData = apiPage.read()
         try:
             jsonData = json.loads(apiData)
