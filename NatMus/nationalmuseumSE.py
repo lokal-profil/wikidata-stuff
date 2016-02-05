@@ -8,7 +8,6 @@ Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
     /bot/wikidata/rijksmuseum_import.py by Multichill
 
 TODO:
-    * Add P1476 (title) with all titles - once pywikibot supports monolingual strings
     * Source P217 (inv. nr) whenever unsourced and corresponds to claim
     * Log whenever P217 (inv. nr) does not correspond to claim
     * Allow the image updates to run without having to hammer the Europeana api
@@ -147,6 +146,10 @@ class PaintingsBot:
                     self.add_instanceof_claim(paintingItem, paintingId,
                                               painting)
 
+                # title (as claim)
+                if u'P1476' not in claims:
+                    self.add_title_claim(paintingItem, painting)
+
                 # Europeana_ID
                 if u'P727' not in claims:
                     self.add_image_claim(paintingItem, painting)
@@ -158,6 +161,25 @@ class PaintingsBot:
                 # creator IFF through dbpedia
                 if u'P170' not in claims:
                     self.add_dbpedia_creator(paintingItem, painting)
+
+    def add_title_claim(self, painting_item, painting):
+        """Add a title/P1476 claim based on dcTitle.
+
+        @param painting_item: item to which claim is added
+        @type painting_item: pywikibot.ItemPage
+        @param painting: information object for the painting
+        @type painting: dict
+        """
+        dcTitle = painting['object']['proxies'][0]['dcTitle']
+        titles = []
+        for lang, title in dcTitle.iteritems():
+            titles.append(pywikibot.WbMonolingualText(title[0], lang))
+        for title in titles:
+            self.wd.addNewClaim(
+                u'P1476',
+                WD.Statement(title),
+                painting_item,
+                self.make_europeana_reference(painting))
 
     def add_locatedin_claim(self, painting_item, painting_id, painting):
         """Add a located_in/P276 claim based on subcollection.
