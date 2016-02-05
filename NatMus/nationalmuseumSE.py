@@ -13,6 +13,10 @@ TODO:
     * Log whenever P217 (inv. nr) does not correspond to claim
     * Allow the image updates to run without having to hammer the Europeana api
 """
+if __name__ == '__main__' and __package__ is None:
+    from os import sys, path
+    sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+
 import pywikibot
 from pywikibot import pagegenerators
 import pywikibot.data.wikidataquery as wdquery
@@ -35,37 +39,6 @@ ICON_Q = u'132137'
 MINIATURE_URL = u'http://partage.vocnet.org/part00814'
 MAX_ROWS = 100  # max number of rows per request in Europeana API
 
-# mapping prefixes to subcollections see wikidata:User:Lokal Profil/NatMus
-PREFIX_MAP = {
-    u'NM': {u'subcol': None, u'place': u'Q%s' % INSTITUTION_Q},
-    u'NMB': {u'subcol': None, u'place': u'Q%s' % INSTITUTION_Q},
-    u'NMI': {u'subcol': u'Q18573057', u'place': u'Q%s' % INSTITUTION_Q},
-    u'NMDrh': {u'subcol': u'Q18572999', u'place': u'Q208559'},  # Drottningholm
-    u'NMGrh': {u'subcol': u'Q2817221', u'place': u'Q714783'},  # Gripshiolm/Statens porträttsamling
-    u'NMGu': {u'subcol': u'Q18573011', u'place': u'Q1556819'},  # Gustavsberg
-    u'NMRbg': {u'subcol': u'Q18573027', u'place': u'Q1934091'},  # Rosersberg
-    u'NMStrh': {u'subcol': u'Q18573032', u'place': u'Q1416870'},  # Strömsholm
-    u'NMVst': {u'subcol': u'Q18573020', u'place': u'Q1757808'},  # Vadstena
-    u'NMHpd': {u'subcol': u'Q18575366', u'place': u'Q1140280'},  # Harpsund
-    u'NMKok': {u'subcol': u'Q18575408', u'place': u'Q10547348'},  # Kommerskollegiet
-    u'NMLä': {u'subcol': u'Q18575368', u'place': u'Q935973'},  # Läckö slott
-    u'NMLeu': {u'subcol': u'Q18575377', u'place': u'Q18575382'},  # Leufsta
-    u'NMWg': {u'subcol': u'Q18575402', u'place': u'Q969362'},  # Wenngarn
-    u'NMUdl': {u'subcol': u'Q18575405', u'place': u'Q176860'},  # Ulriksdal
-    u'NMTiP': {u'subcol': u'Q18573041', u'place': u'Q927844'},  # Tessininstitutet
-    # Nynäs slott
-    u'NMNn': {u'subcol': u'Q18575372', u'place': u'Q2242752'},
-    u'NMNnA': {u'subcol': u'Q18575372', u'place': u'Q2242752'},
-    # Dahlgrens samling
-    u'NMDs': {u'subcol': u'Q18594010', u'place': u'Q%s' % INSTITUTION_Q},
-    u'NMDso': {u'subcol': u'Q18594010', u'place': u'Q%s' % INSTITUTION_Q},
-    u'NMDse': {u'subcol': u'Q18594010', u'place': u'Q%s' % INSTITUTION_Q},
-    u'NMDsä': {u'subcol': u'Q18594010', u'place': u'Q%s' % INSTITUTION_Q}
-}
-# prefixes which we know to ignore (this way new prefixes are flagged)
-BAD_PREFIX = (u'NMG', u'NMEg', u'NMH', u'NMK', u'NMPlåt', u'NMSk', u'NMAnt',
-              u'NMSkAv', u'NMTiS', u'NMTiK', u'NMTiD', u'NMTiG')
-
 
 class PaintingsBot:
     """
@@ -82,9 +55,12 @@ class PaintingsBot:
         self.commons = pywikibot.Site(u'commons', u'commons')
         self.wd = WD(self.repo)
 
-        # Find allowed collections
+        # Load prefixes and find allowed collections
         collections = set([INSTITUTION_Q])
-        for p, k in PREFIX_MAP.iteritems():
+        self.mappings = helpers.load_json_file('mappings.json')
+        self.prefix_map = self.mappings['prefix_map']
+        self.bad_prefix = self.mappings['bad_prefix']
+        for p, k in self.prefix_map.iteritems():
             if k['subcol'] is not None:
                 collections.add(k['subcol'].strip('Q'))
         self.collections = list(collections)
@@ -118,8 +94,8 @@ class PaintingsBot:
                            painting['object']['about']
 
             # the museum contains sevaral subcollections. Only deal with mapped ones
-            if paintingId.split(' ')[0] not in PREFIX_MAP.keys():
-                if paintingId.split(' ')[0] not in BAD_PREFIX:
+            if paintingId.split(' ')[0] not in self.prefix_map.keys():
+                if paintingId.split(' ')[0] not in self.bad_prefix:
                     pywikibot.output(u'Skipped due to unknown collection: %s' % paintingId)
                 continue
 
@@ -195,7 +171,7 @@ class PaintingsBot:
         @param painting: information object for the painting
         @type painting: dict
         """
-        place = PREFIX_MAP[painting_id.split(' ')[0]]['place']
+        place = self.prefix_map[painting_id.split(' ')[0]]['place']
         place_item = self.wd.QtoItemPage(place)
         self.wd.addNewClaim(
             u'P276',
@@ -374,7 +350,7 @@ class PaintingsBot:
             self.make_reference(uri))
 
         # add collection (or subcollection)
-        subcol = PREFIX_MAP[painting_id.split(' ')[0]]['subcol']
+        subcol = self.prefix_map[painting_id.split(' ')[0]]['subcol']
         collection_item = nationalmuseum_item
         if subcol is not None:
             collection_item = self.wd.QtoItemPage(subcol)
