@@ -10,6 +10,8 @@ Methods comonly shared by Wikidata-stuff bots which are:
 import os
 import json
 import codecs
+import urllib2  # for dbpedia_2_wikidata
+import time  # for dbpedia_2_wikidata
 import pywikibot
 from pywikibot import pagegenerators
 import pywikibot.data.wikidataquery as wdquery
@@ -341,6 +343,54 @@ def find_files(path, fileExts, subdir=True):
         for subdir in subdirs:
             files += find_files(path=subdir, fileExts=fileExts)
     return files
+
+
+def dbpedia_2_wikidata(dbpedia):
+    """Return the wikidata id matching a dbpedia entry.
+
+    Given a dbpedia resource reference
+    (e.g. http://dbpedia.org/resource/Richard_Bergh)
+    this returns the sameAs wikidata value, if any.
+    Returns None if no matches.
+
+    @param dbpedia: the dbpedia resource reference
+    @type dbpedia: str
+    @return: Q-value of matching wikidata entry
+    @rtype: str
+    """
+    url = u'http://dbpedia.org/sparql?' + \
+          u'default-graph-uri=http%3A%2F%2Fdbpedia.org&query=DESCRIBE+%3C' + \
+          dbpedia + \
+          u'%3E&output=application%2Fld%2Bjson'
+    # urlencode twice? per http://dbpedia.org/resource/%C3%89douard_Vuillard
+    try:
+        dbPage = urllib2.urlopen(url)
+    except IOError:
+        pywikibot.output(u'dbpedia is complaining so sleeping for 10s')
+        time.sleep(10)
+        try:
+            dbPage = urllib2.urlopen(url)
+        except IOError:
+            pywikibot.output(u'dbpedia is still complaining about %s, '
+                             u'skipping' % dbpedia)
+            return None
+    try:
+        dbData = dbPage.read()
+        jsonData = json.loads(dbData)
+        dbPage.close()
+    except ValueError, e:
+        pywikibot.output(u'dbpedia-skip: %s, %s' % (dbpedia, e))
+        return None
+
+    if jsonData.get('@graph'):
+        for g in jsonData.get('@graph'):
+            if g.get('http://www.w3.org/2002/07/owl#sameAs'):
+                for same in g.get('http://www.w3.org/2002/07/owl#sameAs'):
+                    if isinstance(same, (str, unicode)):
+                        if same.startswith('http://wikidata.org/entity/'):
+                            return same[len('http://wikidata.org/entity/'):]
+                return None
+    return None
 
 
 # generic methods which are needed in WikidataStuff.py are defined there to

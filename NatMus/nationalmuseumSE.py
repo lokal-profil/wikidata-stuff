@@ -7,10 +7,7 @@ Bot to import paintings from the Nationalmuseum (Sweden) to Wikidata.
 Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
     /bot/wikidata/rijksmuseum_import.py by Multichill
 
-TODO:
-    * Source P217 (inv. nr) whenever unsourced and corresponds to claim
-    * Log whenever P217 (inv. nr) does not correspond to claim
-    * Allow the image updates to run without having to hammer the Europeana api
+@todo: Allow image updates to run without having to hammer the Europeana api
 """
 if __name__ == '__main__' and __package__ is None:
     from os import sys, path
@@ -23,16 +20,14 @@ import config as config
 import helpers
 from WikidataStuff import WikidataStuff as WD
 import json
-import urllib
 import datetime
 import codecs
-import time
+import urllib2
 
 EDIT_SUMMARY = u'NationalmuseumBot'
 COMMONS_Q = u'565'
 INSTITUTION_Q = u'842858'
 INVNO_P = u'217'
-COLLECTION_P = u'195'
 PAINTING_Q = u'3305213'
 ICON_Q = u'132137'
 MINIATURE_URL = u'http://partage.vocnet.org/part00814'
@@ -40,19 +35,27 @@ MAX_ROWS = 100  # max number of rows per request in Europeana API
 
 
 class PaintingsBot:
-    """
-    A bot to enrich informartion, and create items, for paintings on Wikidata.
-    """
-    def __init__(self, dictGenerator, paintingIdProperty):
-        """
-        Arguments:
-            * generator    - A generator that yields Dict objects.
+    """Bot to enrich, and create, for items about paintings on Wikidata."""
 
+    def __init__(self, dict_generator, painting_id_prop, add_new=False,
+                 skip_miniatures=True):
+        """Initiate the bot, loading files and querying WDQ.
+
+        @param dict_generator: The generator for the Europeana painting objects
+        @type dict_generator: generator (that yields Dict objects).
+        @param painting_id_prop: the P-id of the painting-id property
+        @type painting_id_prop: str
+        @param add_new: Whether new objects should be created
+        @type add_new: bool
+        @param skip_miniatures: Whether (new) miniatures should be skipped
+        @type skip_miniatures: bool
         """
-        self.generator = dictGenerator
+        self.generator = dict_generator
         self.repo = pywikibot.Site().data_repository()
         self.commons = pywikibot.Site(u'commons', u'commons')
         self.wd = WD(self.repo)
+        self.add_new = add_new
+        self.skip_miniatures = skip_miniatures
 
         # Load prefixes and find allowed collections
         collections = set([INSTITUTION_Q])
@@ -65,102 +68,91 @@ class PaintingsBot:
         self.collections = list(collections)
 
         # prepare WDQ query
-        self.paintingIdProperty = paintingIdProperty
         query = u'CLAIM[195:%s] AND CLAIM[%s]' % \
-                (',195:'.join(self.collections), self.paintingIdProperty)
-        self.paintingIds = helpers.fill_cache(self.paintingIdProperty,
-                                              queryoverride=query)
+                (',195:'.join(self.collections), painting_id_prop)
+        self.painting_ids = helpers.fill_cache(painting_id_prop,
+                                               queryoverride=query)
+        self.painting_id_prop = 'P%s' % painting_id_prop
 
-    def run(self, add_new=True, skip_miniatures=True):
-        """Start the robot.
-
-        @param add_new: Whether new objects should be created
-        @type add_new: bool
-        @param skip_miniatures: Whether (new) miniatures should be skipped
-        @type skip_miniatures: bool
-        """
+    def run(self):
+        """Start the robot."""
         self.creators = {}
 
         for painting in self.generator:
-            # paintingId = painting['object']['proxies'][0]['about'].replace(u'/proxy/provider/90402/', u'').replace(u'_', u'-')
+            # isolate ids
             ids = painting['object']['proxies'][0]['dcIdentifier']['def']
-            paintingId = ids[0].replace('Inv Nr.:', '').strip('( )')
-            objId = ids[1]
-            uri = u'http://collection.nationalmuseum.se/eMuseumPlus?service=' \
-                  u'ExternalInterface&module=collection&objectId=%s&viewType=' \
-                  u'detailView' % objId
-            europeanaUrl = u'http://europeana.eu/portal/record%s.html' % \
-                           painting['object']['about']
+            painting_id = ids[0].replace('Inv Nr.:', '').strip('( )')
+            obj_id = ids[1]
 
-            # the museum contains sevaral subcollections. Only deal with mapped ones
-            if paintingId.split(' ')[0] not in self.prefix_map.keys():
-                if paintingId.split(' ')[0] not in self.bad_prefix:
-                    pywikibot.output(u'Skipped due to unknown collection: %s' % paintingId)
-                continue
+            # Museum contains sevaral subcollections. Only handle mapped ones
+            if painting_id.split(' ')[0] in self.prefix_map.keys():
+                self.process_painting(painting, painting_id, obj_id)
+            elif painting_id.split(' ')[0] not in self.bad_prefix:
+                pywikibot.output(u'Skipped due to unknown collection: %s' %
+                                 painting_id)
 
-            paintingItem = None
-            # newclaims = []
-            if paintingId in self.paintingIds:
-                paintingItemTitle = u'Q%s' % self.paintingIds.get(paintingId)
-                # print paintingItemTitle
-                paintingItem = self.wd.QtoItemPage(paintingItemTitle)
+    def process_painting(self, painting, painting_id, obj_id):
+        """Process a single painting.
 
-                # check label
-                data = paintingItem.get()
-                labels = makeLabels(painting)
-                newLabels = {}
-                for lang, labelObj in labels.iteritems():
-                    if lang not in data.get('labels').keys():
-                        newLabels[lang] = labelObj['value']
-                if newLabels:
-                    pywikibot.output('Adding label to %s' % paintingItem.title())
-                    paintingItem.editLabels(newLabels)
+        This will also create it if self.add_new is True.
 
-                # check description
-                descriptions, skip = makeDescriptions(painting)
-                if not skip:
-                    newDescr = {}
-                    for lang, descrObj in descriptions.iteritems():
-                        if lang not in data.get('descriptions').keys():
-                            newDescr[lang] = descrObj['value']
-                    if newDescr:
-                        pywikibot.output('Adding descriptions to %s' % paintingItem.title())
-                        paintingItem.editDescriptions(newDescr)
+        @param painting: information object for the painting
+        @type painting: dict
+        @param painting_id: the common (older) id of the painting in the
+            Nationalmuseum collection
+        @type painting_id: str
+        @param obj_id: the internal id of the painting in the Nationalmuseum
+            database.
+        @type obj_id: str
+        """
+        uri = u'http://collection.nationalmuseum.se/eMuseumPlus?service=' \
+              u'ExternalInterface&module=collection&objectId=%s&viewType=' \
+              u'detailView' % obj_id
+        europeana_url = u'http://europeana.eu/portal/record%s.html' % \
+                        painting['object']['about']
 
-            elif add_new and not (
-                    skip_miniatures and PaintingsBot.is_miniature(painting)):
-                # if objection collection is allowed and
-                # unless it is aminiature and we are skipping those
-                paintingItem = self.create_new_painting(painting, paintingId,
-                                                        europeanaUrl, uri)
+        painting_item = None
+        # newclaims = []
+        if painting_id in self.painting_ids:
+            painting_item = self.create_existing_painting(painting,
+                                                          painting_id)
 
-            # add new claims
-            if paintingItem and paintingItem.exists():
-                data = paintingItem.get(force=True)
-                claims = data.get('claims')
+        elif self.add_new and not (
+                self.skip_miniatures and PaintingsBot.is_miniature(painting)):
+            # if objection collection is allowed and
+            # unless it is aminiature and we are skipping those
+            painting_item = self.create_new_painting(painting, painting_id,
+                                                     europeana_url, uri)
 
-                # @todo: no need to check claims, just make protoclaims or
-                # simply add (maybe not images)
-                # Instance_of
-                if u'P31' not in claims:
-                    self.add_instanceof_claim(paintingItem, paintingId,
-                                              painting)
+        # add new claims
+        if painting_item and painting_item.exists():
+            data = painting_item.get(force=True)
+            claims = data.get('claims')
 
-                # title (as claim)
-                if u'P1476' not in claims:
-                    self.add_title_claim(paintingItem, painting)
+            # add inventory number with collection
+            self.add_inventory_and_collection_claim(painting_item, painting_id,
+                                                    painting, uri)
 
-                # Europeana_ID
-                if u'P727' not in claims:
-                    self.add_image_claim(paintingItem, painting)
+            # Instance_of
+            if u'P31' not in claims:
+                self.add_instanceof_claim(painting_item, painting_id,
+                                          painting)
 
-                # Check for potential images to add, if none is present
-                if u'P18' not in claims:
-                    self.add_image_claim(paintingItem, uri)
+            # title (as claim)
+            # commented out as the titles in europeana are not reliable
+            # if u'P1476' not in claims:
+            #    self.add_title_claim(painting_item, painting)
 
-                # creator IFF through dbpedia
-                if u'P170' not in claims:
-                    self.add_dbpedia_creator(paintingItem, painting)
+            # Europeana_ID
+            self.add_europeana_claim(painting_item, painting)
+
+            # Check for potential images to add, if none is present
+            if u'P18' not in claims:
+                self.add_image_claim(painting_item, uri)
+
+            # creator IFF through dbpedia
+            if u'P170' not in claims:
+                self.add_dbpedia_creator(painting_item, painting)
 
     def add_title_claim(self, painting_item, painting):
         """Add a title/P1476 claim based on dcTitle.
@@ -188,7 +180,8 @@ class PaintingsBot:
 
         @param painting_item: item to which claim is added
         @type painting_item: pywikibot.ItemPage
-        @param painting_id: @todo
+        @param painting_id: the common (older) id of the painting in the
+            Nationalmuseum collection
         @type painting_id: str
         @param painting: information object for the painting
         @type painting: dict
@@ -218,7 +211,7 @@ class PaintingsBot:
                 if dcCreatorDB.startswith('http://dbpedia.org/resource/'):
                     if dcCreatorDB not in self.creators.keys():
                         self.creators[dcCreatorDB] = \
-                            dbpedia2wikidata(dcCreatorDB)
+                            helpers.dbpedia_2_wikidata(dcCreatorDB)
                     creator_Q = self.creators[dcCreatorDB]
         except KeyError:
             return
@@ -242,7 +235,7 @@ class PaintingsBot:
         @param uri: reference url on nationalmuseum.se
         @type uri: str
         """
-        images = self.fileFromExternalLink(uri)
+        images = self.file_from_external_link(uri)
         if len(images) > 1:  # for now don't want to choose the appropriate one
             pywikibot.output('Found multiple matching images for %s' %
                              painting_item)
@@ -263,9 +256,19 @@ class PaintingsBot:
         @param painting: information object for the painting
         @type painting: dict
         """
+        europeana_prop = u'P727'
         europeana_id = painting['object']['about'].lstrip('/')
+
+        # abort if conflicting info
+        if europeana_prop in painting_item.claims and \
+                not self.wd.hasClaim(europeana_prop, europeana_id,
+                                     painting_item):
+            pywikibot.output(u'%s has conflicting %s. Expected %s' %
+                             (painting_item, europeana_prop, europeana_id))
+            return
+
         self.wd.addNewClaim(
-            u'P727',
+            europeana_prop,
             WD.Statement(europeana_id),
             painting_item,
             self.make_europeana_reference(painting))
@@ -278,7 +281,8 @@ class PaintingsBot:
 
         @param painting_item: item to which claim is added
         @type painting_item: pywikibot.ItemPage
-        @param painting_id: @todo
+        @param painting_id: the common (older) id of the painting in the
+            Nationalmuseum collection
         @type painting_id: str
         @param painting: information object for the painting
         @type painting: dict
@@ -307,13 +311,57 @@ class PaintingsBot:
                 return True
         return False
 
-    def create_new_painting(self, painting, painting_id, europeana_url, uri):
-        """@todo: needs more cleanup
+    def create_existing_painting(self, painting, painting_id):
+        """Add base info to an existing paining.
+
+        Adds the same info as would have been added had it been created with
+        create_new_painting()
 
         @param painting: information object for the painting
         @type painting: dict
-        @param painting_id: @odo
-        @type painting_id: @todo
+        @param painting_id: the common (older) id of the painting in the
+            Nationalmuseum collection
+        @type painting_id: str
+        @return: the created painting item
+        @rtype: pywikibot.ItemPage
+        """
+        painting_item = self.wd.QtoItemPage(self.painting_ids.get(painting_id))
+
+        # check label
+        data = painting_item.get()
+        labels = make_labels(painting)
+        new_labels = {}
+        for lang, label in labels.iteritems():
+            # can probably try to add any way
+            if lang not in data.get('labels').keys():
+                new_labels[lang] = label['value']
+        if new_labels:
+            pywikibot.output('Adding label to %s' %
+                             painting_item.title())
+            painting_item.editLabels(new_labels)
+
+        # check description
+        descriptions = make_descriptions(painting)
+        if descriptions:
+            new_descr = {}
+            for lang, descr in descriptions.iteritems():
+                if lang not in data.get('descriptions').keys():
+                    new_descr[lang] = descr['value']
+            if new_descr:
+                pywikibot.output('Adding description to %s' %
+                                 painting_item.title())
+                painting_item.editDescriptions(new_descr)
+
+        return painting_item
+
+    def create_new_painting(self, painting, painting_id, europeana_url, uri):
+        """Create a new painting item and return it.
+
+        @param painting: information object for the painting
+        @type painting: dict
+        @param painting_id: the common (older) id of the painting in the
+            Nationalmuseum collection
+        @type painting_id: str
         @param europeana_url: reference url for europeana
         @type europeana_url: str
         @param uri: reference uri at nationalmuseum.se
@@ -321,16 +369,13 @@ class PaintingsBot:
         @return: the created painting item
         @rtype: pywikibot.ItemPage
         """
-        nationalmuseum_item = self.wd.QtoItemPage(self.INSTITUTION_Q)
-
         data = {
             'labels': {},
-            'descriptions': {}
-            }
+            'descriptions': {}}
 
-        data['labels'] = makeLabels(painting)
-        data['descriptions'], skip = makeDescriptions(painting)
-        if skip:
+        data['labels'] = make_labels(painting)
+        data['descriptions'] = make_descriptions(painting)
+        if not data['descriptions']:
             return
 
         # print data
@@ -339,7 +384,7 @@ class PaintingsBot:
                                                                 europeana_url)
         painting_item = None
         try:
-            painting_item = self.make_new_item(data, summary)
+            painting_item = self.wd.make_new_item(data, summary)
         except pywikibot.data.api.APIError, e:
             if e.code == u'modification-failed':
                 # disambiguate and try again
@@ -347,7 +392,7 @@ class PaintingsBot:
                     disambiguation = content['value'] + u' (%s)' % painting_id
                     data['descriptions'][lang]['value'] = disambiguation
                 try:
-                    painting_item = self.make_new_item(data, summary)
+                    painting_item = self.wd.make_new_item(data, summary)
                 except pywikibot.data.api.APIError, e:
                     if e.code == u'modification-failed':
                         pywikibot.output(u'modification-failed error: '
@@ -359,13 +404,43 @@ class PaintingsBot:
             else:
                 raise pywikibot.Error(u'Error during item creation: %s' % e)
 
-        # @todo: break out as two separate methods
+        return painting_item
+
+    def add_inventory_and_collection_claim(self, painting_item, painting_id,
+                                           painting, uri):
+        """Add an inventory_no, with qualifier, and a collection/P195 claim.
+
+        This will add the collection qualifier to any matching
+        claim missing it.
+
+        @param painting_item: item to which claim is added
+        @type painting_item: pywikibot.ItemPage
+        @param painting_id: the common (older) id of the painting in the
+            Nationalmuseum collection
+        @type painting_id: str
+        @param painting: information object for the painting
+        @type painting: dict
+        @param uri: reference url on nationalmuseum.se
+        @type uri: str
+        """
+        nationalmuseum_item = self.wd.QtoItemPage(INSTITUTION_Q)
+        collection_p = u'P195'
+
+        # abort if conflicting info
+        if self.painting_id_prop in painting_item.claims and \
+                not self.wd.hasClaim(self.painting_id_prop, painting_id,
+                                     painting_item):
+            pywikibot.output(u'%s has conflicting inv. no (%s). Expected %s' %
+                             (painting_item, self.painting_id_prop,
+                              painting_id))
+            return
+
         # add inventory number with collection
         self.wd.addNewClaim(
-            self.paintingIdProperty,
+            self.painting_id_prop,
             WD.Statement(painting_id).addQualifier(
                 WD.Qualifier(
-                    P=COLLECTION_P,
+                    P=collection_p,
                     itis=nationalmuseum_item),
                 force=True),
             painting_item,
@@ -378,29 +453,10 @@ class PaintingsBot:
             collection_item = self.wd.QtoItemPage(subcol)
 
         self.wd.addNewClaim(
-            COLLECTION_P,
+            collection_p,
             WD.Statement(collection_item),
             painting_item,
             self.make_europeana_reference(painting))
-
-        return painting_item
-
-    def make_new_item(self, data, summary):
-        """Makes a new ItemPage given some data and an edit summary.
-
-        @todo: Inverstigate if anything already exists in pywikibot, if not
-               move this to WD
-        @todo: make proper docstring
-
-        @rtype: pywikibot.ItemPage
-        """
-        identification = {}  # @todo: what does this do?
-        # monumentItem.editEntity(data, summary=summary)
-        result = self.repo.editEntity(identification, data, summary=summary)
-        pywikibot.output(summary)  # afterwards in case an error is raised
-
-        # return the new item
-        return self.wd.QtoItemPage(result.get(u'entity').get('id'))
 
     def make_europeana_reference(self, painting):
         """Make a Reference object with a Europeana retrieval url and todays date.
@@ -437,10 +493,15 @@ class PaintingsBot:
                 u'P143', commons_item))  # imported from
         return ref
 
-    def fileFromExternalLink(self, uri):
-        """
-        Given an eMuseumPlus uri this checks if there are any file pages
-        linking to it
+    def file_from_external_link(self, uri):
+        """Identify files from a Nationalmuseum uri.
+
+        Hits are any files containing a link to the eMuseumPlus uri.
+
+        @param uri: reference url on nationalmuseum.se
+        @type uri: str
+        @return: matching images
+        @rtype: list
         """
         images = []
         uri = uri.split('://')[1]
@@ -448,8 +509,10 @@ class PaintingsBot:
                                                         site=self.commons)
         for page in objgen:
             images.append(pywikibot.FilePage(self.commons, page.title()))
+
         # I have no clue how the above results in duplicates, but it does so...
         images = list(set(images))
+
         return images
 
     def mostMissedCreators(self, cacheMaxAge=0):
@@ -495,21 +558,23 @@ class PaintingsBot:
         f.close()
 
 
-def makeDescriptions(painting):
+def make_descriptions(painting):
+    """Given a painting object construct descriptions in en/nl/sv.
+
+    Returns None if there is a problem.
+
+    @param painting: information object for the painting
+    @type painting: dict
+    @return: descriptions formatted for Wikidata input
+    @rtype: dict
     """
-    Given a painitng object construct descriptions in en/nl/sv
-    also sets skip=True if problems are encountered
-    @todo: handle "skip" better, e.g. returning None or raising an error
-    """
-    skip = False
     dcCreatorName = None
     try:
-        dcCreatorName = painting['object']['proxies'][0]['dcCreator']['sv'][0].strip()
-        # print dcCreatorName
+        dcCreator = painting['object']['proxies'][0]['dcCreator']
+        dcCreatorName = dcCreator['sv'][0].strip()
     except KeyError:
-        # pywikibot.output(u'skipped due to weird creator settings in %s' % europeanaUrl)
-        # skip = True
-        pass
+        # Skip any weird creator settings
+        return
 
     descriptions = {}
     if dcCreatorName:
@@ -538,7 +603,7 @@ def makeDescriptions(painting):
                 dcCreatorName.startswith(u'Copy after') or \
                 dcCreatorName.startswith(u'Workshop of') or \
                 dcCreatorName.startswith(u'Circle of'):
-            skip = True
+            return None
         else:
             descriptions['en'] = {
                 'language': u'en',
@@ -553,129 +618,97 @@ def makeDescriptions(painting):
         descriptions['en'] = {'language': u'en', 'value': u'painting'}
         descriptions['nl'] = {'language': u'nl', 'value': u'schilderij'}
         descriptions['sv'] = {'language': u'sv', 'value': u'målning'}
-    return descriptions, skip
+    return descriptions
 
 
-def makeLabels(painting):
+def make_labels(painting):
     """
-    Given a painting object extract all labels
+    Given a painting object extract all potential labels.
+
+    @param painting: information object for the painting
+    @type painting: dict
+    @return: language-lable pairs
+    @rtype: dict
     """
     labels = {}
-    for dcTitleLang, dcTitle in painting['object']['proxies'][0]['dcTitle'].iteritems():
+    for dcTitleLang, dcTitle in \
+            painting['object']['proxies'][0]['dcTitle'].iteritems():
         labels[dcTitleLang] = {'language': dcTitleLang, 'value': dcTitle[0]}
     return labels
 
 
-def dbpedia2wikidata(dbpedia):
+def get_PaintingGenerator(rows=MAX_ROWS, start=1):
+    """Get objects from Europeanas API.
+
+    The API call specifies:
+    * DATA_PROVIDER=Nationalmuseum (Sweden)
+    * what=paintings
+    * PROVIDER=AthenaPlus
+
+    @param rows: the number of results to request at once
+    @type rows: int
+    @param start: the offset in results at which to start
+    @type start: int
+    @yield: dict
     """
-    Given a dbpedia resource reference
-    (e.g. http://dbpedia.org/resource/Richard_Bergh)
-    this returns the sameAs wikidata value, if any
-    """
-    url = u'http://dbpedia.org/sparql?default-graph-uri=http%3A%2F%2Fdbpedia.org&query=DESCRIBE+%3C' \
-        + dbpedia \
-        + u'%3E&output=application%2Fld%2Bjson'
-    # urlencode twice? per http://dbpedia.org/resource/%C3%89douard_Vuillard
-    try:
-        dbPage = urllib.urlopen(url)
-    except IOError:
-        pywikibot.output(u'dbpedia is complaining so sleeping for 10s')
-        time.sleep(10)
-        try:
-            dbPage = urllib.urlopen(url)
-        except IOError:
-            pywikibot.output(u'dbpedia is still complaining about %s, '
-                             u'skipping creator' % dbpedia)
-            return None
-    try:
-        dbData = dbPage.read()
-        jsonData = json.loads(dbData)
-        dbPage.close()
-    except ValueError, e:
-        pywikibot.output(u'dbpedia-skip: %s, %s' % (dbpedia, e))
-        return None
+    # url for search
+    search_url = 'http://www.europeana.eu/api/v2/search.json?wskey=' + \
+                 config.APIKEY + \
+                 '&profile=minimal&rows=%d' + \
+                 '&start=%d' + \
+                 '&query=%s'
+    search_query = '*%3A*' + \
+                   '&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22' + \
+                   '&qf=what%3A+paintings' + \
+                   '&qf=PROVIDER%3A%22AthenaPlus%22'
 
-    if jsonData.get('@graph'):
-        for g in jsonData.get('@graph'):
-            if g.get('http://www.w3.org/2002/07/owl#sameAs'):
-                for same in g.get('http://www.w3.org/2002/07/owl#sameAs'):
-                    if isinstance(same, (str, unicode)):
-                        if same.startswith('http://wikidata.org/entity/'):
-                            return same[len('http://wikidata.org/entity/'):]
-                return None
-    return None
+    # url pattern for individual entries
+    url = 'http://europeana.eu/api/v2/record/%s.json?wskey=' + \
+          config.APIKEY + \
+          '&profile=full'
 
-
-def getPaintingGenerator(rows=MAX_ROWS, start=1):
-    """
-    Get objects from Europeanas API.
-    API call specifies:
-    DATA_PROVIDER=Nationalmuseum (Sweden)
-    what=paintings
-    """
-    # Search url limits hits to
-    # * paintings
-    # * in Nationalmuseum, Sweden
-    # * aggregated through AthenaPlus
-    searchurl = 'http://www.europeana.eu/api/v2/search.json?wskey=' \
-                + config.APIKEY \
-                + '&profile=minimal&rows=' \
-                + str(min(MAX_ROWS, rows)) \
-                + '&start=' \
-                + str(start) \
-                + '&query=*%3A*' \
-                + '&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22' \
-                + '&qf=what%3A+paintings' \
-                + '&qf=PROVIDER%3A%22AthenaPlus%22'
-
-    url = 'http://europeana.eu/api/v2/record/%s.json?wskey=' \
-          + config.APIKEY \
-          + '&profile=full'
-
-    overviewPage = urllib.urlopen(searchurl)
-    overviewData = overviewPage.read()
-    overviewJsonData = json.loads(overviewData)
-    overviewPage.close()
+    overview_page = urllib2.urlopen(search_url % (min(MAX_ROWS, rows),
+                                                  start, search_query))
+    overview_json_data = json.loads(overview_page.read())
+    overview_page.close()
     fail = False
-    totalResults = overviewJsonData.get('totalResults')
-    if start > totalResults:
-        pywikibot.output(u'Too high start value. There are only %d results' %
-                         totalResults)
-        exit(1)
+    total_results = overview_json_data.get('totalResults')
+    if start > total_results:
+        raise pywikibot.Error(u'Too high start value. '
+                              u'There are only %d results' % total_results)
 
-    for item in overviewJsonData.get('items'):
-        apiPage = urllib.urlopen(url % item.get('id').lstrip('/'))
-        apiData = apiPage.read()
+    for item in overview_json_data.get('items'):
+        api_page = urllib2.urlopen(url % item.get('id').lstrip('/'))
         try:
-            jsonData = json.loads(apiData)
+            json_data = json.loads(api_page.read())
         except ValueError, e:
-            print e
-            print url % item.get('id')
-            exit(1)
+            item_url = url % item.get('id')
+            raise pywikibot.Error('Error loading Europeana item at '
+                                  '%s with error %s' % (item_url, e))
 
-        apiPage.close()
-        if jsonData.get(u'success'):
-            yield jsonData
+        api_page.close()
+        if json_data.get(u'success'):
+            yield json_data
         else:
-            print jsonData
+            print json_data
             fail = True
 
     # call again to get around the MAX_ROWS limit of the api
     if not fail and rows > MAX_ROWS:
-        if (start + MAX_ROWS) > totalResults:
+        if (start + MAX_ROWS) > total_results:
             pywikibot.output(u'No more results! You are done!')
         else:
             pywikibot.output(u'%d...' % (start + MAX_ROWS))
-            for g in getPaintingGenerator(rows=(rows - MAX_ROWS),
-                                          start=(start + MAX_ROWS)):
+            for g in get_PaintingGenerator(rows=(rows - MAX_ROWS),
+                                           start=(start + MAX_ROWS)):
                 yield g
 
 
 def main(rows=MAX_ROWS, start=1, add_new=True):
-    paintingGen = getPaintingGenerator(rows=rows, start=start)
+    paintingGen = get_PaintingGenerator(rows=rows, start=start)
 
-    paintingsBot = PaintingsBot(paintingGen, INVNO_P)  # inv nr.
-    paintingsBot.run(add_new=add_new)
+    paintingsBot = PaintingsBot(paintingGen, INVNO_P, add_new)  # inv nr.
+    paintingsBot.run()
     # paintingsBot.mostMissedCreators()
 
 
