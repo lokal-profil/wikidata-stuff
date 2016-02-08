@@ -2,13 +2,26 @@
 # -*- coding: utf-8 -*-
 """
 Bot to import paintings from the Nationalmuseum (Sweden) to Wikidata.
-    by Lokal_Profil
+
+Author: Lokal_Profil
+License: MIT
+
+usage:
+    python nationalmuseumSE.py [OPTIONS]
+
+Options (may be omitted):
+  -rows:INT       number of entries to process before terminating
+  -start:INT      the offset in results at which to start (default: none=1)
+  -add_new:bool   whether new objects should be created (default: True)
+Can also handle any pywikibot options. Most importantly:
+  -simulate         don't write to database
 
 Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
     /bot/wikidata/rijksmuseum_import.py by Multichill
 
 @todo: Allow image updates to run without having to hammer the Europeana api
 """
+# a dirty hack to allow the script to be run from the NatMus directory
 if __name__ == '__main__' and __package__ is None:
     from os import sys, path
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
@@ -59,7 +72,8 @@ class PaintingsBot:
 
         # Load prefixes and find allowed collections
         collections = set([INSTITUTION_Q])
-        self.mappings = helpers.load_json_file('mappings.json')
+        self.mappings = helpers.load_json_file('mappings.json',
+                                               force_path=__file__)
         self.prefix_map = self.mappings['prefix_map']
         self.bad_prefix = self.mappings['bad_prefix']
         for p, k in self.prefix_map.iteritems():
@@ -204,15 +218,15 @@ class PaintingsBot:
         """
         creator_Q = None
         try:
-            dcCreatorDB = painting['object']['proxies'][1]['dcCreator']['def']
-            if len(dcCreatorDB) == 1:
+            db_creator = painting['object']['proxies'][1]['dcCreator']['def']
+            if len(db_creator) == 1:
                 # skip anything more complex than one creator
-                dcCreatorDB = dcCreatorDB[0].strip()
-                if dcCreatorDB.startswith('http://dbpedia.org/resource/'):
-                    if dcCreatorDB not in self.creators.keys():
-                        self.creators[dcCreatorDB] = \
-                            helpers.dbpedia_2_wikidata(dcCreatorDB)
-                    creator_Q = self.creators[dcCreatorDB]
+                db_creator = db_creator[0].strip()
+                if db_creator.startswith('http://dbpedia.org/resource/'):
+                    if db_creator not in self.creators.keys():
+                        self.creators[db_creator] = \
+                            helpers.dbpedia_2_wikidata(db_creator)
+                    creator_Q = self.creators[db_creator]
         except KeyError:
             return
 
@@ -516,7 +530,8 @@ class PaintingsBot:
         return images
 
     def mostMissedCreators(self, cacheMaxAge=0):
-        """
+        """Produce list of most frequent, but unlinked, creators.
+
         Query WDQ for all objects in the collection missing an artist
         then put together a toplist for most desired creator
         """
@@ -637,7 +652,7 @@ def make_labels(painting):
     return labels
 
 
-def get_PaintingGenerator(rows=MAX_ROWS, start=1):
+def get_painting_generator(rows=MAX_ROWS, start=1):
     """Get objects from Europeanas API.
 
     The API call specifies:
@@ -699,42 +714,50 @@ def get_PaintingGenerator(rows=MAX_ROWS, start=1):
             pywikibot.output(u'No more results! You are done!')
         else:
             pywikibot.output(u'%d...' % (start + MAX_ROWS))
-            for g in get_PaintingGenerator(rows=(rows - MAX_ROWS),
-                                           start=(start + MAX_ROWS)):
+            for g in get_painting_generator(rows=(rows - MAX_ROWS),
+                                            start=(start + MAX_ROWS)):
                 yield g
 
 
-def main(rows=MAX_ROWS, start=1, add_new=True):
-    paintingGen = get_PaintingGenerator(rows=rows, start=start)
+def main(*args):
+    """Run the bot from the command line and handle any arguments."""
+    # handle arguments
+    rows = MAX_ROWS
+    start = 1
+    add_new = True
+    usage = u'Usage:\tpython nationalmuseumSE.py -rows:<num> -start:<num> ' \
+            u'-add_new:<true/false>\n' \
+            u'\twhere rows and start are optional positive integers\n' \
+            u'\tand add_new is a boolean (defaults to true)'
 
-    paintingsBot = PaintingsBot(paintingGen, INVNO_P, add_new)  # inv nr.
+    def if_arg_value(arg, name):
+        if arg.startswith(name):
+            yield arg[len(name) + 1:]
+
+    for arg in pywikibot.handle_args(args):
+        for v in if_arg_value(arg, '-rows'):
+            if helpers.is_int(v) and int(v) > 0:
+                rows = int(v)
+            else:
+                pywikibot.output(usage)
+        for v in if_arg_value(arg, '-start'):
+            if helpers.is_int(v) and int(v) > 0:
+                start = int(v)
+            else:
+                pywikibot.output(usage)
+        for v in if_arg_value(arg, '-new'):
+            if v.lower() in ('t', 'true'):
+                add_new = True
+            elif v.lower() in ('f', 'false'):
+                add_new = True
+            else:
+                pywikibot.output(usage)
+
+    painting_gen = get_painting_generator(rows=rows, start=start)
+
+    paintingsBot = PaintingsBot(painting_gen, INVNO_P, add_new)  # inv nr.
     paintingsBot.run()
     # paintingsBot.mostMissedCreators()
 
-
 if __name__ == "__main__":
-    usage = u'Usage:\tpython nationalmuseumSE.py rows start add_new\n' \
-            u'\twhere rows and start are optional positive integers\n' \
-            u'\tand add_new is a boolean (defaults to true)'
-    import sys
-    argv = sys.argv[1:]
-    if not argv:
-        main()
-    elif len(argv) == 2:
-        if int(argv[0]) < 1 or int(argv[1]) < 1:
-            print usage
-        else:
-            main(rows=int(argv[0]), start=int(argv[1]))
-    elif len(argv) == 3:
-        if int(argv[0]) < 1 or int(argv[1]) < 1:
-            print usage
-            exit(1)
-        if argv[2] in ('t', 'T', 'True', 'true'):
-            main(rows=int(argv[0]), start=int(argv[1]), add_new=True)
-        elif argv[2] in ('f', 'F', 'False', 'false'):
-            main(rows=int(argv[0]), start=int(argv[1]), add_new=False)
-        else:
-            print u'Could not interpret the add_new parameter'
-            print usage
-    else:
-        print usage
+    main()

@@ -27,14 +27,24 @@ matchedNames = {  # a dict of found first/last_name_Q lookups
 }
 
 
-def load_json_file(filename):
+def load_json_file(filename, force_path=None):
     """Load a local json file and return the data.
+
+    The force_path parameter is needed for loading files in the same
+    directory as the calling script, when that script is called from
+    another directory.
 
     @param filename: The filename, and path, to the josn file
     @type filename: str, unicode
+    @param force_path: Force the system to look for the file in the
+        same directory as this file
+    @type force_path: str
     @return: Data in the json file
     @rtype: any
     """
+    if force_path:
+        path = os.path.dirname(os.path.abspath(force_path))
+        filename = os.path.join(path, filename)
     f = codecs.open(filename, 'r', 'utf-8')
     return json.load(f)
 
