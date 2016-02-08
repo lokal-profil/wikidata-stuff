@@ -32,7 +32,7 @@ class WikidataStuff(object):
         A comparison will fail if ANY of the source_test sources are present.
         """
 
-        def __init__(self, source_test=[], source_notest=[]):
+        def __init__(self, source_test=None, source_notest=None):
             """Make a Reference object from the provided sources.
 
             param source_test: claims which should be included in
@@ -42,6 +42,10 @@ class WikidataStuff(object):
                 comparison tests
             type source_notest: pywikibot.Claim|list of pywikibot.Claim
             """
+            # avoid mutable default arguments
+            source_test = source_test or []
+            source_notest = source_notest or []
+
             # standardise the two types of allowed input
             self.source_test = listify(source_test)
             self.source_notest = listify(source_notest)
