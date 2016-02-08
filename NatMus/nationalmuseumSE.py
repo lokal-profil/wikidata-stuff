@@ -6,26 +6,24 @@ Bot to import paintings from the Nationalmuseum (Sweden) to Wikidata.
 Author: Lokal_Profil
 License: MIT
 
-usage:
-    python nationalmuseumSE.py [OPTIONS]
-
-Options (may be omitted):
-  -rows:INT       number of entries to process before terminating
-  -start:INT      the offset in results at which to start (default: none=1)
-  -add_new:bool   whether new objects should be created (default: True)
-Can also handle any pywikibot options. Most importantly:
-  -simulate         don't write to database
-
 Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
     /bot/wikidata/rijksmuseum_import.py by Multichill
 
 @todo: Allow image updates to run without having to hammer the Europeana api
-"""
-# a dirty hack to allow the script to be run from its sub-directory
-if __name__ == '__main__' and __package__ is None:
-    from os import sys, path
-    sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
+usage:
+    python NatMus/nationalmuseumSE.py [OPTIONS]
+
+Options (may be omitted):
+-rows:INT         Number of entries to process before terminating.
+
+-start:INT        The offset in results at which to start (default: none=1)
+
+-add_new:bool     Whether new objects should be created (default: True)
+
+Can also handle any pywikibot options. Most importantly:
+-simulate         Don't write to database
+"""
 import pywikibot
 from pywikibot import pagegenerators
 import pywikibot.data.wikidataquery as wdquery
@@ -36,6 +34,17 @@ import json
 import datetime
 import codecs
 import urllib2
+
+usage = u"""
+Usage:            python NatMus/nationalmuseumSE.py [OPTIONS]
+                  with options:
+
+-rows:INT         Number of entries to process before terminating.
+
+-start:INT        The offset in results at which to start (default: none=1)
+
+-add_new:bool     Whether new objects should be created (default: True)
+"""
 
 EDIT_SUMMARY = u'NationalmuseumBot'
 COMMONS_Q = u'565'
@@ -736,10 +745,6 @@ def main(*args):
     rows = MAX_ROWS
     start = 1
     add_new = True
-    usage = u'Usage:\tpython nationalmuseumSE.py -rows:<num> -start:<num> ' \
-            u'-add_new:<true/false>\n' \
-            u'\twhere rows and start are optional positive integers\n' \
-            u'\tand add_new is a boolean (defaults to true)'
 
     for arg in pywikibot.handle_args(args):
         for v in helpers.if_arg_value(arg, '-rows'):

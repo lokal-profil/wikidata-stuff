@@ -6,7 +6,7 @@ the Riksdag open data on parliment members
 (http://data.riksdagen.se/Data/Ledamoter/).
 
 usage:
-    python riksdagsBot.py [OPTIONS]
+    python Riksdagsdata/riksdagsBot.py [OPTIONS]
 
 Author: Lokal_Profil
 License: MIT
@@ -23,11 +23,6 @@ TODO: note that comparisons need to be done so that it works for
 
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 """
-# a dirty hack to allow the script to be run from its sub-directory
-if __name__ == '__main__' and __package__ is None:
-    from os import sys, path
-    sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-
 # import json
 import pywikibot
 from WikidataStuff import WikidataStuff as WD
