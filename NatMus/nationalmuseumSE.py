@@ -175,9 +175,9 @@ class PaintingsBot:
         @param painting: information object for the painting
         @type painting: dict
         """
-        dcTitle = painting['object']['proxies'][0]['dcTitle']
+        dc_title = painting['object']['proxies'][0]['dcTitle']
         titles = []
-        for lang, title in dcTitle.iteritems():
+        for lang, title in dc_title.iteritems():
             titles.append(pywikibot.WbMonolingualText(title[0], lang))
         for title in titles:
             self.wd.addNewClaim(
@@ -527,7 +527,7 @@ class PaintingsBot:
         Query WDQ for all objects in the collection missing an artist
         then put together a toplist for most desired creator
         """
-        expectedItems = []
+        expected_items = []
         query = u'CLAIM[195:%s] AND NOCLAIM[170]' % \
                 ',195:'.join(self.collections)  # collection
         wd_queryset = wdquery.QuerySet(query)
@@ -536,11 +536,11 @@ class PaintingsBot:
         data = wd_query.query(wd_queryset)
 
         if data.get('status').get('error') == 'OK':
-            expectedItems = data.get('items')
+            expected_items = data.get('items')
 
-        creatorDict = {}
+        creator_dict = {}
         counter = 0
-        for qval in expectedItems:
+        for qval in expected_items:
             qItem = self.wd.QtoItemPage(qval)
             data = qItem.get()
             claims = data.get('claims')
@@ -551,16 +551,16 @@ class PaintingsBot:
                 creator = descr[len(u'painting by '):]
                 if '(' in creator:  # to get rid of disambiguation addition
                     creator = creator[:creator.find('(')].strip()
-                if creator in creatorDict.keys():
-                    creatorDict[creator] += 1
+                if creator in creator_dict.keys():
+                    creator_dict[creator] += 1
                 else:
-                    creatorDict[creator] = 1
+                    creator_dict[creator] = 1
                 counter += 1
         pywikibot.output(u'Found %d mentions of %d creators' %
-                         (counter, len(creatorDict)))
+                         (counter, len(creator_dict)))
         # output
         f = codecs.open(u'creatorHitlist.csv', 'w', 'utf-8')
-        for k, v in creatorDict.iteritems():
+        for k, v in creator_dict.iteritems():
             f.write(u'%d|%s\n' % (v, k))
         f.close()
 
