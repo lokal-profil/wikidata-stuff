@@ -308,6 +308,18 @@ def is_int(value):
         return False
 
 
+def is_pos_int(value):
+    """Check if the given value is a positive integer.
+
+    @param value: The value to check
+    @type value: str, or int
+    @return bool
+    """
+    if is_int(value) and int(value) > 0:
+        return True
+    return False
+
+
 def reorder_names(name):
     """Detect a "Last, First" string and return as "First Last".
 
@@ -401,6 +413,22 @@ def dbpedia_2_wikidata(dbpedia):
                             return same[len('http://wikidata.org/entity/'):]
                 return None
     return None
+
+
+def if_arg_value(arg, name):
+    """Yield the values of any argument starting with the given name.
+
+    I.e. given arg="-parameter:value" if_arg_value(arg, parameter) should
+    return "value".
+
+    @param arg: the argument being analysed
+    @type arg: str
+    @param name: the parameter being searched for
+    @type name: str
+    @yields: str
+    """
+    if arg.startswith(name):
+        yield arg[len(name) + 1:]
 
 
 # generic methods which are needed in WikidataStuff.py are defined there to

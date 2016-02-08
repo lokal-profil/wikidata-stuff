@@ -741,28 +741,24 @@ def main(*args):
             u'\twhere rows and start are optional positive integers\n' \
             u'\tand add_new is a boolean (defaults to true)'
 
-    def if_arg_value(arg, name):
-        if arg.startswith(name):
-            yield arg[len(name) + 1:]
-
     for arg in pywikibot.handle_args(args):
-        for v in if_arg_value(arg, '-rows'):
-            if helpers.is_int(v) and int(v) > 0:
+        for v in helpers.if_arg_value(arg, '-rows'):
+            if helpers.is_pos_int(v):
                 rows = int(v)
             else:
-                pywikibot.output(usage)
-        for v in if_arg_value(arg, '-start'):
-            if helpers.is_int(v) and int(v) > 0:
+                raise pywikibot.Error(usage)
+        for v in helpers.if_arg_value(arg, '-start'):
+            if helpers.is_pos_int(v):
                 start = int(v)
             else:
-                pywikibot.output(usage)
-        for v in if_arg_value(arg, '-new'):
+                raise pywikibot.Error(usage)
+        for v in helpers.if_arg_value(arg, '-new'):
             if v.lower() in ('t', 'true'):
                 add_new = True
             elif v.lower() in ('f', 'false'):
                 add_new = True
             else:
-                pywikibot.output(usage)
+                raise pywikibot.Error(usage)
 
     painting_gen = get_painting_generator(rows=rows, start=start)
 

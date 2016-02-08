@@ -918,16 +918,12 @@ class KulturnavBot(object):
         maxHits = 250
         delay = 0
 
-        def if_arg_value(arg, name):
-            if arg.startswith(name):
-                yield arg[len(name) + 1:]
-
         for arg in pywikibot.handle_args(args):
-            for v in if_arg_value(arg, '-cutoff'):
+            for v in helpers.if_arg_value(arg, '-cutoff'):
                 cutoff = int(v)
-            for v in if_arg_value(arg, '-maxHits'):
+            for v in helpers.if_arg_value(arg, '-maxHits'):
                 maxHits = int(v)
-            for v in if_arg_value(arg, '-delay'):
+            for v in helpers.if_arg_value(arg, '-delay'):
                 delay = int(v)
 
         kulturnavGenerator = cls.getKulturnavGenerator(maxHits=maxHits,
