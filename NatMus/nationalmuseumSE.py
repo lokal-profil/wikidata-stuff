@@ -21,7 +21,7 @@ Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
 
 @todo: Allow image updates to run without having to hammer the Europeana api
 """
-# a dirty hack to allow the script to be run from the NatMus directory
+# a dirty hack to allow the script to be run from its sub-directory
 if __name__ == '__main__' and __package__ is None:
     from os import sys, path
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
@@ -130,7 +130,6 @@ class PaintingsBot:
         if painting_id in self.painting_ids:
             painting_item = self.create_existing_painting(painting,
                                                           painting_id)
-
         elif self.add_new and not (
                 self.skip_miniatures and PaintingsBot.is_miniature(painting)):
             # if objection collection is allowed and
@@ -344,11 +343,7 @@ class PaintingsBot:
         # check label
         data = painting_item.get()
         labels = make_labels(painting)
-        new_labels = {}
-        for lang, label in labels.iteritems():
-            # can probably try to add any way
-            if lang not in data.get('labels').keys():
-                new_labels[lang] = label['value']
+        new_labels = find_new_values(data, labels, 'labels')
         if new_labels:
             pywikibot.output('Adding label to %s' %
                              painting_item.title())
@@ -357,10 +352,7 @@ class PaintingsBot:
         # check description
         descriptions = make_descriptions(painting)
         if descriptions:
-            new_descr = {}
-            for lang, descr in descriptions.iteritems():
-                if lang not in data.get('descriptions').keys():
-                    new_descr[lang] = descr['value']
+            new_descr = find_new_values(data, descriptions, 'descriptions')
             if new_descr:
                 pywikibot.output('Adding description to %s' %
                                  painting_item.title())
@@ -650,6 +642,25 @@ def make_labels(painting):
             painting['object']['proxies'][0]['dcTitle'].iteritems():
         labels[dcTitleLang] = {'language': dcTitleLang, 'value': dcTitle[0]}
     return labels
+
+
+def find_new_values(data, values, key):
+    """Identify any new label/description values which could be added to an item.
+
+    @param data: the contents of the painting item
+    @type data: dict
+    @param values: the output of either make_labels or make_descriptions
+    @type values: dict
+    @param key: the type of values being processed (labels or descriptions)
+    @type key: string
+    @return lang-value pairs for new information
+    @rtype dict
+    """
+    new_values = {}
+    for lang, value in values.iteritems():
+        if lang not in data.get(key).keys():
+            new_values[lang] = value['value']
+    return new_values
 
 
 def get_painting_generator(rows=MAX_ROWS, start=1):
