@@ -23,6 +23,7 @@ TODO: note that comparisons need to be done so that it works for
 
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 """
+# a dirty hack to allow the script to be run from its sub-directory
 if __name__ == '__main__' and __package__ is None:
     from os import sys, path
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
@@ -67,7 +68,8 @@ class RiksdagsBot(object):
         self.verbose = verbose
 
         # load mappings
-        self.mappings = helpers.load_json_file('mappings.json')
+        self.mappings = helpers.load_json_file('mappings.json',
+                                               force_path=__file__)
 
         # trigger wdq query
         self.itemIds = helpers.fill_cache(RIKSDAG_ID_P)

@@ -20,7 +20,7 @@ Options (may be omitted):
   -delay:INT        seconds to delay between each kulturnav request
                     (default 0)
 Can also handle any pywikibot options. Most importantly:
-  -simulate         don't write to databse
+  -simulate         don't write to database
 
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 """
