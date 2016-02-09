@@ -671,11 +671,6 @@ def find_new_values(data, values, key):
 def get_painting_generator(rows=None, cursor=None, counter=0):
     """Get objects from Europeanas API.
 
-    The API call specifies:
-    * DATA_PROVIDER=Nationalmuseum (Sweden)
-    * what=paintings
-    * PROVIDER=AthenaPlus
-
     @param rows: the number of results to request
     @type rows: int
     @param cursor: the cursor for the next paginated response
@@ -685,22 +680,9 @@ def get_painting_generator(rows=None, cursor=None, counter=0):
     cursor = cursor or '*'  # initial value for cursor
     num_rows = rows or MAX_ROWS  # to separate the None case
 
-    search_url = 'http://www.europeana.eu/api/v2/search.json?wskey=' + \
-                 config.APIKEY + \
-                 '&profile=minimal&rows=%d' + \
-                 '&cursor=%s' + \
-                 '&query=%s'
-
-    # split query off to better deal with escaping
-    search_query = '*%3A*' + \
-                   '&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22' + \
-                   '&qf=what%3A+paintings' + \
-                   '&qf=PROVIDER%3A%22AthenaPlus%22'
-
-    overview_page = urllib2.urlopen(search_url % (min(MAX_ROWS, num_rows),
-                                                  cursor, search_query))
-    overview_json_data = json.loads(overview_page.read())
-    overview_page.close()
+    # perform search
+    overview_json_data = get_search_results(min(MAX_ROWS, num_rows),
+                                            cursor)
     cursor = overview_json_data.get('nextCursor')  # None if at the end
 
     # get data for each individual item in the search batch
@@ -721,6 +703,39 @@ def get_painting_generator(rows=None, cursor=None, counter=0):
             pywikibot.output(u'You are done!')
     else:
         pywikibot.output(u'No more results! You are done!')
+
+
+def get_search_results(rows, cursor):
+    """Retrieve the results from a single API search.
+
+    The API call specifies:
+    * DATA_PROVIDER=Nationalmuseum (Sweden)
+    * what=paintings
+    * PROVIDER=AthenaPlus
+
+    @param rows: the number of results to request
+    @type rows: int
+    @param cursor: the cursor for the next paginated response
+    @type cursor: str
+    @return: the search result object
+    @rtype: dict
+    """
+    search_url = 'http://www.europeana.eu/api/v2/search.json?wskey=' + \
+                 config.APIKEY + \
+                 '&profile=minimal&rows=%d' + \
+                 '&cursor=%s' + \
+                 '&query=%s'
+
+    # split query off to better deal with escaping
+    search_query = '*%3A*' + \
+                   '&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22' + \
+                   '&qf=what%3A+paintings' + \
+                   '&qf=PROVIDER%3A%22AthenaPlus%22'
+
+    overview_page = urllib2.urlopen(search_url % (rows, cursor, search_query))
+    overview_json_data = json.loads(overview_page.read())
+    overview_page.close()
+    return overview_json_data
 
 
 def get_single_painting(item):
