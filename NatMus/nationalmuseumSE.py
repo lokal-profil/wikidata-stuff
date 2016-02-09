@@ -15,9 +15,7 @@ usage:
     python NatMus/nationalmuseumSE.py [OPTIONS]
 
 Options (may be omitted):
--rows:INT         Number of entries to process before terminating.
-
--start:INT        The offset in results at which to start (default: none=1)
+-rows:INT         Number of entries to process (default: All)
 
 -add_new:bool     Whether new objects should be created (default: True)
 
@@ -39,9 +37,7 @@ usage = u"""
 Usage:            python NatMus/nationalmuseumSE.py [OPTIONS]
                   with options:
 
--rows:INT         Number of entries to process before terminating.
-
--start:INT        The offset in results at which to start (default: none=1)
+-rows:INT         Number of entries to process (default: All)
 
 -add_new:bool     Whether new objects should be created (default: True)
 """
@@ -672,7 +668,7 @@ def find_new_values(data, values, key):
     return new_values
 
 
-def get_painting_generator(rows=MAX_ROWS, start=1):
+def get_painting_generator(rows=None, cursor=None, counter=0):
     """Get objects from Europeanas API.
 
     The API call specifies:
@@ -680,81 +676,96 @@ def get_painting_generator(rows=MAX_ROWS, start=1):
     * what=paintings
     * PROVIDER=AthenaPlus
 
-    @param rows: the number of results to request at once
+    @param rows: the number of results to request
     @type rows: int
-    @param start: the offset in results at which to start
-    @type start: int
+    @param cursor: the cursor for the next paginated response
+    @type cursor: str
     @yield: dict
     """
-    # url for search
+    cursor = cursor or '*'  # initial value for cursor
+    num_rows = rows or MAX_ROWS  # to separate the None case
+
     search_url = 'http://www.europeana.eu/api/v2/search.json?wskey=' + \
                  config.APIKEY + \
                  '&profile=minimal&rows=%d' + \
-                 '&start=%d' + \
+                 '&cursor=%s' + \
                  '&query=%s'
+
+    # split query off to better deal with escaping
     search_query = '*%3A*' + \
                    '&qf=DATA_PROVIDER%3A%22Nationalmuseum%2C+Sweden%22' + \
                    '&qf=what%3A+paintings' + \
                    '&qf=PROVIDER%3A%22AthenaPlus%22'
 
-    # url pattern for individual entries
+    overview_page = urllib2.urlopen(search_url % (min(MAX_ROWS, num_rows),
+                                                  cursor, search_query))
+    overview_json_data = json.loads(overview_page.read())
+    overview_page.close()
+    cursor = overview_json_data.get('nextCursor')  # None if at the end
+
+    # get data for each individual item in the search batch
+    for item in overview_json_data.get('items'):
+        yield get_single_painting(item)
+
+    # call again to get around the MAX_ROWS limit of the api
+    if cursor:
+        if not rows or num_rows > MAX_ROWS:
+            counter += MAX_ROWS
+            pywikibot.output(u'%d...' % (counter))
+            rows = min(rows, num_rows - MAX_ROWS)  # preserves None
+            for g in get_painting_generator(rows=rows,
+                                            cursor=cursor,
+                                            counter=counter):
+                yield g
+        else:
+            pywikibot.output(u'You are done!')
+    else:
+        pywikibot.output(u'No more results! You are done!')
+
+
+def get_single_painting(item):
+    """Retrieve the data on a single painting.
+
+    Raises an pywikibot.Error if a non-json response is recieved or if the
+    querry status is not success.
+
+    @param item: an item entry from the search results
+    @type item: dict
+    @return: the painting object
+    @rtype: dict
+    @raise: pywikibot.Error
+    """
     url = 'http://europeana.eu/api/v2/record/%s.json?wskey=' + \
           config.APIKEY + \
           '&profile=full'
-
-    overview_page = urllib2.urlopen(search_url % (min(MAX_ROWS, rows),
-                                                  start, search_query))
-    overview_json_data = json.loads(overview_page.read())
-    overview_page.close()
-    fail = False
-    total_results = overview_json_data.get('totalResults')
-    if start > total_results:
-        raise pywikibot.Error(u'Too high start value. '
-                              u'There are only %d results' % total_results)
-
-    for item in overview_json_data.get('items'):
-        api_page = urllib2.urlopen(url % item.get('id').lstrip('/'))
-        try:
-            json_data = json.loads(api_page.read())
-        except ValueError, e:
-            item_url = url % item.get('id')
-            raise pywikibot.Error('Error loading Europeana item at '
-                                  '%s with error %s' % (item_url, e))
-
+    item_url = url % item.get('id').lstrip('/')
+    # retrieve and load the data
+    try:
+        api_page = urllib2.urlopen(item_url)
+        json_data = json.loads(api_page.read())
         api_page.close()
-        if json_data.get(u'success'):
-            yield json_data
-        else:
-            print json_data
-            fail = True
+    except ValueError, e:
+        raise pywikibot.Error('Error loading Europeana item at '
+                              '%s with error %s' % (item_url, e))
 
-    # call again to get around the MAX_ROWS limit of the api
-    if not fail and rows > MAX_ROWS:
-        if (start + MAX_ROWS) > total_results:
-            pywikibot.output(u'No more results! You are done!')
-        else:
-            pywikibot.output(u'%d...' % (start + MAX_ROWS))
-            for g in get_painting_generator(rows=(rows - MAX_ROWS),
-                                            start=(start + MAX_ROWS)):
-                yield g
+    # check that it worked
+    if json_data.get(u'success'):
+        return json_data
+    else:
+        raise pywikibot.Error('Error loading Europeana item at '
+                              '%s with data:\n%s' % (item_url, json_data))
 
 
 def main(*args):
     """Run the bot from the command line and handle any arguments."""
     # handle arguments
-    rows = MAX_ROWS
-    start = 1
+    rows = None
     add_new = True
 
     for arg in pywikibot.handle_args(args):
         for v in helpers.if_arg_value(arg, '-rows'):
             if helpers.is_pos_int(v):
                 rows = int(v)
-            else:
-                raise pywikibot.Error(usage)
-        for v in helpers.if_arg_value(arg, '-start'):
-            if helpers.is_pos_int(v):
-                start = int(v)
             else:
                 raise pywikibot.Error(usage)
         for v in helpers.if_arg_value(arg, '-new'):
@@ -765,7 +776,7 @@ def main(*args):
             else:
                 raise pywikibot.Error(usage)
 
-    painting_gen = get_painting_generator(rows=rows, start=start)
+    painting_gen = get_painting_generator(rows=rows)
 
     paintingsBot = PaintingsBot(painting_gen, INVNO_P, add_new)  # inv nr.
     paintingsBot.run()
