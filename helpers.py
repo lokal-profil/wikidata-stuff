@@ -10,6 +10,7 @@ Methods comonly shared by Wikidata-stuff bots which are:
 import os
 import json
 import codecs
+import urllib  # for dbpedia_2_wikidata
 import urllib2  # for dbpedia_2_wikidata
 import time  # for dbpedia_2_wikidata
 import pywikibot
@@ -382,7 +383,7 @@ def dbpedia_2_wikidata(dbpedia):
     """
     url = u'http://dbpedia.org/sparql?' + \
           u'default-graph-uri=http%3A%2F%2Fdbpedia.org&query=DESCRIBE+%3C' + \
-          dbpedia + \
+          urllib.quote(dbpedia.encode('utf-8')) + \
           u'%3E&output=application%2Fld%2Bjson'
     # urlencode twice? per http://dbpedia.org/resource/%C3%89douard_Vuillard
     try:
@@ -396,6 +397,7 @@ def dbpedia_2_wikidata(dbpedia):
             pywikibot.output(u'dbpedia is still complaining about %s, '
                              u'skipping' % dbpedia)
             return None
+
     try:
         dbData = dbPage.read()
         jsonData = json.loads(dbData)
