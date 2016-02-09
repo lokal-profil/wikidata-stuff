@@ -530,7 +530,7 @@ class PaintingsBot:
 
         return images
 
-    def mostMissedCreators(self, cacheMaxAge=0):
+    def most_missed_creators(self, cacheMaxAge=0):
         """Produce list of most frequent, but unlinked, creators.
 
         Query WDQ for all objects in the collection missing an artist
@@ -549,9 +549,9 @@ class PaintingsBot:
 
         creator_dict = {}
         counter = 0
-        for qval in expected_items:
-            qItem = self.wd.QtoItemPage(qval)
-            data = qItem.get()
+        for q_val in expected_items:
+            q_item = self.wd.QtoItemPage(q_val)
+            data = q_item.get()
             claims = data.get('claims')
             if u'P170' in claims:
                 continue
@@ -769,7 +769,7 @@ def main(*args):
 
     paintingsBot = PaintingsBot(painting_gen, INVNO_P, add_new)  # inv nr.
     paintingsBot.run()
-    # paintingsBot.mostMissedCreators()
+    # paintingsBot.most_missed_creators()
 
 if __name__ == "__main__":
     main()
