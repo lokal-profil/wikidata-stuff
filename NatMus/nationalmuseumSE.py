@@ -103,7 +103,7 @@ class PaintingsBot:
             painting_id = ids[0].replace('Inv Nr.:', '').strip('( )')
             obj_id = ids[1]
 
-            # Museum contains sevaral subcollections. Only handle mapped ones
+            # Museum contains several sub-collections. Only handle mapped ones
             if painting_id.split(' ')[0] in self.prefix_map.keys():
                 self.process_painting(painting, painting_id, obj_id)
             elif painting_id.split(' ')[0] not in self.bad_prefix:
@@ -138,7 +138,7 @@ class PaintingsBot:
         elif self.add_new and not (
                 self.skip_miniatures and PaintingsBot.is_miniature(painting)):
             # if objection collection is allowed and
-            # unless it is aminiature and we are skipping those
+            # unless it is a miniature and we are skipping those
             painting_item = self.create_new_painting(painting, painting_id,
                                                      europeana_url, uri)
 
@@ -157,7 +157,7 @@ class PaintingsBot:
                                           painting)
 
             # title (as claim)
-            # commented out as the titles in europeana are not reliable
+            # commented out as the titles in Europeana are not reliable
             # if u'P1476' not in claims:
             #    self.add_title_claim(painting_item, painting)
 
@@ -192,9 +192,9 @@ class PaintingsBot:
                 self.make_europeana_reference(painting))
 
     def add_locatedin_claim(self, painting_item, painting_id, painting):
-        """Add a located_in/P276 claim based on subcollection.
+        """Add a located_in/P276 claim based on sub-collection.
 
-        No longer used as subcollection does not match acual placing.
+        No longer used as sub-collection does not match actual placing.
 
         @param painting_item: item to which claim is added
         @type painting_item: pywikibot.ItemPage
@@ -213,7 +213,7 @@ class PaintingsBot:
             self.make_europeana_reference(painting))
 
     def add_dbpedia_creator(self, painting_item, painting):
-        """Add a Creator/P170 claim through a dbpedia lookup.
+        """Add a Creator/P170 claim through a dbpedia look-up.
 
         @param painting_item: item to which claim is added
         @type painting_item: pywikibot.ItemPage
@@ -373,7 +373,7 @@ class PaintingsBot:
         @param painting_id: the common (older) id of the painting in the
             Nationalmuseum collection
         @type painting_id: str
-        @param europeana_url: reference url for europeana
+        @param europeana_url: reference url for Europeana
         @type europeana_url: str
         @param uri: reference uri at nationalmuseum.se
         @type uri: str
@@ -470,7 +470,7 @@ class PaintingsBot:
             self.make_europeana_reference(painting))
 
     def make_europeana_reference(self, painting):
-        """Make a Reference object with a Europeana retrieval url and todays date.
+        """Make a Reference object with a Europeana retrieval url and today's date.
 
         @param uri: retrieval uri/url
         @type uri: str
@@ -481,7 +481,7 @@ class PaintingsBot:
         return self.make_reference(europeana_url)
 
     def make_reference(self, uri):
-        """Make a Reference object with a retrieval url and todays date.
+        """Make a Reference object with a retrieval url and today's date.
 
         @param uri: retrieval uri/url
         @type uri: str
@@ -530,7 +530,7 @@ class PaintingsBot:
         """Produce list of most frequent, but unlinked, creators.
 
         Query WDQ for all objects in the collection missing an artist
-        then put together a toplist for most desired creator
+        then put together a top-list for most desired creator
         """
         expected_items = []
         query = u'CLAIM[195:%s] AND NOCLAIM[170]' % \
@@ -639,7 +639,7 @@ def make_labels(painting):
 
     @param painting: information object for the painting
     @type painting: dict
-    @return: language-lable pairs
+    @return: language-label pairs
     @rtype: dict
     """
     labels = {}
@@ -669,7 +669,10 @@ def find_new_values(data, values, key):
 
 
 def get_painting_generator(rows=None, cursor=None, counter=0):
-    """Get objects from Europeanas API.
+    """Get objects from Europeana's API.
+
+    @todo: this ends up having loads of instances of the function running
+           a while loop (or other solution, could mitigate that)
 
     @param rows: the number of results to request
     @type rows: int
@@ -686,10 +689,12 @@ def get_painting_generator(rows=None, cursor=None, counter=0):
     cursor = overview_json_data.get('nextCursor')  # None if at the end
 
     # get data for each individual item in the search batch
-    for item in overview_json_data.get('items'):
-        yield get_single_painting(item)
+    # the last batch is not guaranteed to contain any items
+    if overview_json_data.get('items'):
+        for item in overview_json_data.get('items'):
+            yield get_single_painting(item)
 
-    # call again to get around the MAX_ROWS limit of the api
+    # call again to get next set of results if there is a new pagination cursor
     if cursor:
         if not rows or num_rows > MAX_ROWS:
             counter += MAX_ROWS
@@ -741,8 +746,8 @@ def get_search_results(rows, cursor):
 def get_single_painting(item):
     """Retrieve the data on a single painting.
 
-    Raises an pywikibot.Error if a non-json response is recieved or if the
-    querry status is not success.
+    Raises an pywikibot.Error if a non-json response is received or if the
+    query status is not success.
 
     @param item: an item entry from the search results
     @type item: dict
