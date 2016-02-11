@@ -220,7 +220,7 @@ class PaintingsBot:
         @param painting: information object for the painting
         @type painting: dict
         """
-        creator_Q = None
+        creator_id = None
         try:
             db_creator = painting['object']['proxies'][1]['dcCreator']['def']
             if len(db_creator) == 1:
@@ -230,12 +230,12 @@ class PaintingsBot:
                     if db_creator not in self.creators.keys():
                         self.creators[db_creator] = \
                             helpers.dbpedia_2_wikidata(db_creator)
-                    creator_Q = self.creators[db_creator]
+                    creator_id = self.creators[db_creator]
         except KeyError:
             return
 
-        if creator_Q is not None:
-            creator_item = self.wd.QtoItemPage(creator_Q)
+        if creator_id is not None:
+            creator_item = self.wd.QtoItemPage(creator_id)
             self.wd.addNewClaim(
                 u'P170',
                 WD.Statement(creator_item),
@@ -580,17 +580,17 @@ def make_descriptions(painting):
     @return: descriptions formatted for Wikidata input
     @rtype: dict
     """
-    dcCreatorName = None
+    db_creator_name = None
     try:
-        dcCreator = painting['object']['proxies'][0]['dcCreator']
-        dcCreatorName = dcCreator['sv'][0].strip()
+        db_creator = painting['object']['proxies'][0]['dcCreator']
+        db_creator_name = db_creator['sv'][0].strip()
     except KeyError:
         # Skip any weird creator settings
         return
 
     descriptions = {}
-    if dcCreatorName:
-        if dcCreatorName == u'Okänd':
+    if db_creator_name:
+        if db_creator_name == u'Okänd':
             descriptions['en'] = {
                 'language': u'en',
                 'value': u'painting by unknown painter'}
@@ -600,32 +600,32 @@ def make_descriptions(painting):
             descriptions['sv'] = {
                 'language': u'sv',
                 'value': u'målning av okänd konstnär'}
-        elif dcCreatorName.startswith(u'Attributed to'):
-            attribName = dcCreatorName[len(u'Attributed to'):].strip()
+        elif db_creator_name.startswith(u'Attributed to'):
+            attrib_name = db_creator_name[len(u'Attributed to'):].strip()
             descriptions['en'] = {
                 'language': u'en',
-                'value': u'painting attributed to %s' % attribName}
+                'value': u'painting attributed to %s' % attrib_name}
             descriptions['nl'] = {
                 'language': u'nl',
-                'value': u'schilderij toegeschreven aan %s' % attribName}
+                'value': u'schilderij toegeschreven aan %s' % attrib_name}
             descriptions['sv'] = {
                 'language': u'sv',
-                'value': u'målning tillskriven %s' % attribName}
-        elif dcCreatorName.startswith(u'Manner of') or \
-                dcCreatorName.startswith(u'Copy after') or \
-                dcCreatorName.startswith(u'Workshop of') or \
-                dcCreatorName.startswith(u'Circle of'):
+                'value': u'målning tillskriven %s' % attrib_name}
+        elif db_creator_name.startswith(u'Manner of') or \
+                db_creator_name.startswith(u'Copy after') or \
+                db_creator_name.startswith(u'Workshop of') or \
+                db_creator_name.startswith(u'Circle of'):
             return None
         else:
             descriptions['en'] = {
                 'language': u'en',
-                'value': u'painting by %s' % dcCreatorName}
+                'value': u'painting by %s' % db_creator_name}
             descriptions['nl'] = {
                 'language': u'nl',
-                'value': u'schilderij van %s' % dcCreatorName}
+                'value': u'schilderij van %s' % db_creator_name}
             descriptions['sv'] = {
                 'language': u'sv',
-                'value': u'målning av %s' % dcCreatorName}
+                'value': u'målning av %s' % db_creator_name}
     else:
         descriptions['en'] = {'language': u'en', 'value': u'painting'}
         descriptions['nl'] = {'language': u'nl', 'value': u'schilderij'}
@@ -798,9 +798,9 @@ def main(*args):
 
     painting_gen = get_painting_generator(rows=rows)
 
-    paintingsBot = PaintingsBot(painting_gen, INVNO_P, add_new)  # inv nr.
-    paintingsBot.run()
-    # paintingsBot.most_missed_creators()
+    paintings_bot = PaintingsBot(painting_gen, INVNO_P, add_new)  # inv nr.
+    paintings_bot.run()
+    # paintings_bot.most_missed_creators()
 
 if __name__ == "__main__":
     main()

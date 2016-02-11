@@ -387,27 +387,27 @@ def dbpedia_2_wikidata(dbpedia):
           u'%3E&output=application%2Fld%2Bjson'
     # urlencode twice? per http://dbpedia.org/resource/%C3%89douard_Vuillard
     try:
-        dbPage = urllib2.urlopen(url)
+        db_page = urllib2.urlopen(url)
     except IOError:
         pywikibot.output(u'dbpedia is complaining so sleeping for 10s')
         time.sleep(10)
         try:
-            dbPage = urllib2.urlopen(url)
+            db_page = urllib2.urlopen(url)
         except IOError:
             pywikibot.output(u'dbpedia is still complaining about %s, '
                              u'skipping' % dbpedia)
             return None
 
     try:
-        dbData = dbPage.read()
-        jsonData = json.loads(dbData)
-        dbPage.close()
+        db_data = db_page.read()
+        json_data = json.loads(db_data)
+        db_page.close()
     except ValueError, e:
         pywikibot.output(u'dbpedia-skip: %s, %s' % (dbpedia, e))
         return None
 
-    if jsonData.get('@graph'):
-        for g in jsonData.get('@graph'):
+    if json_data.get('@graph'):
+        for g in json_data.get('@graph'):
             if g.get('http://www.w3.org/2002/07/owl#sameAs'):
                 for same in g.get('http://www.w3.org/2002/07/owl#sameAs'):
                     if isinstance(same, (str, unicode)):
