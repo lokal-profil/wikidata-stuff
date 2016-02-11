@@ -6,7 +6,7 @@ the Riksdag open data on parliment members
 (http://data.riksdagen.se/Data/Ledamoter/).
 
 usage:
-    python riksdagsBot.py [OPTIONS]
+    python Riksdagsdata/riksdagsBot.py [OPTIONS]
 
 Author: Lokal_Profil
 License: MIT
@@ -23,10 +23,6 @@ TODO: note that comparisons need to be done so that it works for
 
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 """
-if __name__ == '__main__' and __package__ is None:
-    from os import sys, path
-    sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
-
 # import json
 import pywikibot
 from WikidataStuff import WikidataStuff as WD
@@ -67,7 +63,8 @@ class RiksdagsBot(object):
         self.verbose = verbose
 
         # load mappings
-        self.mappings = helpers.load_json_file('mappings.json')
+        self.mappings = helpers.load_json_file('mappings.json',
+                                               force_path=__file__)
 
         # trigger wdq query
         self.itemIds = helpers.fill_cache(RIKSDAG_ID_P)
@@ -237,11 +234,7 @@ class RiksdagsBot(object):
         # only considered some positions
         roleMap = 'kammar_roll'
         roleCode = uppdrag['roll_kod']
-        if roleCode not in self.mappings[roleMap]['Q'].keys():
-            if roleCode not in self.mappings[roleMap]['skip'].keys():
-                pywikibot.output('Unknown role: %s (%s-%s)' %
-                                 (roleCode, uppdrag['typ'],
-                                  self.current_id))
+        if not self.test_role_code(roleCode, roleMap, uppdrag):
             return None
 
         # only keep certain statuses
@@ -319,11 +312,7 @@ class RiksdagsBot(object):
         """
         # only considered some positions
         roleCode = uppdrag['roll_kod']
-        if roleCode not in self.mappings[roleMap]['Q'].keys():
-            if roleCode not in self.mappings[roleMap]['skip'].keys():
-                pywikibot.output('Unknown role: %s (%s-%s)' %
-                                 (roleCode, uppdrag['typ'],
-                                  self.current_id))
+        if not self.test_role_code(roleCode, roleMap, uppdrag):
             return None
 
         # expect status = None
@@ -357,6 +346,24 @@ class RiksdagsBot(object):
         self.addOrdinal(uppdrag['ordningsnummer'], statement)
 
         return statement
+
+    def test_role_code(self, role_code, role_map, uppdrag):
+        """Test if a role_code is mapped and not marked for skipping.
+
+        Outputs if an unmapped role was found.
+
+        param role_code: str
+        param role_map: str, key within mappings.json
+        param uppdrag: dict
+        return: bool
+        """
+        if role_code not in self.mappings[role_map]['Q'].keys():
+            if role_code not in self.mappings[role_map]['skip'].keys():
+                pywikibot.output('Unknown role: %s (%s-%s)' %
+                                 (role_code, uppdrag['typ'],
+                                  self.current_id))
+            return False
+        return True
 
     def notFuture(self, date):
         """Check that a date is not in the future.

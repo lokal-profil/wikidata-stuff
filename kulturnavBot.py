@@ -20,10 +20,13 @@ Options (may be omitted):
   -delay:INT        seconds to delay between each kulturnav request
                     (default 0)
 Can also handle any pywikibot options. Most importantly:
-  -simulate         don't write to databse
+  -simulate         don't write to database
 
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 """
+# @todo: Stick the options in a global string (parameterHelp) and add &params;
+#        to docstring  and then docuReplacements = {'&params;': parameterHelp}
+#        as global to any subscripts
 import json
 import time
 import pywikibot
@@ -918,16 +921,12 @@ class KulturnavBot(object):
         maxHits = 250
         delay = 0
 
-        def if_arg_value(arg, name):
-            if arg.startswith(name):
-                yield arg[len(name) + 1:]
-
         for arg in pywikibot.handle_args(args):
-            for v in if_arg_value(arg, '-cutoff'):
+            for v in helpers.if_arg_value(arg, '-cutoff'):
                 cutoff = int(v)
-            for v in if_arg_value(arg, '-maxHits'):
+            for v in helpers.if_arg_value(arg, '-maxHits'):
                 maxHits = int(v)
-            for v in if_arg_value(arg, '-delay'):
+            for v in helpers.if_arg_value(arg, '-delay'):
                 delay = int(v)
 
         kulturnavGenerator = cls.getKulturnavGenerator(maxHits=maxHits,

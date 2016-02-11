@@ -10,6 +10,9 @@ Methods comonly shared by Wikidata-stuff bots which are:
 import os
 import json
 import codecs
+import urllib  # for dbpedia_2_wikidata
+import urllib2  # for dbpedia_2_wikidata
+import time  # for dbpedia_2_wikidata
 import pywikibot
 from pywikibot import pagegenerators
 import pywikibot.data.wikidataquery as wdquery
@@ -25,14 +28,24 @@ matchedNames = {  # a dict of found first/last_name_Q lookups
 }
 
 
-def load_json_file(filename):
+def load_json_file(filename, force_path=None):
     """Load a local json file and return the data.
+
+    The force_path parameter is needed for loading files in the same
+    directory as the calling script, when that script is called from
+    another directory.
 
     @param filename: The filename, and path, to the josn file
     @type filename: str, unicode
+    @param force_path: Force the system to look for the file in the
+        same directory as this file
+    @type force_path: str
     @return: Data in the json file
     @rtype: any
     """
+    if force_path:
+        path = os.path.dirname(os.path.abspath(force_path))
+        filename = os.path.join(path, filename)
     f = codecs.open(filename, 'r', 'utf-8')
     return json.load(f)
 
@@ -296,6 +309,18 @@ def is_int(value):
         return False
 
 
+def is_pos_int(value):
+    """Check if the given value is a positive integer.
+
+    @param value: The value to check
+    @type value: str, or int
+    @return bool
+    """
+    if is_int(value) and int(value) > 0:
+        return True
+    return False
+
+
 def reorder_names(name):
     """Detect a "Last, First" string and return as "First Last".
 
@@ -341,6 +366,72 @@ def find_files(path, fileExts, subdir=True):
         for subdir in subdirs:
             files += find_files(path=subdir, fileExts=fileExts)
     return files
+
+
+def dbpedia_2_wikidata(dbpedia):
+    """Return the wikidata id matching a dbpedia entry.
+
+    Given a dbpedia resource reference
+    (e.g. http://dbpedia.org/resource/Richard_Bergh)
+    this returns the sameAs wikidata value, if any.
+    Returns None if no matches.
+
+    @param dbpedia: the dbpedia resource reference
+    @type dbpedia: str
+    @return: Q-value of matching wikidata entry
+    @rtype: str
+    """
+    url = u'http://dbpedia.org/sparql?' + \
+          u'default-graph-uri=http%3A%2F%2Fdbpedia.org&query=DESCRIBE+%3C' + \
+          urllib.quote(dbpedia.encode('utf-8')) + \
+          u'%3E&output=application%2Fld%2Bjson'
+
+    try:
+        db_page = urllib2.urlopen(url)
+    except IOError:
+        pywikibot.output(u'dbpedia is complaining so sleeping for 10s')
+        time.sleep(10)
+        try:
+            db_page = urllib2.urlopen(url)
+        except IOError:
+            pywikibot.output(u'dbpedia is still complaining about %s, '
+                             u'skipping' % dbpedia)
+            return None
+
+    try:
+        db_data = db_page.read()
+        json_data = json.loads(db_data)
+        db_page.close()
+    except ValueError, e:
+        pywikibot.output(u'dbpedia-skip: %s, %s' % (dbpedia, e))
+        return None
+
+    if json_data.get('@graph'):
+        for g in json_data.get('@graph'):
+            if g.get('http://www.w3.org/2002/07/owl#sameAs'):
+                for same in g.get('http://www.w3.org/2002/07/owl#sameAs'):
+                    if isinstance(same, (str, unicode)) and \
+                            same.startswith('http://wikidata.org/entity/'):
+                        return same[len('http://wikidata.org/entity/'):]
+                return None
+    return None
+
+
+def if_arg_value(arg, name):
+    """Yield the values of any argument starting with the given name.
+
+    I.e. given arg="-parameter:value" if_arg_value(arg, parameter) should
+    return "value".
+
+    @param arg: the argument being analysed
+    @type arg: str
+    @param name: the parameter being searched for
+    @type name: str
+    @yields: str
+    """
+    option, sep, value = arg.partition(':')
+    if option == name:
+        yield value
 
 
 # generic methods which are needed in WikidataStuff.py are defined there to

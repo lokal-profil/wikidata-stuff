@@ -32,7 +32,7 @@ class WikidataStuff(object):
         A comparison will fail if ANY of the source_test sources are present.
         """
 
-        def __init__(self, source_test=[], source_notest=[]):
+        def __init__(self, source_test=None, source_notest=None):
             """Make a Reference object from the provided sources.
 
             param source_test: claims which should be included in
@@ -42,6 +42,10 @@ class WikidataStuff(object):
                 comparison tests
             type source_notest: pywikibot.Claim|list of pywikibot.Claim
             """
+            # avoid mutable default arguments
+            source_test = source_test or []
+            source_notest = source_notest or []
+
             # standardise the two types of allowed input
             self.source_test = listify(source_test)
             self.source_notest = listify(source_notest)
@@ -188,7 +192,7 @@ class WikidataStuff(object):
     def addLabelOrAlias(self, lang, name, item, prefix=None,
                         caseSensitive=False):
         """
-        Adds a name as either a label (if none) or an alias
+        Add a name as either a label (if none) or an alias
         in the given language
 
         param lang: the language code
@@ -501,6 +505,22 @@ class WikidataStuff(object):
         claim = pywikibot.Claim(self.repo, u'P%s' % str(prop).lstrip('P'))
         claim.setTarget(target)
         return claim
+
+    def make_new_item(self, data, summary):
+        """Make a new ItemPage given some data and an edit summary.
+
+        @param data: data, correctly formatted, with which to create the item.
+        @type data: dict
+        @param summary: an edit summary for the action
+        @type summary: str
+        @rtype: pywikibot.ItemPage
+        """
+        identification = {}  # @todo: what does this do?
+        result = self.repo.editEntity(identification, data, summary=summary)
+        pywikibot.output(summary)  # afterwards in case an error is raised
+
+        # return the new item
+        return self.QtoItemPage(result.get(u'entity').get('id'))
 
 
 # generic methods which are used already here and so could not be in helpers
