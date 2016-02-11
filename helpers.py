@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 """Common non-fundamental methods used by WikidataStuff bots.
 
-Methods comonly shared by Wikidata-stuff bots but not fundamental
-enough to be in WikidataStuff.py or limited to kulturNav (in which case they
-are in kulturnavBot.py)
+Methods comonly shared by Wikidata-stuff bots which are:
+* not fundamental enough to be in WikidataStuff.py
+* not limited to kulturNav (in which case they are in kulturnavBot.py)
+* unrelated to Wikidata but reused throughout, if also needed in
+  WikidataStuff.py then it is defined there and a wrapper provided here.
 """
 import os
 import json
 import codecs
 import pywikibot
-import pywikibot.data.wikidataquery as wdquery
 from pywikibot import pagegenerators
+import pywikibot.data.wikidataquery as wdquery
+import WikidataStuff
 from WikidataStuff import WikidataStuff as WD
 START_P = 'P580'  # start date
 END_P = 'P582'  # end date
@@ -34,7 +37,7 @@ def load_json_file(filename):
     return json.load(f)
 
 
-def fill_cache(ID_P, queryoverride=u'', cacheMaxAge=0):
+def fill_cache(ID_P, queryoverride=None, cacheMaxAge=0):
     """Query Wikidata to fill the cache of entities which contain the id.
 
     @param ID_P: The id property
@@ -201,15 +204,15 @@ def match_name(name, typ, wd, limit=75):
     matchedNames[typ][name] = None
 
 
-def match_name_on_labs(name, props, wd):
+def match_name_on_labs(name, types, wd):
     """Check if there is an item matching the name using database on labs.
 
     Requires that the bot is running on WMF toollabs.
 
     @param name: The name to search for
     @type name: str, unicode
-    @param props: The Q-values which are allowed for INSTANCE_OF_P
-    @type props: tuple of unicode
+    @param types: The Q-values which are allowed for INSTANCE_OF_P
+    @type types: tuple of unicode
     @param wd: The running WikidataStuff instance
     @type wd: WikidataStuff (WD)
     @return: Any matching items
@@ -219,25 +222,19 @@ def match_name_on_labs(name, props, wd):
     objgen = pagegenerators.PreloadingItemGenerator(
         wd.searchGenerator(name, None))
     for obj in objgen:
-        if INSTANCE_OF_P in obj.get().get('claims'):
-            # print 'claims:', obj.get().get('claims')[u'P31']
-            values = obj.get().get('claims')[INSTANCE_OF_P]
-            for v in values:
-                # print u'val:', v.getTarget()
-                if v.getTarget().title() in props:
-                    matches.append(obj)
+        filter_on_types(obj, types, matches)
     return matches
 
 
-def match_name_off_labs(name, props, wd, limit):
+def match_name_off_labs(name, types, wd, limit):
     """Check if there is an item matching the name using API search.
 
-    Less good than matchNameOnLabs() but works from anywhere.
+    Less good than match_name_on_labs() but works from anywhere.
 
     @param name: The name to search for
     @type name: str, unicode
-    @param props: The Q-values which are allowed for INSTANCE_OF_P
-    @type props: tuple of unicode
+    @param types: The Q-values which are allowed for INSTANCE_OF_P
+    @type types: tuple of unicode
     @param wd: The running WikidataStuff instance
     @type wd: WikidataStuff (WD)
     @return: Any matching items
@@ -258,21 +255,31 @@ def match_name_off_labs(name, props, wd, limit):
         if i > limit:
             # better to skip than to crash when search times out
             # remove any matches (since incomplete) and exit loop
-            matches = []
-            break
-        # print obj.title()
+            return []  # avoids keeping a partial list
+
         if name in (obj.get().get('labels').values() +
                     obj.get().get('aliases').values()):
-
-            # Check if the right type of object
-            if INSTANCE_OF_P in obj.get().get('claims'):
-                # print 'claims:', obj.get().get('claims')[u'P31']
-                values = obj.get().get('claims')[INSTANCE_OF_P]
-                for v in values:
-                    # print u'val:', v.getTarget()
-                    if v.getTarget().title() in props:
-                        matches.append(obj)
+            filter_on_types(obj, types, matches)
     return matches
+
+
+def filter_on_types(obj, types, matches):
+    """Filter potential matches by (instance of) type.
+
+    @param obj: potential matches
+    @type obj: pywikibot.ItemPage
+    @param types: The Q-values which are allowed for INSTANCE_OF_P
+    @type types: tuple of unicode
+    @param matches: list of confirmed matches
+    @type matches: list (of pywikibot.ItemPage)
+    """
+    if INSTANCE_OF_P in obj.get().get('claims'):
+        # print 'claims:', obj.get().get('claims')[u'P31']
+        values = obj.get().get('claims')[INSTANCE_OF_P]
+        for v in values:
+            # print u'val:', v.getTarget()
+            if v.getTarget().title() in types:
+                matches.append(obj)
 
 
 def is_int(value):
@@ -287,21 +294,6 @@ def is_int(value):
         return True
     except (ValueError, TypeError):
         return False
-
-
-def listify(value):
-    """Turn the given value, which might or might not be a list, into a list.
-
-    @param value: The value to listify
-    @type value: any
-    @return list, or None
-    """
-    if value is None:
-        return None
-    elif isinstance(value, list):
-        return value
-    else:
-        return [value, ]
 
 
 def reorder_names(name):
@@ -349,3 +341,15 @@ def find_files(path, fileExts, subdir=True):
         for subdir in subdirs:
             files += find_files(path=subdir, fileExts=fileExts)
     return files
+
+
+# generic methods which are needed in WikidataStuff.py are defined there to
+# avoid a cyclical import
+def listify(value):
+    """Wrapper for WikidataStuff instance of the method."""
+    return WikidataStuff.listify(value)
+
+
+def list_to_lower(string_list):
+    """Wrapper for WikidataStuff instance of the method."""
+    return WikidataStuff.list_to_lower(string_list)

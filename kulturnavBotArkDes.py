@@ -111,7 +111,7 @@ class KulturnavBotArkDes(KulturnavBot):
                 for pn in values[u'person.nationality']:
                     claim.append(WD.Statement(
                         self.location2Wikidata(pn)))
-                if len(claim) > 0:
+                if claim:
                     protoclaims[u'P27'] = claim
 
             return protoclaims
