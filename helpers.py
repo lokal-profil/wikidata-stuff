@@ -385,7 +385,7 @@ def dbpedia_2_wikidata(dbpedia):
           u'default-graph-uri=http%3A%2F%2Fdbpedia.org&query=DESCRIBE+%3C' + \
           urllib.quote(dbpedia.encode('utf-8')) + \
           u'%3E&output=application%2Fld%2Bjson'
-    # urlencode twice? per http://dbpedia.org/resource/%C3%89douard_Vuillard
+
     try:
         db_page = urllib2.urlopen(url)
     except IOError:
@@ -410,9 +410,9 @@ def dbpedia_2_wikidata(dbpedia):
         for g in json_data.get('@graph'):
             if g.get('http://www.w3.org/2002/07/owl#sameAs'):
                 for same in g.get('http://www.w3.org/2002/07/owl#sameAs'):
-                    if isinstance(same, (str, unicode)):
-                        if same.startswith('http://wikidata.org/entity/'):
-                            return same[len('http://wikidata.org/entity/'):]
+                    if isinstance(same, (str, unicode)) and \
+                            same.startswith('http://wikidata.org/entity/'):
+                        return same[len('http://wikidata.org/entity/'):]
                 return None
     return None
 
