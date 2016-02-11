@@ -24,6 +24,9 @@ Can also handle any pywikibot options. Most importantly:
 
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 """
+# @todo: Stick the options in a global string (parameterHelp) and add &params;
+#        to docstring  and then docuReplacements = {'&params;': parameterHelp}
+#        as global to any subscripts
 import json
 import time
 import pywikibot

@@ -429,8 +429,9 @@ def if_arg_value(arg, name):
     @type name: str
     @yields: str
     """
-    if arg.startswith(name):
-        yield arg[len(name) + 1:]
+    option, sep, value = arg.partition(':')
+    if option == name:
+        yield value
 
 
 # generic methods which are needed in WikidataStuff.py are defined there to
