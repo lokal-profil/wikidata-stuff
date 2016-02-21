@@ -147,6 +147,9 @@ class PaintingsBot:
             data = painting_item.get(force=True)
             claims = data.get('claims')
 
+            # add natmus id claim
+            self.add_natmus_id(painting_item, obj_id, uri)
+
             # add inventory number with collection
             self.add_inventory_and_collection_claim(painting_item, painting_id,
                                                     painting, uri)
@@ -417,6 +420,22 @@ class PaintingsBot:
 
         return painting_item
 
+    def add_natmus_id(self, painting_item, obj_id, uri):
+        """Add a natmus_painting_id/P2539 claim.
+
+        @param painting_item: item to which claim is added
+        @type painting_item: pywikibot.ItemPage
+        @param obj_id: the nationalmuseum database id
+        @type obj_id: str
+        @param uri: reference url on nationalmuseum.se
+        @type uri: str
+        """
+        self.wd.addNewClaim(
+            u'P2539',
+            WD.Statement(obj_id),
+            painting_item,
+            self.make_url_reference(uri))
+
     def add_inventory_and_collection_claim(self, painting_item, painting_id,
                                            painting, uri):
         """Add an inventory_no, with qualifier, and a collection/P195 claim.
@@ -455,7 +474,7 @@ class PaintingsBot:
                     itis=nationalmuseum_item),
                 force=True),
             painting_item,
-            self.make_reference(uri))
+            self.make_url_reference(uri))
 
         # add collection (or subcollection)
         subcol = self.prefix_map[painting_id.split(' ')[0]]['subcol']
@@ -478,9 +497,9 @@ class PaintingsBot:
         """
         europeana_url = u'http://europeana.eu/portal/record%s.html' % \
                         painting['object']['about']
-        return self.make_reference(europeana_url)
+        return self.make_url_reference(europeana_url)
 
-    def make_reference(self, uri):
+    def make_url_reference(self, uri):
         """Make a Reference object with a retrieval url and today's date.
 
         @param uri: retrieval uri/url
