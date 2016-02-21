@@ -256,6 +256,9 @@ class WikidataStuff(object):
         """
         # check if any of the sources are already present
         # note that this can be in any of its references
+        if ref is None:
+            return False
+
         if any(self.hasRef(source.getID(), source.getTarget(), claim)
                 for source in ref.source_test):
             return False
@@ -383,10 +386,10 @@ class WikidataStuff(object):
             claim.setTarget(statement.itis)
             priorClaim = self.hasClaim(prop, statement.itis, item)
 
-        # test reference
-        if not isinstance(ref, WikidataStuff.Reference):
-            raise pywikibot.Error('No reference was given when making a new '
-                                  'claim. Crashing')
+        # test reference (must be a Reference or explicitly missing)
+        if not isinstance(ref, WikidataStuff.Reference) and ref is not None:
+            raise pywikibot.Error('The provided reference was not a Reference '
+                                  'object. Crashing')
 
         # test qualifier
         if priorClaim and statement.quals:
