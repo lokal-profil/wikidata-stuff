@@ -11,13 +11,7 @@ Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
 
 @todo: Allow image updates to run without having to hammer the Europeana api
 
-usage:
-    python NatMus/nationalmuseumSE.py [OPTIONS]
-
-Options (may be omitted):
--rows:INT         Number of entries to process (default: All)
-
--add_new:bool     Whether new objects should be created (default: True)
+&params;
 
 Can also handle any pywikibot options. Most importantly:
 -simulate         Don't write to database
@@ -40,7 +34,10 @@ Usage:            python NatMus/nationalmuseumSE.py [OPTIONS]
 -rows:INT         Number of entries to process (default: All)
 
 -add_new:bool     Whether new objects should be created (default: True)
+
+-cursor:str       The Europeana pagination cursor at which to start the search
 """
+docuReplacements = {'&params;': usage}
 
 EDIT_SUMMARY = u'NationalmuseumBot'
 COMMONS_Q = u'565'
@@ -717,7 +714,7 @@ def get_painting_generator(rows=None, cursor=None, counter=0):
     if cursor:
         if not rows or num_rows > MAX_ROWS:
             counter += MAX_ROWS
-            pywikibot.output(u'%d...' % (counter))
+            pywikibot.output(u'%d... %s' % (counter, cursor))
             rows = min(rows, num_rows - MAX_ROWS)  # preserves None
             for g in get_painting_generator(rows=rows,
                                             cursor=cursor,
@@ -800,6 +797,7 @@ def main(*args):
     # handle arguments
     rows = None
     add_new = True
+    cursor = None
 
     for arg in pywikibot.handle_args(args):
         option, sep, value = arg.partition(':')
@@ -808,15 +806,17 @@ def main(*args):
                 rows = int(value)
             else:
                 raise pywikibot.Error(usage)
-        if option == '-new':
+        elif option == '-new':
             if value.lower() in ('t', 'true'):
                 add_new = True
             elif value.lower() in ('f', 'false'):
                 add_new = True
             else:
                 raise pywikibot.Error(usage)
+        elif option == '-cursor':
+            cursor = value
 
-    painting_gen = get_painting_generator(rows=rows)
+    painting_gen = get_painting_generator(rows=rows, cursor=cursor)
 
     paintings_bot = PaintingsBot(painting_gen, INVNO_P, add_new)  # inv nr.
     paintings_bot.run()

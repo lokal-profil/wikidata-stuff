@@ -1019,11 +1019,11 @@ class KulturnavBot(object):
             option, sep, value = arg.partition(':')
             if option == '-cutoff':
                 cutoff = int(value)
-            if option == '-max_hits':
+            elif option == '-max_hits':
                 max_hits = int(value)
-            if option == '-delay':
+            elif option == '-delay':
                 delay = int(value)
-            if option == '-any_item':
+            elif option == '-any_item':
                 require_wikidata = False
 
         search_results = cls.get_search_results(
