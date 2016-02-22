@@ -106,6 +106,7 @@ class KulturnavBot(object):
         self.repo = pywikibot.Site().data_repository()
         self.cutoff = None
         self.verbose = verbose
+        self.require_wikidata = True
 
         # trigger wdq query
         self.itemIds = helpers.fill_cache(self.KULTURNAV_ID_P,
@@ -362,8 +363,9 @@ class KulturnavBot(object):
                     u'vocab.getty.edu/ulan/' in sa:
                 values[u'ulan'] = sa.split('/')[-1]
 
-        # we only care about seeAlso if we didn't find a Wikidata link
-        if values[u'wikidata'] is None and values[u'seeAlso'] is not None:
+        # only look at seeAlso if we found no Wikidata link and require one
+        if self.require_wikidata and \
+                (not values[u'wikidata'] and values[u'seeAlso']):
             if isinstance(values[u'seeAlso'], (str, unicode)):
                 values[u'seeAlso'] = [values[u'seeAlso'], ]
             for sa in values[u'seeAlso']:
@@ -450,8 +452,12 @@ class KulturnavBot(object):
         """
         if values[u'identifier'] in self.itemIds:
             hitItemTitle = u'Q%s' % \
-                (self.itemIds.get(values[u'identifier']),)
-            if values[u'wikidata'] != hitItemTitle:
+                self.itemIds.get(values[u'identifier'])
+
+            if not values[u'wikidata'] and not self.require_wikidata:
+                # i.e. uuid has been supplied manually and exists on wikidata
+                pass
+            elif values[u'wikidata'] != hitItemTitle:
                 # this may be caused by either being a redirect
                 wd = self.wd.QtoItemPage(values[u'wikidata'])
                 wi = self.wd.QtoItemPage(hitItemTitle)
@@ -1036,6 +1042,7 @@ class KulturnavBot(object):
 
         kulturnavBot = cls(kulturnav_generator, cache_max_age)
         kulturnavBot.cutoff = cutoff
+        kulturnavBot.require_wikidata = require_wikidata
         kulturnavBot.run()
 
     @staticmethod
