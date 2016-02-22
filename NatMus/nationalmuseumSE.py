@@ -36,6 +36,8 @@ Usage:            python NatMus/nationalmuseumSE.py [OPTIONS]
 -add_new:bool     Whether new objects should be created (default: True)
 
 -cursor:str       The Europeana pagination cursor at which to start the search
+
+-wdq_cache:INT    Set the cache age (in seconds) for wdq queries (default 0)
 """
 docuReplacements = {'&params;': usage}
 
@@ -52,25 +54,22 @@ MAX_ROWS = 100  # max number of rows per request in Europeana API
 class PaintingsBot:
     """Bot to enrich, and create, for items about paintings on Wikidata."""
 
-    def __init__(self, dict_generator, painting_id_prop, add_new=False,
-                 skip_miniatures=True):
+    def __init__(self, dict_generator, painting_id_prop, cache_max_age=0):
         """Initiate the bot, loading files and querying WDQ.
 
         @param dict_generator: The generator for the Europeana painting objects
         @type dict_generator: generator (that yields Dict objects).
         @param painting_id_prop: the P-id of the painting-id property
         @type painting_id_prop: str
-        @param add_new: Whether new objects should be created
-        @type add_new: bool
-        @param skip_miniatures: Whether (new) miniatures should be skipped
-        @type skip_miniatures: bool
+        @param cache_max_age: Max age of local wdq cache, defaults to 0
+        @type cache_max_age: int
         """
         self.generator = dict_generator
         self.repo = pywikibot.Site().data_repository()
         self.commons = pywikibot.Site(u'commons', u'commons')
         self.wd = WD(self.repo)
-        self.add_new = add_new
-        self.skip_miniatures = skip_miniatures
+        self.add_new = False  # If new objects should be created
+        self.skip_miniatures = True  # If (new) miniatures should be skipped
 
         # Load prefixes and find allowed collections
         collections = set([INSTITUTION_Q])
@@ -87,7 +86,9 @@ class PaintingsBot:
         query = u'CLAIM[195:%s] AND CLAIM[%s]' % \
                 (',195:'.join(self.collections), painting_id_prop)
         self.painting_ids = helpers.fill_cache(painting_id_prop,
-                                               queryoverride=query)
+                                               queryoverride=query,
+                                               cacheMaxAge=cache_max_age)
+
         self.painting_id_prop = 'P%s' % painting_id_prop
 
     def run(self):
@@ -798,6 +799,7 @@ def main(*args):
     rows = None
     add_new = True
     cursor = None
+    cache_max_age = 0
 
     for arg in pywikibot.handle_args(args):
         option, sep, value = arg.partition(':')
@@ -815,10 +817,13 @@ def main(*args):
                 raise pywikibot.Error(usage)
         elif option == '-cursor':
             cursor = value
+        elif option == '-wdq_cache':
+            cache_max_age = int(value)
 
     painting_gen = get_painting_generator(rows=rows, cursor=cursor)
 
-    paintings_bot = PaintingsBot(painting_gen, INVNO_P, add_new)  # inv nr.
+    paintings_bot = PaintingsBot(painting_gen, INVNO_P, cache_max_age)
+    paintings_bot.add_new = add_new
     paintings_bot.run()
     # paintings_bot.most_missed_creators()
 

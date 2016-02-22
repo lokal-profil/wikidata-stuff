@@ -33,6 +33,8 @@ Basic KulturNavBot options (may be omitted):
 -delay:INT         seconds to delay between each kulturnav request
                     (default 0)
 -any_item          if present it does not filter kulturnav results on wikidata
+-wdq_cache:INT     set the cache age (in seconds) for wdq queries
+                    (default 0)
 
 Can also handle any pywikibot options. Most importantly:
 -simulate          don't write to database
@@ -95,7 +97,7 @@ class KulturnavBot(object):
     locations = {}  # a dict of uuid to wikidata location matches
     current_uuid = ''  # for debugging
 
-    def __init__(self, dictGenerator, verbose=False):
+    def __init__(self, dictGenerator, cache_max_age, verbose=False):
         """
         Arguments:
             * generator    - A generator that yields Dict objects.
@@ -106,7 +108,8 @@ class KulturnavBot(object):
         self.verbose = verbose
 
         # trigger wdq query
-        self.itemIds = helpers.fill_cache(self.KULTURNAV_ID_P)
+        self.itemIds = helpers.fill_cache(self.KULTURNAV_ID_P,
+                                          cacheMaxAge=cache_max_age)
 
         # set up WikidataStuff instance
         self.wd = WD(self.repo)
@@ -1011,6 +1014,7 @@ class KulturnavBot(object):
         max_hits = 250
         delay = 0
         require_wikidata = True
+        cache_max_age = 0
 
         for arg in pywikibot.handle_args(args):
             option, sep, value = arg.partition(':')
@@ -1022,13 +1026,15 @@ class KulturnavBot(object):
                 delay = int(value)
             elif option == '-any_item':
                 require_wikidata = False
+            elif option == '-wdq_cache':
+                cache_max_age = int(value)
 
         search_results = cls.get_search_results(
             max_hits=max_hits, require_wikidata=require_wikidata)
         kulturnav_generator = KulturnavBot.get_kulturnav_generator(
             search_results, delay=delay)
 
-        kulturnavBot = cls(kulturnav_generator)
+        kulturnavBot = cls(kulturnav_generator, cache_max_age)
         kulturnavBot.cutoff = cutoff
         kulturnavBot.run()
 
