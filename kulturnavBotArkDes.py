@@ -11,11 +11,10 @@ usage:
 
 &params;
 """
-import pywikibot
 from kulturnavBot import parameterHelp
 from kulturnavBot import KulturnavBot
-from kulturnavBot import Rule
 from WikidataStuff import WikidataStuff as WD
+from kulturnavBotTemplates import Person
 docuReplacements = {
     '&params;': parameterHelp
 }
@@ -31,104 +30,30 @@ DATASET_Q = '17373699'
 class KulturnavBotArkDes(KulturnavBot):
     """Bot to enrich/create info on Wikidata for ArkDes architects."""
 
-    ARCHITECT_Q = '42973'
-    GROUP_OF_PEOPLE_Q = '16334295'
-    HUMAN_Q = '5'
-
     def run(self):
-        """
-        Starts the robot
-        """
-        rules = {
-            u'deathDate': None,
-            u'deathPlace': None,
-            u'deathPlace_P7': Rule(
-                keys='deathDate',
-                values={'@type': 'cidoc-crm:E69_Death'},
-                target='P7_took_place_at',
-                viaId='location'),
-            u'birthDate': None,
-            u'birthPlace': None,
-            u'birthPlace_P7': Rule(
-                keys='birthDate',
-                values={'@type': 'cidoc-crm:E67_Birth'},
-                target='P7_took_place_at',
-                viaId='location'),
-            u'firstName': None,
-            u'gender': None,
-            u'lastName': None,
-            u'name': None,
-            u'person.nationality': None
-        }
+        """Start the bot."""
+        rules = Person.get_rules()
 
         def claims(self, values):
-            protoclaims = {
-                # instance of
-                u'P31': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.HUMAN_Q)),
-                # occupation
-                u'P106': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.ARCHITECT_Q))
-                }
-            # P106 occupation - fieldOfActivityOfThePerson
+            """Add protoclaims.
 
-            if values[u'deathDate']:
-                protoclaims[u'P570'] = WD.Statement(
-                    self.dbDate(values[u'deathDate']))
-            if values[u'deathPlace']:
-                protoclaims[u'P20'] = WD.Statement(
-                    self.dbpedia2Wikidata(values[u'deathPlace']))
-            elif values[u'deathPlace_P7']:
-                protoclaims[u'P20'] = WD.Statement(
-                    self.location2Wikidata(values[u'deathPlace_P7']))
-            if values[u'birthDate']:
-                protoclaims[u'P569'] = WD.Statement(
-                    self.dbDate(values[u'birthDate']))
-            if values[u'birthPlace']:
-                protoclaims[u'P19'] = WD.Statement(
-                    self.dbpedia2Wikidata(values[u'birthPlace']))
-            elif values[u'birthPlace_P7']:
-                protoclaims[u'P19'] = WD.Statement(
-                    self.location2Wikidata(values[u'birthPlace_P7']))
-            if values[u'gender']:
-                # dbGender returns a WD.Statement
-                protoclaims[u'P21'] = self.dbGender(values[u'gender'])
-            if values[u'firstName']:
-                protoclaims[u'P735'] = WD.Statement(
-                    self.dbName(values[u'firstName'],
-                                u'firstName'))
-            if values[u'lastName']:
-                protoclaims[u'P734'] = WD.Statement(
-                    self.dbName(values[u'lastName'],
-                                u'lastName'))
-            if values[u'person.nationality']:
-                # there can be multiple values
-                values[u'person.nationality'] = self.listify(
-                    values[u'person.nationality'])
-                claim = []
-                for pn in values[u'person.nationality']:
-                    claim.append(WD.Statement(
-                        self.location2Wikidata(pn)))
-                if claim:
-                    protoclaims[u'P27'] = claim
+            @param values: the values extracted using the rules
+            @type values: dict
+            @return: the protoclaims
+            @rtype: dict PID-WD.Statement pairs
+            """
+            # get basic person claims
+            protoclaims = Person.get_claims(self, values)
+
+            # occupation ARCHITECT = Q42973
+            protoclaims['P106'] = WD.Statement(self.wd.QtoItemPage('Q42973'))
 
             return protoclaims
-
-        def personTest(self, hitItem):
-            """
-            Fail if contains an is instance of group of people claim
-            """
-            return self.withoutClaimTest(hitItem,
-                                         self.IS_A_P,
-                                         self.GROUP_OF_PEOPLE_Q,
-                                         u'group of people')
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
-                       datasetSanityTest=personTest,
+                       datasetSanityTest=Person.person_test,
                        label=u'name',
                        shuffle=True)
 
