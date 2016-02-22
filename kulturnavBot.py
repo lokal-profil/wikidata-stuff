@@ -4,16 +4,13 @@
 Bot to import and sourced statements about entities also present in
 KulturNav (https://www.wikidata.org/wiki/Q16323066).
 
-usage:
-    python kulturnavBot.py [OPTIONS]
-
-Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
-    /bot/wikidata/rijksmuseum_import.py by Multichill
-
 Author: Lokal_Profil
 License: MIT
 
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
+
+usage:
+    python kulturnavBot.py [OPTIONS]
 
 &params;
 """

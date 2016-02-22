@@ -3,11 +3,11 @@
 """
 Bot to import and source statements about Architects in KulturNav.
 
-usage:
-    python kulturnavBotArkDes.py [OPTIONS]
-
 Author: Lokal_Profil
 License: MIT
+
+usage:
+    python kulturnavBotArkDes.py [OPTIONS]
 
 &params;
 """
@@ -29,9 +29,8 @@ DATASET_Q = '17373699'
 
 
 class KulturnavBotArkDes(KulturnavBot):
-    """
-    A bot to enrich and create information on Wikidata based on KulturNav info
-    """
+    """Bot to enrich/create info on Wikidata for ArkDes architects."""
+
     ARCHITECT_Q = '42973'
     GROUP_OF_PEOPLE_Q = '16334295'
     HUMAN_Q = '5'
@@ -126,7 +125,7 @@ class KulturnavBotArkDes(KulturnavBot):
                                          self.GROUP_OF_PEOPLE_Q,
                                          u'group of people')
 
-        # pass settingson to runLayout()
+        # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
                        datasetSanityTest=personTest,
@@ -135,6 +134,7 @@ class KulturnavBotArkDes(KulturnavBot):
 
     @classmethod
     def main(cls, *args):
+        """Start the bot from the command line."""
         cls.setVariables(
             dataset_q=DATASET_Q,
             dataset_id=DATASET_ID,
