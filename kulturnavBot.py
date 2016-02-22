@@ -25,7 +25,7 @@ import re
 FOO_BAR = u'A multilingual result (or one with multiple options) was ' \
           u'encountered but I have yet to support that functionality'
 
-parameterHelp = u"""\
+parameter_help = u"""\
 Basic KulturNavBot options (may be omitted):
 -cutoff:INT        number of entries to process before terminating
 -max_hits:INT      number of items to request at a time from Kulturnav
@@ -40,7 +40,7 @@ Can also handle any pywikibot options. Most importantly:
 -simulate          don't write to database
 -help              output all available options
 """
-docuReplacements = {'&params;': parameterHelp}
+docuReplacements = {'&params;': parameter_help}
 
 
 class Rule():

@@ -15,13 +15,13 @@ Options (required):
 &params;
 """
 import pywikibot
-from kulturnavBot import parameterHelp
+from kulturnavBot import parameter_help
 from kulturnavBot import KulturnavBot
 from kulturnavBot import Rule
 from WikidataStuff import WikidataStuff as WD
 from kulturnavBotTemplates import Person
 docuReplacements = {
-    '&params;': parameterHelp
+    '&params;': parameter_help
 }
 
 # KulturNav based

@@ -19,13 +19,13 @@ usage:
 # * P106 occupation - fieldOfActivityOfThePerson
 # * connected paintings (different source?, or run this from nationalmuseumSE)
 
-from kulturnavBot import parameterHelp
+from kulturnavBot import parameter_help
 from kulturnavBot import KulturnavBot
 from WikidataStuff import WikidataStuff as WD
 from kulturnavBotTemplates import Person
 import helpers
 docuReplacements = {
-    '&params;': parameterHelp
+    '&params;': parameter_help
 }
 
 # KulturNav based
