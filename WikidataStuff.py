@@ -323,14 +323,14 @@ class WikidataStuff(object):
 
         try:
             claim.addQualifier(qClaim)  # writes to database
-            pywikibot.output('Adding qualifier to %s in %s' % (qual.prop,
-                                                               item))
+            pywikibot.output('Adding qualifier %s to %s in %s' %
+                             (qual.prop, claim.getID(), item))
             return True
         except pywikibot.data.api.APIError, e:
             if e.code == u'modification-failed':
                 pywikibot.output(u'modification-failed error: '
-                                 u'qualifier to %s in %s' % (qual.prop,
-                                                             item))
+                                 u'qualifier to %s to %s in %s' %
+                                 (qual.prop, claim.getID(), item))
                 return False
             else:
                 raise pywikibot.Error(
