@@ -13,20 +13,10 @@ Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
 Author: Lokal_Profil
 License: MIT
 
-Options (may be omitted):
-  -cutoff:INT       number of entries to process before terminating
-  -maxHits:INT      number of items to request at a time from Kulturnav
-                    (default 250)
-  -delay:INT        seconds to delay between each kulturnav request
-                    (default 0)
-Can also handle any pywikibot options. Most importantly:
-  -simulate         don't write to database
-
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
+
+&params;
 """
-# @todo: Stick the options in a global string (parameterHelp) and add &params;
-#        to docstring  and then docuReplacements = {'&params;': parameterHelp}
-#        as global to any subscripts
 import json
 import time
 import pywikibot
@@ -37,6 +27,21 @@ import re
 
 FOO_BAR = u'A multilingual result (or one with multiple options) was ' \
           u'encountered but I have yet to support that functionality'
+
+parameterHelp = u"""\
+Basic KulturNavBot options (may be omitted):
+-cutoff:INT        number of entries to process before terminating
+-max_hits:INT      number of items to request at a time from Kulturnav
+                    (default 250)
+-delay:INT         seconds to delay between each kulturnav request
+                    (default 0)
+-any_item          if present it does not filter kulturnav results on wikidata
+
+Can also handle any pywikibot options. Most importantly:
+-simulate          don't write to database
+-help              output all available options
+"""
+docuReplacements = {'&params;': parameterHelp}
 
 
 class Rule():
@@ -163,7 +168,8 @@ class KulturnavBot(object):
                 u'wikidata': None,
                 u'libris-id': None,
                 u'viaf-id': None,
-                u'getty-id': None
+                u'getty_aat': None,
+                u'ulan': None
             }
             rules.update(datasetRules)
 
@@ -195,8 +201,10 @@ class KulturnavBot(object):
                 protoclaims[u'P906'] = WD.Statement(values[u'libris-id'])
             if values[u'viaf-id']:
                 protoclaims[u'P214'] = WD.Statement(values[u'viaf-id'])
-            if values[u'getty-id']:
-                protoclaims[u'P1014'] = WD.Statement(values[u'getty-id'])
+            if values[u'getty_aat']:
+                protoclaims[u'P1014'] = WD.Statement(values[u'getty_aat'])
+            if values[u'ulan']:
+                protoclaims[u'P245'] = WD.Statement(values[u'ulan'])
 
             # output info for testing
             if self.verbose:
@@ -347,9 +355,12 @@ class KulturnavBot(object):
             elif u'viaf-id' in values.keys() and \
                     u'viaf.org/viaf/' in sa:
                 values[u'viaf-id'] = sa.split('/')[-1]
-            elif u'getty-id' in values.keys() and \
+            elif u'getty_aat' in values.keys() and \
                     u'vocab.getty.edu/aat/' in sa:
-                values[u'getty-id'] = sa.split('/')[-1]
+                values[u'getty_aat'] = sa.split('/')[-1]
+            elif u'ulan' in values.keys() and \
+                    u'vocab.getty.edu/ulan/' in sa:
+                values[u'ulan'] = sa.split('/')[-1]
 
         # we only care about seeAlso if we didn't find a Wikidata link
         if values[u'wikidata'] is None and values[u'seeAlso'] is not None:
@@ -858,81 +869,168 @@ class KulturnavBot(object):
                                 item, prefix=self.EDIT_SUMMARY,
                                 caseSensitive=caseSensitive)
 
+    @staticmethod
+    def get_kulturnav_generator(uuids, delay=0):
+        """Generate KulturNav items from a list of uuids.
+
+        @param uuids: uuids to request items for
+        @type uuids: list of str
+        @param delay: delay in seconds between each kulturnav request
+        @type delay: int
+        @yield: dict
+        """
+        for uuid in uuids:
+            time.sleep(delay)
+            try:
+                json_data = KulturnavBot.get_single_entry(uuid)
+            except pywikibot.Error, e:
+                pywikibot.output(e)
+            else:
+                yield json_data
+
     @classmethod
-    def getKulturnavGenerator(cls, maxHits=250, delay=0):
-        """
-        Generator of the entries at KulturNav based on a search for all items
-        of given type in the given dataset which contains Wikidata as a
-        given value.
-        param maxHits: max hits to request per search
-        param delay: delay in seconds between each kulturnav request
-        """
-        patterns = (u'http://www.wikidata.org/entity/',
-                    u'https://www.wikidata.org/entity/')
-        q = '*%2F%2Fwww.wikidata.org%2Fentity%2FQ*'
-        searchurl = 'http://kulturnav.org/api/search/' + \
-                    'entityType:' + cls.ENTITY_TYPE + ',' + \
-                    'entity.dataset_r:' + cls.DATASET_ID + ',' + \
-                    cls.MAP_TAG + ':%s/%d/%d'
-        queryurl = 'http://kulturnav.org/%s?format=application/ld%%2Bjson'
+    def get_search_results(cls, max_hits=250, require_wikidata=True):
+        """Make a KulturNav search for all items of a given type in a dataset.
 
-        # get all id's in KulturNav which link to Wikidata
-        wdDict = {}
+        @param max_hits: the maximum number of results to request at once
+        @type max_hits: int
+        @param require_wikidata: whether to filter results on having a wikidata
+            url in sameAs
+        @type require_wikidata: bool
+        @return: the resulting uuids
+        @rtype: list of str
+        """
+        search_url = 'http://kulturnav.org/api/search/' + \
+                     'entityType:' + cls.ENTITY_TYPE + ',' + \
+                     'entity.dataset_r:' + cls.DATASET_ID
+        q = None  # the map_tag query
 
+        # only filter on MAP_TAG if filtering on wikidata
+        if require_wikidata:
+            search_url += ',' + cls.MAP_TAG + ':%s/%d/%d'
+            q = '*%2F%2Fwww.wikidata.org%2Fentity%2FQ*'
+        else:
+            search_url += '/%d/%d'
+
+        # start search
+        results = []
         offset = 0
-        # overviewPage = json.load(urllib2.urlopen(searchurl % (q, offset, maxHits)))
-        searchPage = urllib2.urlopen(searchurl % (q, offset, maxHits))
-        searchData = searchPage.read()
-        overviewPage = json.loads(searchData)
+        overview_page = KulturnavBot.get_single_search_results(
+            search_url, q, offset, max_hits)
+        while overview_page:
+            for item in overview_page:
+                uuid = item[u'uuid']
+                if not require_wikidata or \
+                        KulturnavBot.has_wikidata_in_sameas(item, cls.MAP_TAG):
+                    results.append(uuid)
 
-        while overviewPage:
-            for o in overviewPage:
-                sameAs = o[u'properties'][cls.MAP_TAG[:cls.MAP_TAG.rfind('_')]]
-                for s in sameAs:
-                    if s[u'value'].startswith(patterns):
-                        wdDict[o[u'uuid']] = s[u'value'].split('/')[-1]
-                        break
             # continue
-            offset += maxHits
-            searchPage = urllib2.urlopen(searchurl % (q, offset, maxHits))
-            searchData = searchPage.read()
-            overviewPage = json.loads(searchData)
+            offset += max_hits
+            overview_page = KulturnavBot.get_single_search_results(
+                search_url, q, offset, max_hits)
 
         # some feedback
         pywikibot.output(u'Found %d matching entries in Kulturnav'
-                         % len(wdDict))
+                         % len(results))
+        return results
 
-        # get the record for each of these entries
-        for kulturnavId, wikidataId in wdDict.iteritems():
-            # jsonData = json.load(urllib2.urlopen(queryurl % kulturnavId))
-            time.sleep(delay)
-            recordPage = urllib2.urlopen(queryurl % kulturnavId)
-            recordData = recordPage.read()
-            jsonData = json.loads(recordData)
-            if jsonData.get(u'@graph'):
-                yield jsonData
-            else:
-                print jsonData
+    @staticmethod
+    def has_wikidata_in_sameas(item, map_tag):
+        """Check if a wikidata url is present in the sameAs property.
+
+        @param item: the search item to check
+        @type item: dict
+        @param map_tag: the tag to use (concepts don't use sameAs)
+        @type map_tag: str
+        @rtype: bool
+        """
+        # The patterns used if we filter on wikidata
+        patterns = (u'http://www.wikidata.org/entity/',
+                    u'https://www.wikidata.org/entity/')
+
+        same_as = item[u'properties'][map_tag[:map_tag.rfind('_')]]
+        for s in same_as:
+            if s[u'value'].startswith(patterns):
+                return True
+        return False
+
+    @staticmethod
+    def get_single_search_results(search_url, q, offset, max_hits):
+        """Retrieve the results from a single API search.
+
+        @param search_url: basic url from whih to build search
+        @type search_url: str
+        @param q: the map_tag query, if any
+        @type q: str or None
+        @param offset: the offset in search results
+        @type offset: int
+        @param max_hits: the maximum number of results to request at once
+        @type max_hits: int
+        @return: the search result object
+        @rtype: dict
+        """
+        actual_url = ''
+        if q is None:
+            actual_url = search_url % (offset, max_hits)
+        else:
+            actual_url = search_url % (q, offset, max_hits)
+
+        search_page = urllib2.urlopen(actual_url)
+        return json.loads(search_page.read())
+
+    @staticmethod
+    def get_single_entry(uuid):
+        """Retrieve the data on a single kulturnav entry.
+
+        Raises an pywikibot.Error if:
+        * @graph is not a key in the json response
+        * a non-json response is received
+
+        @param uuid: the uuid for the target item
+        @type uuid: str
+        @return: the entry object
+        @rtype: dict
+        @raise: pywikibot.Error
+        """
+        query_url = 'http://kulturnav.org/%s?format=application/ld%%2Bjson'
+        item_url = query_url % uuid
+        try:
+            record_page = urllib2.urlopen(item_url)
+            json_data = json.loads(record_page.read())
+        except ValueError, e:
+            raise pywikibot.Error('Error loading KulturNav item at '
+                                  '%s with error %s' % (item_url, e))
+        if json_data.get(u'@graph'):
+            return json_data
+        else:
+            raise pywikibot.Error('No @graph in KulturNav reply at '
+                                  '%s\n data: %s' % (item_url, json_data))
 
     @classmethod
     def main(cls, *args):
+        """Start the bot from the command line."""
         # handle arguments
         cutoff = None
-        maxHits = 250
+        max_hits = 250
         delay = 0
+        require_wikidata = True
 
         for arg in pywikibot.handle_args(args):
             for v in helpers.if_arg_value(arg, '-cutoff'):
                 cutoff = int(v)
-            for v in helpers.if_arg_value(arg, '-maxHits'):
-                maxHits = int(v)
+            for v in helpers.if_arg_value(arg, '-max_hits'):
+                max_hits = int(v)
             for v in helpers.if_arg_value(arg, '-delay'):
                 delay = int(v)
+            for v in helpers.if_arg_value(arg, '-any_item'):
+                require_wikidata = False
 
-        kulturnavGenerator = cls.getKulturnavGenerator(maxHits=maxHits,
-                                                       delay=delay)
+        search_results = cls.get_search_results(
+            max_hits=max_hits, require_wikidata=require_wikidata)
+        kulturnav_generator = KulturnavBot.get_kulturnav_generator(
+            search_results, delay=delay)
 
-        kulturnavBot = cls(kulturnavGenerator)
+        kulturnavBot = cls(kulturnav_generator)
         kulturnavBot.cutoff = cutoff
         kulturnavBot.run()
 

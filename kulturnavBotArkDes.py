@@ -9,15 +9,16 @@ usage:
 Author: Lokal_Profil
 License: MIT
 
-Options (may be omitted):
-  -cutoff:INT       number of entries to process before terminating
-  -maxHits:INT      number of items to request at a time from Kulturnav
-                    (default 250)
+&params;
 """
 import pywikibot
+from kulturnavBot import parameterHelp
 from kulturnavBot import KulturnavBot
 from kulturnavBot import Rule
 from WikidataStuff import WikidataStuff as WD
+docuReplacements = {
+    '&params;': parameterHelp
+}
 
 # KulturNav based
 EDIT_SUMMARY = 'KulturnavBot(ArkDes)'
