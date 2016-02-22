@@ -1016,13 +1016,14 @@ class KulturnavBot(object):
         require_wikidata = True
 
         for arg in pywikibot.handle_args(args):
-            for v in helpers.if_arg_value(arg, '-cutoff'):
-                cutoff = int(v)
-            for v in helpers.if_arg_value(arg, '-max_hits'):
-                max_hits = int(v)
-            for v in helpers.if_arg_value(arg, '-delay'):
-                delay = int(v)
-            for v in helpers.if_arg_value(arg, '-any_item'):
+            option, sep, value = arg.partition(':')
+            if option == '-cutoff':
+                cutoff = int(value)
+            if option == '-max_hits':
+                max_hits = int(value)
+            if option == '-delay':
+                delay = int(value)
+            if option == '-any_item':
                 require_wikidata = False
 
         search_results = cls.get_search_results(

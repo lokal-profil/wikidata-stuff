@@ -851,7 +851,6 @@ class KulturnavBotSMM(KulturnavBot):
         """
         if not args:
             args = pywikibot.argvu[1:]
-        name = '-dataset'
 
         # allow dataset to be specified through id
         numPairs = {}
@@ -859,13 +858,13 @@ class KulturnavBotSMM(KulturnavBot):
             numPairs[str(v['id'])] = k
 
         for arg in args:
-            if arg.startswith(name):
-                dataset = arg[len(name) + 1:]
-                if dataset in DATASETS.keys():
-                    cls.DATASET = dataset
+            option, sep, value = arg.partition(':')
+            if option == '-dataset':
+                if value in DATASETS.keys():
+                    cls.DATASET = value
                     return
-                elif dataset in numPairs.keys():
-                    cls.DATASET = numPairs[dataset]
+                elif value in numPairs.keys():
+                    cls.DATASET = numPairs[value]
                     return
 
         # if nothing found

@@ -417,23 +417,6 @@ def dbpedia_2_wikidata(dbpedia):
     return None
 
 
-def if_arg_value(arg, name):
-    """Yield the values of any argument starting with the given name.
-
-    I.e. given arg="-parameter:value" if_arg_value(arg, parameter) should
-    return "value".
-
-    @param arg: the argument being analysed
-    @type arg: str
-    @param name: the parameter being searched for
-    @type name: str
-    @yields: str
-    """
-    option, sep, value = arg.partition(':')
-    if option == name:
-        yield value
-
-
 # generic methods which are needed in WikidataStuff.py are defined there to
 # avoid a cyclical import
 def listify(value):

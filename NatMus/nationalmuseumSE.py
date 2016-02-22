@@ -802,15 +802,16 @@ def main(*args):
     add_new = True
 
     for arg in pywikibot.handle_args(args):
-        for v in helpers.if_arg_value(arg, '-rows'):
-            if helpers.is_pos_int(v):
-                rows = int(v)
+        option, sep, value = arg.partition(':')
+        if option == '-rows':
+            if helpers.is_pos_int(value):
+                rows = int(value)
             else:
                 raise pywikibot.Error(usage)
-        for v in helpers.if_arg_value(arg, '-new'):
-            if v.lower() in ('t', 'true'):
+        if option == '-new':
+            if value.lower() in ('t', 'true'):
                 add_new = True
-            elif v.lower() in ('f', 'false'):
+            elif value.lower() in ('f', 'false'):
                 add_new = True
             else:
                 raise pywikibot.Error(usage)
