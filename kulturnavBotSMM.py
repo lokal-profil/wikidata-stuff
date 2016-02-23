@@ -50,7 +50,7 @@ class KulturnavBotSMM(KulturnavBot):
             'id': 2,
             'fullName': u'Namngivna fartygstyper',
             'DATASET_ID': '51f2bd1f-7720-4f03-8d95-c22a85d26bbb',
-            'ENTITY_TYPE': 'NavalVessel',
+            'ENTITY_TYPE': 'Concept',
             'DATASET_Q': '20742915'},
         u'Personer': {
             'id': 3,
@@ -62,13 +62,13 @@ class KulturnavBotSMM(KulturnavBot):
             'id': 4,
             'fullName': u'Serietillverkade fartyg',
             'DATASET_ID': '6a98b348-8c90-4ccc-9da7-42351bd4feb7',
-            'ENTITY_TYPE': 'NavalVessel',
+            'ENTITY_TYPE': 'NavalVesselDesign',
             'DATASET_Q': '20742975'},
         u'Klasser': {
             'id': 5,
             'fullName': u'Svenska marinens klasser för örlogsfartyg',
             'DATASET_ID': 'fb4faa4b-984a-404b-bdf7-9c24a298591e',
-            'ENTITY_TYPE': 'NavalVessel',
+            'ENTITY_TYPE': 'NavalVesselDesign',
             'DATASET_Q': '20742782'},
         u'Varv': {
             'id': 6,
