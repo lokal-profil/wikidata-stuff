@@ -110,14 +110,16 @@ class KulturnavBot(object):
 
         # trigger wdq query
         self.itemIds = helpers.fill_cache(self.KULTURNAV_ID_P,
-                                          cacheMaxAge=cache_max_age)
+                                          cache_max_age=cache_max_age)
 
         # set up WikidataStuff instance
         self.wd = WD(self.repo)
 
         # load lists
-        self.COUNTRIES = self.wd.wdqLookup(u'TREE[6256][][31]')
-        self.ADMIN_UNITS = self.wd.wdqLookup(u'TREE[15284][][31]')
+        self.COUNTRIES = self.wd.wdqLookup(u'TREE[6256][][31]',
+                                           cache_max_age)
+        self.ADMIN_UNITS = self.wd.wdqLookup(u'TREE[15284][][31]',
+                                             cache_max_age)
 
     @classmethod
     def setVariables(cls, dataset_q, dataset_id, entity_type,

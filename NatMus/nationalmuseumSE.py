@@ -91,11 +91,11 @@ class PaintingsBot:
                 (',195:'.join(self.collections), painting_id_prop)
         self.painting_ids = helpers.fill_cache(painting_id_prop,
                                                queryoverride=query,
-                                               cacheMaxAge=cache_max_age)
+                                               cache_max_age=cache_max_age)
 
         # prepare WDQ artist query (nat_mus_id - Q_id pairs)
         self.artist_ids = helpers.fill_cache('P2538',
-                                             cacheMaxAge=cache_max_age)
+                                             cache_max_age=cache_max_age)
 
         self.painting_id_prop = 'P%s' % painting_id_prop
 
@@ -631,7 +631,7 @@ class PaintingsBot:
 
         return images
 
-    def most_missed_creators(self, cacheMaxAge=0):
+    def most_missed_creators(self, cache_max_age=0):
         """Produce list of most frequent, but unlinked, creators.
 
         Query WDQ for all objects in the collection missing an artist
@@ -642,7 +642,7 @@ class PaintingsBot:
                 ',195:'.join(self.collections)  # collection
         wd_queryset = wdquery.QuerySet(query)
 
-        wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
+        wd_query = wdquery.WikidataQuery(cacheMaxAge=cache_max_age)
         data = wd_query.query(wd_queryset)
 
         if data.get('status').get('error') == 'OK':

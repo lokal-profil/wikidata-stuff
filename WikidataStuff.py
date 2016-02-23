@@ -168,17 +168,17 @@ class WikidataStuff(object):
             return u'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
         pywikibot.Claim.__repr__ = new_repr
 
-    def wdqLookup(self, query, cacheMaxAge=0):
+    def wdqLookup(self, query, cache_max_age=0):
         """
         Do a simple WDQ lookup returning the items ( less advanced than
         fillCache() in KulturnavBot )
 
         param query: a correctly formated wdq query
-        param cacheMaxAge: age of local cache, 0 = disabled
+        param cache_max_age: age of local cache, 0 = disabled
         return list|None
         """
         wd_queryset = wdquery.QuerySet(query)
-        wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
+        wd_query = wdquery.WikidataQuery(cacheMaxAge=cache_max_age)
         data = wd_query.query(wd_queryset)
 
         if data.get('status').get('error') == 'OK':
