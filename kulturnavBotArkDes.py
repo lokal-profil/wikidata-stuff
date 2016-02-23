@@ -19,16 +19,16 @@ docuReplacements = {
     '&params;': parameter_help
 }
 
-# KulturNav based
-EDIT_SUMMARY = 'KulturnavBot(ArkDes)'
-DATASET_ID = '2b7670e1-b44e-4064-817d-27834b03067c'
-ENTITY_TYPE = 'Person'
-MAP_TAG = 'entity.sameAs_s'
-DATASET_Q = '17373699'
-
 
 class KulturnavBotArkDes(KulturnavBot):
     """Bot to enrich/create info on Wikidata for ArkDes architects."""
+
+    # KulturNav based
+    EDIT_SUMMARY = 'KulturnavBot(ArkDes)'
+    DATASET_ID = '2b7670e1-b44e-4064-817d-27834b03067c'
+    ENTITY_TYPE = 'Person'
+    MAP_TAG = 'entity.sameAs_s'
+    DATASET_Q = '17373699'
 
     def run(self):
         """Start the bot."""
@@ -60,13 +60,6 @@ class KulturnavBotArkDes(KulturnavBot):
     @classmethod
     def main(cls, *args):
         """Start the bot from the command line."""
-        cls.setVariables(
-            dataset_q=DATASET_Q,
-            dataset_id=DATASET_ID,
-            entity_type=ENTITY_TYPE,
-            map_tag=MAP_TAG,
-            edit_summary=EDIT_SUMMARY
-        )
         super(KulturnavBotArkDes, cls).main(*args)
 
 

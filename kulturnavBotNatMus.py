@@ -26,16 +26,16 @@ docuReplacements = {
     '&params;': parameter_help
 }
 
-# KulturNav based
-EDIT_SUMMARY = 'KulturnavBot(NatMus)'
-DATASET_ID = 'c6efd155-8433-4c58-adc9-72db80c6ce50'
-ENTITY_TYPE = 'Person'
-MAP_TAG = 'entity.sameAs_s'
-DATASET_Q = '22681075'
-
 
 class KulturnavBotNatMus(KulturnavBot):
     """Bot to enrich/create info on Wikidata for Nationalmuseum artists."""
+
+    # KulturNav based
+    EDIT_SUMMARY = 'KulturnavBot(NatMus)'
+    DATASET_ID = 'c6efd155-8433-4c58-adc9-72db80c6ce50'
+    ENTITY_TYPE = 'Person'
+    MAP_TAG = 'entity.sameAs_s'
+    DATASET_Q = '22681075'
 
     def run(self):
         """Start the bot."""
@@ -75,25 +75,11 @@ class KulturnavBotNatMus(KulturnavBot):
     @classmethod
     def main(cls, *args):
         """Start the bot from the command line."""
-        cls.setVariables(
-            dataset_q=DATASET_Q,
-            dataset_id=DATASET_ID,
-            entity_type=ENTITY_TYPE,
-            map_tag=MAP_TAG,
-            edit_summary=EDIT_SUMMARY
-        )
         super(KulturnavBotNatMus, cls).main(*args)
 
     @classmethod
     def run_from_list(cls, uuids, *args):
         """Start the bot with a list of uuids."""
-        cls.setVariables(
-            dataset_q=DATASET_Q,
-            dataset_id=DATASET_ID,
-            entity_type=ENTITY_TYPE,
-            map_tag=MAP_TAG,
-            edit_summary=EDIT_SUMMARY
-        )
         super(KulturnavBotNatMus, cls).run_from_list(uuids, *args)
 
 if __name__ == "__main__":

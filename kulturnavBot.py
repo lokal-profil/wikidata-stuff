@@ -122,14 +122,29 @@ class KulturnavBot(object):
                                              cache_max_age)
 
     @classmethod
-    def setVariables(cls, dataset_q, dataset_id, entity_type,
-                     map_tag, edit_summary=None):
-        cls.DATASET_Q = dataset_q
-        cls.DATASET_ID = dataset_id
-        cls.ENTITY_TYPE = entity_type
-        cls.MAP_TAG = map_tag
-        if edit_summary is not None:
-            cls.EDIT_SUMMARY = edit_summary
+    def set_variables(cls, dataset_q=None, dataset_id=None, entity_type=None,
+                      map_tag=None, edit_summary=None):
+        """Override any class variables.
+
+        Used when command line arguments affect which type of run to do.
+
+        @param dataset_q: the Q-id of the dataset
+        @type dataset_q: str
+        @param dataset_id: the uuid of the dataset
+        @type dataset_id: str
+        @param entity_type: the entity type to provide for the search API
+        @type entity_type: str
+        @param map_tag: the map_tag to use in the search API to find wikidata
+            matches
+        @type map_tag: str
+        @param edit_summary: the edit_summary to use
+        @type edit_summary: str
+        """
+        cls.DATASET_Q = dataset_q or cls.DATASET_Q
+        cls.DATASET_ID = dataset_id or cls.DATASET_ID
+        cls.ENTITY_TYPE = entity_type or cls.ENTITY_TYPE
+        cls.MAP_TAG = map_tag or cls.MAP_TAG
+        cls.EDIT_SUMMARY = edit_summary or cls.EDIT_SUMMARY
 
     def run(self):
         """
@@ -1017,12 +1032,12 @@ class KulturnavBot(object):
     @classmethod
     def main(cls, *args):
         """Start the bot from the command line."""
-        options = KulturnavBot.handle_args(args)
+        options = cls.handle_args(args)
 
         search_results = cls.get_search_results(
             max_hits=options['max_hits'],
             require_wikidata=options['require_wikidata'])
-        kulturnav_generator = KulturnavBot.get_kulturnav_generator(
+        kulturnav_generator = cls.get_kulturnav_generator(
             search_results, delay=options['delay'])
 
         kulturnavBot = cls(kulturnav_generator, options['cache_max_age'])
@@ -1033,9 +1048,9 @@ class KulturnavBot(object):
     @classmethod
     def run_from_list(cls, uuids, *args):
         """Start the bot with a list of uuids."""
-        options = KulturnavBot.handle_args(args)
+        options = cls.handle_args(args)
 
-        kulturnav_generator = KulturnavBot.get_kulturnav_generator(
+        kulturnav_generator = cls.get_kulturnav_generator(
             uuids, delay=options['delay'])
         kulturnavBot = cls(kulturnav_generator, options['cache_max_age'])
         kulturnavBot.cutoff = options['cutoff']
