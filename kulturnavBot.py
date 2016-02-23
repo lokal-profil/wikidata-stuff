@@ -1015,35 +1015,64 @@ class KulturnavBot(object):
     @classmethod
     def main(cls, *args):
         """Start the bot from the command line."""
-        # handle arguments
-        cutoff = None
-        max_hits = 250
-        delay = 0
-        require_wikidata = True
-        cache_max_age = 0
+        options = KulturnavBot.handle_args(args)
+
+        search_results = cls.get_search_results(
+            max_hits=options['max_hits'],
+            require_wikidata=options['require_wikidata'])
+        kulturnav_generator = KulturnavBot.get_kulturnav_generator(
+            search_results, delay=options['delay'])
+
+        kulturnavBot = cls(kulturnav_generator, options['cache_max_age'])
+        kulturnavBot.cutoff = options['cutoff']
+        kulturnavBot.require_wikidata = options['require_wikidata']
+        kulturnavBot.run()
+
+    @classmethod
+    def run_from_list(cls, uuids, *args):
+        """Start the bot with a list of uuids."""
+        options = KulturnavBot.handle_args(args)
+
+        kulturnav_generator = KulturnavBot.get_kulturnav_generator(
+            uuids, delay=options['delay'])
+        kulturnavBot = cls(kulturnav_generator, options['cache_max_age'])
+        kulturnavBot.cutoff = options['cutoff']
+        kulturnavBot.require_wikidata = False
+        kulturnavBot.run()
+
+    @staticmethod
+    def handle_args(args):
+        """Parse and load all of the basic arguments.
+
+        Also passes any needed arguments on to pywikibot and sets any defaults.
+
+        @param args: arguments to be handled
+        @type args: list of strings
+        @return: list of options
+        @rtype: dict
+        """
+        options = {
+            'cutoff': None,
+            'max_hits': 250,
+            'delay': 0,
+            'require_wikidata': True,
+            'cache_max_age': 0,
+            }
 
         for arg in pywikibot.handle_args(args):
             option, sep, value = arg.partition(':')
             if option == '-cutoff':
-                cutoff = int(value)
+                options['cutoff'] = int(value)
             elif option == '-max_hits':
-                max_hits = int(value)
+                options['max_hits'] = int(value)
             elif option == '-delay':
-                delay = int(value)
+                options['delay'] = int(value)
             elif option == '-any_item':
-                require_wikidata = False
+                options['require_wikidata'] = False
             elif option == '-wdq_cache':
-                cache_max_age = int(value)
+                options['cache_max_age'] = int(value)
 
-        search_results = cls.get_search_results(
-            max_hits=max_hits, require_wikidata=require_wikidata)
-        kulturnav_generator = KulturnavBot.get_kulturnav_generator(
-            search_results, delay=delay)
-
-        kulturnavBot = cls(kulturnav_generator, cache_max_age)
-        kulturnavBot.cutoff = cutoff
-        kulturnavBot.require_wikidata = require_wikidata
-        kulturnavBot.run()
+        return options
 
     @staticmethod
     def foobar(item):

@@ -12,8 +12,6 @@ usage:
 &params;
 """
 # @todo:
-# run with -any_item to override wikidata
-# Add method to initiate bot with a manual list (e.g. mix'n'match)
 #
 # Claims to add:
 # * P106 occupation - fieldOfActivityOfThePerson
@@ -86,6 +84,17 @@ class KulturnavBotNatMus(KulturnavBot):
         )
         super(KulturnavBotNatMus, cls).main(*args)
 
+    @classmethod
+    def run_from_list(cls, uuids, *args):
+        """Start the bot with a list of uuids."""
+        cls.setVariables(
+            dataset_q=DATASET_Q,
+            dataset_id=DATASET_ID,
+            entity_type=ENTITY_TYPE,
+            map_tag=MAP_TAG,
+            edit_summary=EDIT_SUMMARY
+        )
+        super(KulturnavBotNatMus, cls).run_from_list(uuids, *args)
 
 if __name__ == "__main__":
     KulturnavBotNatMus.main()
