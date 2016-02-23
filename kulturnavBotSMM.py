@@ -792,21 +792,21 @@ class KulturnavBotSMM(KulturnavBot):
             args = pywikibot.argvu[1:]
 
         # allow dataset to be specified through id
-        numPairs = {}
+        num_pairs = {}
         for k, v in cls.DATASETS.iteritems():
-            numPairs[str(v['id'])] = k
+            num_pairs[str(v['id'])] = k
 
         for arg in args:
             option, sep, value = arg.partition(':')
             if option == '-dataset':
                 if value in cls.DATASETS.keys():
                     return value
-                elif value in numPairs.keys():
-                    return numPairs[value]
+                elif value in num_pairs.keys():
+                    return num_pairs[value]
 
         # if nothing found
         txt = u''
-        for k, v in numPairs.iteritems():
+        for k, v in num_pairs.iteritems():
             txt += u'\n%s %s' % (k, v)
         pywikibot.output(u'No valid -dataset argument was found. This '
                          u'must be given by either number or name.\n'
