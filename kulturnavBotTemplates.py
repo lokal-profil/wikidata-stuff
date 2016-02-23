@@ -67,23 +67,13 @@ class Person(object):
             protoclaims[u'P570'] = WD.Statement(
                 helpers.iso_to_WbTime(values[u'deathDate']))
 
-        if values.get(u'deathPlace'):
-            protoclaims[u'P20'] = WD.Statement(
-                bot.dbpedia2Wikidata(values[u'deathPlace']))
-        elif values.get(u'deathPlace_P7'):
-            protoclaims[u'P20'] = WD.Statement(
-                bot.location2Wikidata(values[u'deathPlace_P7']))
+        protoclaims[u'P20'] = Person.get_death_place(bot, values)
 
         if values.get(u'birthDate'):
             protoclaims[u'P569'] = WD.Statement(
                 helpers.iso_to_WbTime(values[u'birthDate']))
 
-        if values.get(u'birthPlace'):
-            protoclaims[u'P19'] = WD.Statement(
-                bot.dbpedia2Wikidata(values[u'birthPlace']))
-        elif values.get(u'birthPlace_P7'):
-            protoclaims[u'P19'] = WD.Statement(
-                bot.location2Wikidata(values[u'birthPlace_P7']))
+        protoclaims[u'P19'] = Person.get_birth_place(bot, values)
 
         if values.get(u'gender'):
             # dbGender returns a WD.Statement
@@ -97,6 +87,21 @@ class Person(object):
             protoclaims[u'P734'] = WD.Statement(
                 bot.dbName(values[u'lastName'], u'lastName'))
 
+        protoclaims[u'P27'] = Person.get_nationality(bot, values)
+
+        return protoclaims
+
+    @staticmethod
+    def get_nationality(bot, values):
+        """Get the nationality/nationalities.
+
+        @param bot: the instance of the bot calling upon the template
+        @param bot: KulturnavBot
+        @param values: the values extracted using the rules
+        @type values: dict
+        @return: nationalities
+        @rtype: list of WD.Statement
+        """
         if values.get(u'person.nationality'):
             # there can be multiple values
             values[u'person.nationality'] = helpers.listify(
@@ -105,9 +110,43 @@ class Person(object):
             for pn in values[u'person.nationality']:
                 claim.append(WD.Statement(bot.location2Wikidata(pn)))
             if claim:
-                protoclaims[u'P27'] = claim
+                return claim
 
-        return protoclaims
+    @staticmethod
+    def get_birth_place(bot, values):
+        """Get birth place from either deathPlace or birthPlace_P7.
+
+        @param bot: the instance of the bot calling upon the template
+        @param bot: KulturnavBot
+        @param values: the values extracted using the rules
+        @type values: dict
+        @return: the birth place statment
+        @rtype: WD.Statement
+        """
+        if values.get(u'birthPlace'):
+            return WD.Statement(
+                bot.dbpedia2Wikidata(values[u'birthPlace']))
+        elif values.get(u'birthPlace_P7'):
+            return WD.Statement(
+                bot.location2Wikidata(values[u'birthPlace_P7']))
+
+    @staticmethod
+    def get_death_place(bot, values):
+        """Get birth place from either birthPlace or birthPlace_P7.
+
+        @param bot: the instance of the bot calling upon the template
+        @param bot: KulturnavBot
+        @param values: the values extracted using the rules
+        @type values: dict
+        @return: the death place statment
+        @rtype: WD.Statement
+        """
+        if values.get(u'deathPlace'):
+            return WD.Statement(
+                bot.dbpedia2Wikidata(values[u'deathPlace']))
+        elif values.get(u'deathPlace_P7'):
+            return WD.Statement(
+                bot.location2Wikidata(values[u'deathPlace_P7']))
 
     @staticmethod
     def person_test(bot, hit_item):
