@@ -82,12 +82,20 @@ class PaintingsBot:
                 collections.add(k['subcol'].strip('Q'))
         self.collections = list(collections)
 
-        # prepare WDQ query
+        # Load creator dump file
+        self.creator_dump = helpers.load_json_file('Oku_NM_arbetskopia.json',
+                                                   force_path=__file__)
+
+        # prepare WDQ painting query
         query = u'CLAIM[195:%s] AND CLAIM[%s]' % \
                 (',195:'.join(self.collections), painting_id_prop)
         self.painting_ids = helpers.fill_cache(painting_id_prop,
                                                queryoverride=query,
                                                cacheMaxAge=cache_max_age)
+
+        # prepare WDQ artist query (nat_mus_id - Q_id pairs)
+        self.artist_ids = helpers.fill_cache('P2538',
+                                             cacheMaxAge=cache_max_age)
 
         self.painting_id_prop = 'P%s' % painting_id_prop
 
@@ -169,9 +177,11 @@ class PaintingsBot:
             if u'P18' not in claims:
                 self.add_image_claim(painting_item, uri)
 
+            # creator through Nat_mus_database dump
+            self.add_natmus_creators(painting_item, obj_id, uri)
             # creator IFF through dbpedia
-            if u'P170' not in claims:
-                self.add_dbpedia_creator(painting_item, painting)
+            # if u'P170' not in claims:
+            #    self.add_dbpedia_creator(painting_item, painting)
 
     def add_title_claim(self, painting_item, painting):
         """Add a title/P1476 claim based on dcTitle.
@@ -433,6 +443,84 @@ class PaintingsBot:
             WD.Statement(obj_id),
             painting_item,
             self.make_url_reference(uri))
+
+    def add_natmus_creators(self, painting_item, obj_id, uri):
+        """Add creator/P170 claim(s) based on the database dump info.
+
+        @param painting_item: item to which claim is added
+        @type painting_item: pywikibot.ItemPage
+        @param obj_id: the nationalmuseum database id
+        @type obj_id: str
+        @param uri: reference url on nationalmuseum.se
+        @type uri: str
+        """
+        if obj_id not in self.creator_dump.keys():
+            return
+
+        # each artwork may have multiple artists,
+        # which may or maynot be on wikidata
+        for artist_id, artist_info in self.creator_dump[obj_id].iteritems():
+            if artist_id in self.artist_ids.keys():
+                self.add_natmus_creator(painting_item,
+                                        self.artist_ids[artist_id],
+                                        artist_info, uri)
+
+    def add_natmus_creator(self, painting_item, artist_Q, artist_info, uri):
+        u"""Add a creator/P170 claim based on the database dump info.
+
+        For now only handles the following cases:
+        * OkuFunktionS = Konstnär and no other details
+        * OkuFunktionS = Konstnär and a few anonymous cases
+
+        For Forgery/After work by the bot needs to be aware of both parties,
+        and both must exsist on WIkidata
+
+        @param painting_item: item to which claim is added
+        @type painting_item: pywikibot.ItemPage
+        @param artist_Q: the Q-id of the artist
+        @type artist_Q: str
+        @param artist_info: detailed info for how artist and artwork are
+            related
+        @type artist_info: dict
+        @param uri: reference url on nationalmuseum.se
+        @type uri: str
+        """
+        anonymous_q = 'Q4233718'
+        anonymous_combos = {
+            u'Tillskriven': 'P1773',
+            u'Hennes ateljé': 'P1774',
+            u'Hennes skola': 'P1780',
+            u'Hans ateljé': 'P1774',
+            u'Hans skola': 'P1780',
+        }
+
+        if artist_info.get('OkuBeschreibungS') or \
+                artist_info.get('OkuValidierungS'):
+            # this always indicates some special case which we cannot handle
+            # for now
+            return
+
+        if artist_info.get('OkuFunktionS') and \
+                artist_info.get('OkuFunktionS') == u'Konstnär':
+            if len(artist_info.keys()) == 1:  # i.e. all other are empty
+                self.wd.addNewClaim(
+                    u'P170',
+                    WD.Statement(
+                        self.wd.QtoItemPage(artist_Q)),
+                    painting_item,
+                    self.make_url_reference(uri))
+            elif artist_info.get('OkuArtS') in anonymous_combos.keys() and \
+                    len(artist_info.keys()) == 2:
+                # anonymous but attributed to the artist
+                self.wd.addNewClaim(
+                    u'P170',
+                    WD.Statement(
+                        self.wd.QtoItemPage(anonymous_q)).addQualifier(
+                        WD.Qualifier(
+                            P=anonymous_combos[artist_info.get('OkuArtS')],
+                            itis=self.wd.QtoItemPage(artist_Q))),
+                    painting_item,
+                    self.make_url_reference(uri))
 
     def add_inventory_and_collection_claim(self, painting_item, painting_id,
                                            painting, uri):
