@@ -826,20 +826,10 @@ class KulturnavBot(object):
     @staticmethod
     def bundleValues(values):
         """
-        Given a list of values (which might or might not be lists)
-        merge all into one list
-        param values list
-        return list|None
+        Deprecated in favour of helpers.bundle_values
         """
-        bundle = []
-        for v in values:
-            if v is not None:
-                v = helpers.listify(v)
-                bundle += v
-        if not bundle:
-            return None
-        else:
-            return bundle
+        print 'call to deprecated KulturnavBot.bundleValues()'
+        return helpers.bundle_values(values)
 
     @staticmethod
     def shuffleNames(nameObj):

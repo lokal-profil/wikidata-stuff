@@ -321,6 +321,23 @@ def is_pos_int(value):
     return False
 
 
+def bundle_values(values):
+    """Merge multiple values/lists into one list.
+
+    @param values: values to bundle
+    @param values: list, of values or lists
+    @return: the bundled list
+    @rtype: list
+    """
+    bundle = []
+    for v in values:
+        if v is not None:
+            v = listify(v)
+            bundle += v
+    if bundle:
+        return bundle
+
+
 def reorder_names(name):
     """Detect a "Last, First" string and return as "First Last".
 
