@@ -13,6 +13,7 @@ import codecs
 import urllib  # for dbpedia_2_wikidata
 import urllib2  # for dbpedia_2_wikidata
 import time  # for dbpedia_2_wikidata
+from datetime import datetime  # for today_as_WbTime
 import pywikibot
 from pywikibot import pagegenerators
 import pywikibot.data.wikidataquery as wdquery
@@ -88,6 +89,22 @@ def fill_cache(pid, queryoverride=None, cache_max_age=0):
                              expectedItems)
 
     return result
+
+
+def today_as_WbTime():
+    """Get todays data as a WbTime object.
+
+    Given an ISO date object (1922-09-17Z or 2014-07-11T08:14:46Z)
+    this returns the equivalent WbTime object
+
+    @return: Todays date correctly formated
+    @rtype: pywikibot.WbTime
+    """
+    today = datetime.today()
+    date = pywikibot.WbTime(year=today.year,
+                            month=today.month,
+                            day=today.day)
+    return date
 
 
 def iso_to_WbTime(date):

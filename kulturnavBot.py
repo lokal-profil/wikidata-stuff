@@ -84,10 +84,8 @@ class KulturnavBot(object):
     PLACE_P = '276'
     TIME_P = '585'   # date
     DATASET_Q = None
-    STATED_IN_P = '248'
     DISAMBIG_Q = '4167410'
     IS_A_P = '31'
-    PUBLICATION_P = '577'
     CATALOG_P = '972'
     DATASET_ID = None
     ENTITY_TYPE = None
@@ -246,7 +244,7 @@ class KulturnavBot(object):
 
                 # get the "last modified" timestamp and construct a Reference
                 date = helpers.iso_to_WbTime(values[u'modified'])
-                ref = self.makeRef(date)
+                ref = self.make_ref(date)
 
                 # add each property (if new) and source it
                 self.addProperties(protoclaims, hitItem, ref)
@@ -847,17 +845,37 @@ class KulturnavBot(object):
         nameObj['@value'] = name
         return nameObj
 
-    def makeRef(self, date):
+    def make_ref(self, date):
+        """Make a correctly formatted ref object for claims.
+
+        @todo: Shift P854 to source_test after retroactively fixing references
+
+        Contains 4 parts:
+        * P248: Stated in <the kulturnav dataset>
+        * P577: Publication date <from the document>
+        * P854: Reference url <using the current uuid>
+        * P813: Retrieval date <current date>
+
+        @param date: The "last modified" time of the document
+        @type date: pywikibot.WbTime
+        @return: the formated reference
+        @rtype WD.Reference
         """
-        Make a correctly formatted ref object for claims
-        """
+        reference_url = 'http://kulturnav.org/%s' % self.current_uuid
         ref = WD.Reference(
             source_test=self.wd.make_simple_claim(
-                self.STATED_IN_P,
+                'P248',
                 self.wd.QtoItemPage(self.DATASET_Q)),
-            source_notest=self.wd.make_simple_claim(
-                self.PUBLICATION_P,
-                date))
+            source_notest=[
+                self.wd.make_simple_claim(
+                    'P577',
+                    date),
+                self.wd.make_simple_claim(
+                    'P854',
+                    reference_url),
+                self.wd.make_simple_claim(
+                    'P813',
+                    helpers.today_as_WbTime())])
         return ref
 
     def addLabelOrAlias(self, nameObj, item, caseSensitive=False):

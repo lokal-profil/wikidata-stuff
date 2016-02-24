@@ -23,7 +23,6 @@ import config as config
 import helpers
 from WikidataStuff import WikidataStuff as WD
 import json
-import datetime
 import codecs
 import urllib2
 
@@ -641,10 +640,7 @@ class PaintingsBot:
         @type uri: str
         @rtype: WD.Reference
         """
-        today = datetime.datetime.today()
-        date = pywikibot.WbTime(year=today.year,
-                                month=today.month,
-                                day=today.day)
+        date = helpers.today_as_WbTime()
         ref = WD.Reference(
             source_test=self.wd.make_simple_claim(u'P854', uri),
             source_notest=self.wd.make_simple_claim(u'P813', date))
