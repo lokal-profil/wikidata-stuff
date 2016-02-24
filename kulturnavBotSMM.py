@@ -20,6 +20,7 @@ from kulturnavBot import KulturnavBot
 from kulturnavBot import Rule
 from WikidataStuff import WikidataStuff as WD
 from kulturnavBotTemplates import Person
+import helpers
 docuReplacements = {
     '&params;': parameter_help
 }
@@ -51,6 +52,7 @@ class KulturnavBotSMM(KulturnavBot):
             'fullName': u'Namngivna fartygstyper',
             'DATASET_ID': '51f2bd1f-7720-4f03-8d95-c22a85d26bbb',
             'ENTITY_TYPE': 'Concept',
+            'MAP_TAG': 'concept.exactMatch_s',
             'DATASET_Q': '20742915'},
         u'Personer': {
             'id': 3,
@@ -599,15 +601,7 @@ class KulturnavBotSMM(KulturnavBot):
 
         def claims(self, values):
             # handle prefLabel together with altLabel
-            values[u'prefLabel'] = self.bundleValues(
-                [values[u'prefLabel'],
-                 values[u'altLabel']])
-
-            # remove comments from lables
-            for i, v in enumerate(values[u'prefLabel']):
-                if '(' in v['@value']:
-                    val = v['@value'].split('(')[0].strip()
-                    values[u'prefLabel'][i]['@value'] = val
+            values[u'prefLabel'] = KulturnavBotSMM.prepare_labels(values)
 
             protoclaims = {
                 # instance of
@@ -641,15 +635,16 @@ class KulturnavBotSMM(KulturnavBot):
 
     def runNamngivna(self):
         rules = {
-            u'entity.name': Rule(  # force to look in top level
-                keys='inDataset',
-                values=None,
-                target='entity.name'),
+            u'prefLabel': None,
+            u'altLabel': None,
             u'navalVessel.type': None,
             u'navalVessel.otherType': None
         }
 
         def claims(self, values):
+            # handle prefLabel together with altLabel
+            values[u'prefLabel'] = KulturnavBotSMM.prepare_labels(values)
+
             # bundle type and otherType
             values[u'navalVessel.type'] = self.bundleValues(
                 [values[u'navalVessel.type'],
@@ -687,7 +682,7 @@ class KulturnavBotSMM(KulturnavBot):
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
                        datasetSanityTest=test,
-                       label=u'entity.name',
+                       label=u'prefLabel',
                        shuffle=False)
 
     def runSerietillverkade(self):
@@ -773,6 +768,28 @@ class KulturnavBotSMM(KulturnavBot):
                        datasetSanityTest=test,
                        label=u'entity.name',
                        shuffle=False)
+
+    @staticmethod
+    def prepare_labels(values):
+        """Combine prefLabel with altLabel and trim any comments.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @return: the combined list of scurbbed labels
+        @rtype: list
+        """
+        # handle prefLabel together with altLabel
+        pref_label = helpers.bundle_values(
+            [values[u'prefLabel'],
+             values[u'altLabel']])
+
+        # remove comments from lables
+        for i, v in enumerate(pref_label):
+            if '(' in v['@value']:
+                val = v['@value'].split('(')[0].strip()
+                pref_label[i]['@value'] = val
+
+        return pref_label
 
     @classmethod
     def get_dataset_variables(cls, *args):
