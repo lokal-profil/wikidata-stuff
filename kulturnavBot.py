@@ -1030,10 +1030,10 @@ class KulturnavBot(object):
         kulturnav_generator = cls.get_kulturnav_generator(
             search_results, delay=options['delay'])
 
-        kulturnavBot = cls(kulturnav_generator, options['cache_max_age'])
-        kulturnavBot.cutoff = options['cutoff']
-        kulturnavBot.require_wikidata = options['require_wikidata']
-        kulturnavBot.run()
+        kulturnav_bot = cls(kulturnav_generator, options['cache_max_age'])
+        kulturnav_bot.cutoff = options['cutoff']
+        kulturnav_bot.require_wikidata = options['require_wikidata']
+        kulturnav_bot.run()
 
     @classmethod
     def run_from_list(cls, uuids, *args):
@@ -1042,10 +1042,10 @@ class KulturnavBot(object):
 
         kulturnav_generator = cls.get_kulturnav_generator(
             uuids, delay=options['delay'])
-        kulturnavBot = cls(kulturnav_generator, options['cache_max_age'])
-        kulturnavBot.cutoff = options['cutoff']
-        kulturnavBot.require_wikidata = False
-        kulturnavBot.run()
+        kulturnav_bot = cls(kulturnav_generator, options['cache_max_age'])
+        kulturnav_bot.cutoff = options['cutoff']
+        kulturnav_bot.require_wikidata = False
+        kulturnav_bot.run()
 
     @staticmethod
     def handle_args(args):
