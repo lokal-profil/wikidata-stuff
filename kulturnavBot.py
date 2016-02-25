@@ -105,6 +105,7 @@ class KulturnavBot(object):
         self.cutoff = None
         self.verbose = verbose
         self.require_wikidata = True
+        self.cache_max_age = cache_max_age
 
         # trigger wdq query
         self.itemIds = helpers.fill_cache(self.KULTURNAV_ID_P,
@@ -653,7 +654,7 @@ class KulturnavBot(object):
             # store as a resolved hit, in case wdq yields nothing
             self.locations[uuid] = None
             wdqQuery = u'STRING[%s:"%s"]' % (self.GEONAMES_ID_P, geonames)
-            wdqResult = self.wd.wdqLookup(wdqQuery)
+            wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
             if wdqResult and len(wdqResult) == 1:
                 self.locations[uuid] = wdqResult[0]
                 qNo = u'Q%d' % self.locations[uuid]
@@ -717,7 +718,7 @@ class KulturnavBot(object):
                     code = s.split('#')[-1]
                     wdqQuery = u'STRING[%s:"%s"]' % (self.SWE_KOMMUNKOD_P,
                                                      code)
-                    wdqResult = self.wd.wdqLookup(wdqQuery)
+                    wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
                     if wdqResult and len(wdqResult) == 1:
                         self.ADMIN_UNITS.append(wdqResult[0])
                         return wdqResult[0]
@@ -725,7 +726,7 @@ class KulturnavBot(object):
                     code = s.split('#')[-1]
                     wdqQuery = u'STRING[%s:"%s"]' % (self.SWE_COUNTYKOD_P,
                                                      code)
-                    wdqResult = self.wd.wdqLookup(wdqQuery)
+                    wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
                     if wdqResult and len(wdqResult) == 1:
                         self.ADMIN_UNITS.append(wdqResult[0])
                         return wdqResult[0]
