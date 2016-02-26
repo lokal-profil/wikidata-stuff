@@ -4,36 +4,38 @@
 Quick bot for checking reciprocity of Wikidata-Kulturnav links
 
 @todo: Add some type of simple htmloutput (e.g. bootstrap from json)
+@todo: make use of WD.wdqLookup and/or wdqsLookup
 """
 import json
 import urllib2
-import urllib
+import wdqsLookup
+import pywikibot.data.wikidataquery as wdquery
 
 
-def getWDQ(dataset=None, data=None):
-    """
-    Use wdq to find all links from Wikidata to Kulturnav
-    @param dataset the qid (or list of qids) corresponding to a dataset
-    @return tupple (timestamp, dict {qid: uuid})
+def get_wdq(dataset=None, data=None):
+    """Find all links from Wikidata to Kulturnav using WDQ.
+
+    @param dataset: Q-id (or list of Q-ids) corresponding to a dataset.
+    @type dataset: str or list of str
+    @param data: dictionary to which data should be added
+    @type data: dict
+    @return: (timestamp, dict {qid: uuid})
+    @rtype: tupple
     """
     # initialise if needed
-    if data is None:
-        data = {}
+    data = data or {}
 
-    # handle lists
-    if isinstance(dataset, list):
-        for d in dataset:
-            time, data = getWDQ(dataset=d, data=data)
-        return time, data
-
-    # single query
+    # make query
     pid = '1248'
-    claim = u'CLAIM[%s]' % pid
-    if dataset is not None:
-        claim += u'{CLAIM[972:%s]}' % dataset[1:]
+    query = u'CLAIM[%s]' % pid
+    if dataset:
+        query += u'{CLAIM[972:%s]}' % dataset.lstrip('Q')
 
-    url = u'https://wdq.wmflabs.org/api?q=%s&props=%s' % (claim, pid)
-    j = json.load(urllib2.urlopen(url))
+    wd_queryset = wdquery.QuerySet(query)
+    wd_query = wdquery.WikidataQuery(cacheMaxAge=0)
+    j = wd_query.query(wd_queryset, props=[str(pid), ])
+
+    # process data
     j = j['props'][pid]
 
     # extract pairs
@@ -99,29 +101,27 @@ def getKulturnav(dataset=None, data=None):
     return data
 
 
-def getReferences(owner=None):
+def get_references(owner=None):
+    """Query for the number of statments sourced through Kulturnav.
+
+    @param owner: the Qid of the dataset owning organisation
+    @type owner: str or None
+    @return the number of sourced statment
+    @rtype: int
     """
-    Ask the query service for the number of statments being sourced
-    through Kulturnav.
-    """
-    baseUrl = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql?' \
-              'format=json&query='
-    query = "prefix wdt: <http://www.wikidata.org/prop/direct/>\n" \
-            "prefix prov: <http://www.w3.org/ns/prov#>\n" \
-            "prefix pr: <http://www.wikidata.org/prop/reference/>\n" \
-            "PREFIX wd: <http://www.wikidata.org/entity/>\n" \
-            "SELECT (count(?statement) as ?mentions) WHERE {\n" \
-            "   ?statement prov:wasDerivedFrom ?ref .\n" \
-            "   ?ref pr:P248 ?dataset .\n" \
-            "   ?dataset wdt:P31 wd:Q1172284 .\n" \
-            "   ?dataset wdt:P361 wd:Q16323066 .\n"
-    if owner is not None:
+    query = ""\
+        "SELECT (count(?statement) as ?mentions) WHERE {\n" \
+        "   ?statement prov:wasDerivedFrom ?ref .\n" \
+        "   ?ref pr:P248 ?dataset .\n" \
+        "   ?dataset wdt:P31 wd:Q1172284 .\n" \
+        "   ?dataset wdt:P361 wd:Q16323066 .\n"
+    if owner:
         query += "   ?dataset wdt:P127 wd:%s .\n" % owner
     query += "}"
 
-    # performe query
-    j = json.load(urllib2.urlopen(baseUrl + urllib.quote(query)))
-    return int(j['results']['bindings'][0]['mentions']['value'])
+    # perform query
+    data = wdqsLookup.make_simple_wdqs_query('mentions', query)
+    return int(data[0])
 
 
 def compare(kDataset=None, wDataset=None):
@@ -134,7 +134,7 @@ def compare(kDataset=None, wDataset=None):
     @return dict {_status, kulturnav_only, wikidata_only, mismatches}
     """
     kData = getKulturnav(kDataset)
-    time, wData = getWDQ(wDataset)
+    time, wData = get_wdq(wDataset)
     kCount = len(kData)
     wCount = len(wData)
 
@@ -168,48 +168,58 @@ def compare(kDataset=None, wDataset=None):
 
 
 def testAll(outDir):
-    """All"""
-    DATASET_ID = None
-    DATASET_Q = None
-    response = compare(DATASET_ID, DATASET_Q)
-    response['_status']['source_references'] = getReferences()
-    f = open('%ssynk-All.json' % outDir, 'w')
-    f.write(json.dumps(response))
-    f.close()
+    """Run test for all data."""
+    outfile = '%ssynk-All.json' % outDir
+    run_test(None, None, None, outfile)
 
 
 def testArkDes(outDir):
-    """ArkDes"""
-    DATASET_ID = '2b7670e1-b44e-4064-817d-27834b03067c'
-    DATASET_Q = 'Q17373699'
-    OWNER_Q = 'Q4356728'
-    response = compare(DATASET_ID, DATASET_Q)
-    response['_status']['source_references'] = getReferences(OWNER_Q)
-    f = open('%ssynk-Arkdes.json' % outDir, 'w')
-    f.write(json.dumps(response))
-    f.close()
+    """Run test for ArkDes data."""
+    dataset_id = '2b7670e1-b44e-4064-817d-27834b03067c'
+    dataset_q = 'Q17373699'
+    owner_q = 'Q4356728'
+    outfile = '%ssynk-Arkdes.json' % outDir
+    run_test(dataset_id, dataset_q, owner_q, outfile)
 
 
 def testSMM(outDir):
-    """All SMM"""
-    DATASET_ID = ['9a816089-2156-42ce-a63a-e2c835b20688',
+    """Run test for SMM data."""
+    dataset_id = ['9a816089-2156-42ce-a63a-e2c835b20688',
                   'c43d8eba-030b-4542-b1ac-6a31a0ba6d00',
                   '51f2bd1f-7720-4f03-8d95-c22a85d26bbb',
                   'c6a7e732-650f-4fdb-a34c-366088f1ff0e',
                   '6a98b348-8c90-4ccc-9da7-42351bd4feb7',
                   'fb4faa4b-984a-404b-bdf7-9c24a298591e',
                   'b0fc1427-a9ab-4239-910a-cd02c02c4a76']
-    DATASET_Q = ['Q20734454',
+    dataset_q = ['Q20734454',
                  'Q20103697',
                  'Q20742915',
                  'Q20669482',
                  'Q20742975',
                  'Q20742782',
                  'Q20669386']
-    OWNER_Q = 'Q10677695'
-    response = compare(DATASET_ID, DATASET_Q)
-    response['_status']['source_references'] = getReferences(OWNER_Q)
-    f = open('%ssynk-SMM.json' % outDir, 'w')
+    owner_q = 'Q10677695'
+    outfile = '%ssynk-SMM.json' % outDir
+    run_test(dataset_id, dataset_q, owner_q, outfile)
+
+
+def testNatMus(outDir):
+    """Run test for NatMus data."""
+    dataset_id = 'c6efd155-8433-4c58-adc9-72db80c6ce50'
+    dataset_q = 'Q22681075'
+    owner_q = 'Q842858'
+    outfile = '%ssynk-Natmus.json' % outDir
+    run_test(dataset_id, dataset_q, owner_q, outfile)
+
+
+def run_test(dataset_id, dataset_q, owner_q, outfile):
+    """Run a test for a given set of parameters and output.
+
+    @todo
+    """
+    response = compare(dataset_id, dataset_q)
+    response['_status']['source_references'] = get_references(owner_q)
+    f = open(outfile, 'w')
     f.write(json.dumps(response))
     f.close()
 
@@ -225,3 +235,4 @@ if __name__ == "__main__":
     testAll(outDir)
     testArkDes(outDir)
     testSMM(outDir)
+    testNatMus(outDir)
