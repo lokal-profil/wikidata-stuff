@@ -13,6 +13,7 @@ import codecs
 import urllib  # for dbpedia_2_wikidata
 import urllib2  # for dbpedia_2_wikidata
 import time  # for dbpedia_2_wikidata
+from datetime import datetime  # for today_as_WbTime
 import pywikibot
 from pywikibot import pagegenerators
 import pywikibot.data.wikidataquery as wdquery
@@ -50,32 +51,32 @@ def load_json_file(filename, force_path=None):
     return json.load(f)
 
 
-def fill_cache(ID_P, queryoverride=None, cacheMaxAge=0):
+def fill_cache(pid, queryoverride=None, cache_max_age=0):
     """Query Wikidata to fill the cache of entities which contain the id.
 
-    @param ID_P: The id property
-    @type ID_P: str, unicode
-    @param queryoverride: A WDQ query to use instead of CLAIM[ID_P]
+    @param pid: The id property
+    @type pid: str, unicode
+    @param queryoverride: A WDQ query to use instead of CLAIM[pid]
     @type queryoverride: str, unicode
-    @param cacheMaxAge: Max age of local cache, defaults to 0
-    @type cacheMaxAge: int
+    @param cache_max_age: Max age of local cache, defaults to 0
+    @type cache_max_age: int
     @return: Dictionary of IDno to Qno
     @rtype: dict
     """
-    ID_P = ID_P.lstrip('P')  # standardise indput
+    pid = pid.lstrip('P')  # standardise indput
     result = {}
     if queryoverride:
         query = queryoverride
     else:
-        query = u'CLAIM[%s]' % ID_P
+        query = u'CLAIM[%s]' % pid
     wd_queryset = wdquery.QuerySet(query)
 
-    wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
-    data = wd_query.query(wd_queryset, props=[str(ID_P), ])
+    wd_query = wdquery.WikidataQuery(cacheMaxAge=cache_max_age)
+    data = wd_query.query(wd_queryset, props=[str(pid), ])
 
     if data.get('status').get('error') == 'OK':
         expectedItems = data.get('status').get('items')
-        props = data.get('props').get(str(ID_P))
+        props = data.get('props').get(str(pid))
         for prop in props:
             if prop[2] in result.keys() and prop[0] != result[prop[2]]:
                 # Detect id's that are used more than once.
@@ -88,6 +89,22 @@ def fill_cache(ID_P, queryoverride=None, cacheMaxAge=0):
                              expectedItems)
 
     return result
+
+
+def today_as_WbTime():
+    """Get todays data as a WbTime object.
+
+    Given an ISO date object (1922-09-17Z or 2014-07-11T08:14:46Z)
+    this returns the equivalent WbTime object
+
+    @return: Todays date correctly formated
+    @rtype: pywikibot.WbTime
+    """
+    today = datetime.today()
+    date = pywikibot.WbTime(year=today.year,
+                            month=today.month,
+                            day=today.day)
+    return date
 
 
 def iso_to_WbTime(date):
@@ -321,6 +338,23 @@ def is_pos_int(value):
     return False
 
 
+def bundle_values(values):
+    """Merge multiple values/lists into one list.
+
+    @param values: values to bundle
+    @param values: list, of values or lists
+    @return: the bundled list
+    @rtype: list
+    """
+    bundle = []
+    for v in values:
+        if v is not None:
+            v = listify(v)
+            bundle += v
+    if bundle:
+        return bundle
+
+
 def reorder_names(name):
     """Detect a "Last, First" string and return as "First Last".
 
@@ -415,23 +449,6 @@ def dbpedia_2_wikidata(dbpedia):
                         return same[len('http://wikidata.org/entity/'):]
                 return None
     return None
-
-
-def if_arg_value(arg, name):
-    """Yield the values of any argument starting with the given name.
-
-    I.e. given arg="-parameter:value" if_arg_value(arg, parameter) should
-    return "value".
-
-    @param arg: the argument being analysed
-    @type arg: str
-    @param name: the parameter being searched for
-    @type name: str
-    @yields: str
-    """
-    option, sep, value = arg.partition(':')
-    if option == name:
-        yield value
 
 
 # generic methods which are needed in WikidataStuff.py are defined there to

@@ -10,71 +10,77 @@ Author: Lokal_Profil
 License: MIT
 
 Options (required):
-  -dataset:STR      the dataset to work on
-Options (may be omitted):
-  -cutoff:INT       number of entries to process before terminating
-  -maxHits:INT      number of items to request at a time from Kulturnav
-                    (default 250)
+-dataset:STR       the dataset to work on
+
+&params;
 """
 import pywikibot
+from kulturnavBot import parameter_help
 from kulturnavBot import KulturnavBot
 from kulturnavBot import Rule
 from WikidataStuff import WikidataStuff as WD
-
-# KulturNav based
-EDIT_SUMMARY = 'KulturnavBot(SMM)'
-DATASETS = {
-    u'Fartyg': {
-        'id': 0,
-        'fullName': u'Fartyg',
-        'DATASET_ID': '9a816089-2156-42ce-a63a-e2c835b20688',
-        'ENTITY_TYPE': 'NavalVessel',
-        'DATASET_Q': '20734454'},
-    u'Fartygstyper': {
-        'id': 1,
-        'fullName': u'Fartygstyper',
-        'DATASET_ID': 'c43d8eba-030b-4542-b1ac-6a31a0ba6d00',
-        'ENTITY_TYPE': 'Concept',
-        'MAP_TAG': 'concept.exactMatch_s',
-        'DATASET_Q': '20103697'},
-    u'Namngivna': {
-        'id': 2,
-        'fullName': u'Namngivna fartygstyper',
-        'DATASET_ID': '51f2bd1f-7720-4f03-8d95-c22a85d26bbb',
-        'ENTITY_TYPE': 'NavalVessel',
-        'DATASET_Q': '20742915'},
-    u'Personer': {
-        'id': 3,
-        'fullName': u'Personer verksamma inom fartygs- och båtbyggeri',
-        'DATASET_ID': 'c6a7e732-650f-4fdb-a34c-366088f1ff0e',
-        'ENTITY_TYPE': 'Person',
-        'DATASET_Q': '20669482'},
-    u'Serietillverkade': {
-        'id': 4,
-        'fullName': u'Serietillverkade fartyg',
-        'DATASET_ID': '6a98b348-8c90-4ccc-9da7-42351bd4feb7',
-        'ENTITY_TYPE': 'NavalVessel',
-        'DATASET_Q': '20742975'},
-    u'Klasser': {
-        'id': 5,
-        'fullName': u'Svenska marinens klasser för örlogsfartyg',
-        'DATASET_ID': 'fb4faa4b-984a-404b-bdf7-9c24a298591e',
-        'ENTITY_TYPE': 'NavalVessel',
-        'DATASET_Q': '20742782'},
-    u'Varv': {
-        'id': 6,
-        'fullName': u'Varv',
-        'DATASET_ID': 'b0fc1427-a9ab-4239-910a-cd02c02c4a76',
-        'ENTITY_TYPE': 'Organization',
-        'DATASET_Q': '20669386'}
+from kulturnavBotTemplates import Person
+import helpers
+docuReplacements = {
+    '&params;': parameter_help
 }
-MAP_TAG = 'entity.sameAs_s'
 
 
 class KulturnavBotSMM(KulturnavBot):
     """
     A bot to enrich and create information on Wikidata based on KulturNav info
     """
+
+    # KulturNav based
+    EDIT_SUMMARY = 'KulturnavBot(SMM)'
+    DATASETS = {
+        u'Fartyg': {
+            'id': 0,
+            'fullName': u'Fartyg',
+            'DATASET_ID': '9a816089-2156-42ce-a63a-e2c835b20688',
+            'ENTITY_TYPE': 'NavalVessel',
+            'DATASET_Q': '20734454'},
+        u'Fartygstyper': {
+            'id': 1,
+            'fullName': u'Fartygstyper',
+            'DATASET_ID': 'c43d8eba-030b-4542-b1ac-6a31a0ba6d00',
+            'ENTITY_TYPE': 'Concept',
+            'MAP_TAG': 'concept.exactMatch_s',
+            'DATASET_Q': '20103697'},
+        u'Namngivna': {
+            'id': 2,
+            'fullName': u'Namngivna fartygstyper',
+            'DATASET_ID': '51f2bd1f-7720-4f03-8d95-c22a85d26bbb',
+            'ENTITY_TYPE': 'Concept',
+            'MAP_TAG': 'concept.exactMatch_s',
+            'DATASET_Q': '20742915'},
+        u'Personer': {
+            'id': 3,
+            'fullName': u'Personer verksamma inom fartygs- och båtbyggeri',
+            'DATASET_ID': 'c6a7e732-650f-4fdb-a34c-366088f1ff0e',
+            'ENTITY_TYPE': 'Person',
+            'DATASET_Q': '20669482'},
+        u'Serietillverkade': {
+            'id': 4,
+            'fullName': u'Serietillverkade fartyg',
+            'DATASET_ID': '6a98b348-8c90-4ccc-9da7-42351bd4feb7',
+            'ENTITY_TYPE': 'NavalVesselDesign',
+            'DATASET_Q': '20742975'},
+        u'Klasser': {
+            'id': 5,
+            'fullName': u'Svenska marinens klasser för örlogsfartyg',
+            'DATASET_ID': 'fb4faa4b-984a-404b-bdf7-9c24a298591e',
+            'ENTITY_TYPE': 'NavalVesselDesign',
+            'DATASET_Q': '20742782'},
+        u'Varv': {
+            'id': 6,
+            'fullName': u'Varv',
+            'DATASET_ID': 'b0fc1427-a9ab-4239-910a-cd02c02c4a76',
+            'ENTITY_TYPE': 'Organization',
+            'DATASET_Q': '20669386'}
+    }
+    MAP_TAG = 'entity.sameAs_s'
+
     DATASET = None  # set by setDataset()
     GROUP_OF_PEOPLE_Q = '16334295'
     HUMAN_Q = '5'
@@ -93,9 +99,7 @@ class KulturnavBotSMM(KulturnavBot):
     allShipTypes = None  # any item in the ship type tree
 
     def run(self):
-        """
-        Starts the robot
-        """
+        """Start the bot."""
         # switch run method based on DATASET
         if self.DATASET == 'Personer':
             self.runPerson()
@@ -104,13 +108,13 @@ class KulturnavBotSMM(KulturnavBot):
         elif self.DATASET == 'Fartyg':
             self.classList = self.wd.wdqLookup(
                 u'CLAIM[1248]{CLAIM[972:%s]}' %
-                DATASETS[u'Klasser']['DATASET_Q'])
+                self.DATASETS[u'Klasser']['DATASET_Q'])
             self.typeList = self.wd.wdqLookup(
                 u'CLAIM[1248]{'
                 u'CLAIM[972:%s] OR CLAIM[972:%s] OR CLAIM[972:%s]}' % (
-                    DATASETS[u'Fartygstyper']['DATASET_Q'],
-                    DATASETS[u'Namngivna']['DATASET_Q'],
-                    DATASETS[u'Serietillverkade']['DATASET_Q']))
+                    self.DATASETS[u'Fartygstyper']['DATASET_Q'],
+                    self.DATASETS[u'Namngivna']['DATASET_Q'],
+                    self.DATASETS[u'Serietillverkade']['DATASET_Q']))
             self.allShipTypes = self.wd.wdqLookup(
                 u'CLAIM[31:%s]' % self.SHIPTYPE_Q)
             self.allShipTypes += self.wd.wdqLookup(
@@ -129,92 +133,27 @@ class KulturnavBotSMM(KulturnavBot):
                                       % self.DATASET)
 
     def runPerson(self):
-        rules = {
-            u'deathDate': None,
-            u'deathPlace': None,
-            u'deathPlace_P7': Rule(
-                keys='deathDate',
-                values={'@type': 'cidoc-crm:E69_Death'},
-                target='P7_took_place_at',
-                viaId='location'),
-            u'birthDate': None,
-            u'birthPlace': None,
-            u'birthPlace_P7': Rule(
-                keys='birthDate',
-                values={'@type': 'cidoc-crm:E67_Birth'},
-                target='P7_took_place_at',
-                viaId='location'),
-            u'firstName': None,
-            u'gender': None,
-            u'lastName': None,
-            u'name': None,
-            u'person.nationality': None
-        }
+        """Start a bot for adding info on people."""
+        rules = Person.get_rules()
 
         def claims(self, values):
-            protoclaims = {
-                # instance of
-                u'P31': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.HUMAN_Q))
-                }
+            """Add protoclaims.
+
+            @param values: the values extracted using the rules
+            @type values: dict
+            @return: the protoclaims
+            @rtype: dict PID-WD.Statement pairs
+            """
+            # get basic person claims
+            protoclaims = Person.get_claims(self, values)
+
             # P106 occupation - fieldOfActivityOfThePerson
-
-            if values[u'deathDate']:
-                protoclaims[u'P570'] = WD.Statement(
-                    self.dbDate(values[u'deathDate']))
-            if values[u'deathPlace']:
-                protoclaims[u'P20'] = WD.Statement(
-                    self.dbpedia2Wikidata(values[u'deathPlace']))
-            elif values[u'deathPlace_P7']:
-                protoclaims[u'P20'] = WD.Statement(
-                    self.location2Wikidata(values[u'deathPlace_P7']))
-            if values[u'birthDate']:
-                protoclaims[u'P569'] = WD.Statement(
-                    self.dbDate(values[u'birthDate']))
-            if values[u'birthPlace']:
-                protoclaims[u'P19'] = WD.Statement(
-                    self.dbpedia2Wikidata(values[u'birthPlace']))
-            elif values[u'birthPlace_P7']:
-                protoclaims[u'P19'] = WD.Statement(
-                    self.location2Wikidata(values[u'birthPlace_P7']))
-            if values[u'gender']:
-                # dbGender returns a WD.Statement
-                protoclaims[u'P21'] = self.dbGender(values[u'gender'])
-            if values[u'firstName']:
-                protoclaims[u'P735'] = WD.Statement(
-                    self.dbName(values[u'firstName'],
-                                u'firstName'))
-            if values[u'lastName']:
-                protoclaims[u'P734'] = WD.Statement(
-                    self.dbName(values[u'lastName'],
-                                u'lastName'))
-            if values[u'person.nationality']:
-                # there can be multiple values
-                values[u'person.nationality'] = self.listify(
-                    values[u'person.nationality'])
-                claim = []
-                for pn in values[u'person.nationality']:
-                    claim.append(WD.Statement(
-                        self.location2Wikidata(pn)))
-                if claim:
-                    protoclaims[u'P27'] = claim
-
             return protoclaims
-
-        def test(self, hitItem):
-            """
-            Fail if contains an is instance of group of people claim
-            """
-            return self.withoutClaimTest(hitItem,
-                                         self.IS_A_P,
-                                         self.GROUP_OF_PEOPLE_Q,
-                                         u'group of people')
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
-                       datasetSanityTest=test,
+                       datasetSanityTest=Person.person_test,
                        label=u'name',
                        shuffle=True)
 
@@ -662,15 +601,7 @@ class KulturnavBotSMM(KulturnavBot):
 
         def claims(self, values):
             # handle prefLabel together with altLabel
-            values[u'prefLabel'] = self.bundleValues(
-                [values[u'prefLabel'],
-                 values[u'altLabel']])
-
-            # remove comments from lables
-            for i, v in enumerate(values[u'prefLabel']):
-                if '(' in v['@value']:
-                    val = v['@value'].split('(')[0].strip()
-                    values[u'prefLabel'][i]['@value'] = val
+            values[u'prefLabel'] = KulturnavBotSMM.prepare_labels(values)
 
             protoclaims = {
                 # instance of
@@ -704,15 +635,16 @@ class KulturnavBotSMM(KulturnavBot):
 
     def runNamngivna(self):
         rules = {
-            u'entity.name': Rule(  # force to look in top level
-                keys='inDataset',
-                values=None,
-                target='entity.name'),
+            u'prefLabel': None,
+            u'altLabel': None,
             u'navalVessel.type': None,
             u'navalVessel.otherType': None
         }
 
         def claims(self, values):
+            # handle prefLabel together with altLabel
+            values[u'prefLabel'] = KulturnavBotSMM.prepare_labels(values)
+
             # bundle type and otherType
             values[u'navalVessel.type'] = self.bundleValues(
                 [values[u'navalVessel.type'],
@@ -750,7 +682,7 @@ class KulturnavBotSMM(KulturnavBot):
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
                        datasetSanityTest=test,
-                       label=u'entity.name',
+                       label=u'prefLabel',
                        shuffle=False)
 
     def runSerietillverkade(self):
@@ -837,38 +769,61 @@ class KulturnavBotSMM(KulturnavBot):
                        label=u'entity.name',
                        shuffle=False)
 
-    @classmethod
-    def setDataset(cls, *args):
+    @staticmethod
+    def prepare_labels(values):
+        """Combine prefLabel with altLabel and trim any comments.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @return: the combined list of scurbbed labels
+        @rtype: list
         """
-        Allows other args to be handled by a subclass by overloading this
-        function.
+        # handle prefLabel together with altLabel
+        pref_label = helpers.bundle_values(
+            [values[u'prefLabel'],
+             values[u'altLabel']])
+
+        # remove comments from lables
+        for i, v in enumerate(pref_label):
+            if '(' in v['@value']:
+                val = v['@value'].split('(')[0].strip()
+                pref_label[i]['@value'] = val
+
+        return pref_label
+
+    @classmethod
+    def get_dataset_variables(cls, *args):
+        """Extract the matching dataset from the -dataset arg.
+
+        Ideally this would be called after pywikibot variables have been
+        dealt with.
 
         TODO: Ideally this would be handled differently e.g. by unhandled
         args in kulturnavBot.main being sent to an overloaded method. This
-        would however require setVariables to be handled differently as well.
+        would however require set_variables to be handled differently as well.
+
+        @return: The key for the matching entry in DATASETS
+        @rtype: str
         """
         if not args:
             args = pywikibot.argvu[1:]
-        name = '-dataset'
 
         # allow dataset to be specified through id
-        numPairs = {}
-        for k, v in DATASETS.iteritems():
-            numPairs[str(v['id'])] = k
+        num_pairs = {}
+        for k, v in cls.DATASETS.iteritems():
+            num_pairs[str(v['id'])] = k
 
         for arg in args:
-            if arg.startswith(name):
-                dataset = arg[len(name) + 1:]
-                if dataset in DATASETS.keys():
-                    cls.DATASET = dataset
-                    return
-                elif dataset in numPairs.keys():
-                    cls.DATASET = numPairs[dataset]
-                    return
+            option, sep, value = arg.partition(':')
+            if option == '-dataset':
+                if value in cls.DATASETS.keys():
+                    return value
+                elif value in num_pairs.keys():
+                    return num_pairs[value]
 
         # if nothing found
         txt = u''
-        for k, v in numPairs.iteritems():
+        for k, v in num_pairs.iteritems():
             txt += u'\n%s %s' % (k, v)
         pywikibot.output(u'No valid -dataset argument was found. This '
                          u'must be given by either number or name.\n'
@@ -878,18 +833,15 @@ class KulturnavBotSMM(KulturnavBot):
     @classmethod
     def main(cls, *args):
         # pick one dataset from DATASETS
-        cls.setDataset(*args)
-        map_tag = MAP_TAG
-        if 'MAP_TAG' in DATASETS[cls.DATASET].keys():
-            map_tag = DATASETS[cls.DATASET]['MAP_TAG']
+        cls.DATASET = cls.get_dataset_variables(*args)
+        variables = cls.DATASETS[cls.DATASET]
 
-        # set variables and start bot
-        cls.setVariables(
-            dataset_q=DATASETS[cls.DATASET]['DATASET_Q'],
-            dataset_id=DATASETS[cls.DATASET]['DATASET_ID'],
-            entity_type=DATASETS[cls.DATASET]['ENTITY_TYPE'],
-            map_tag=map_tag,
-            edit_summary=EDIT_SUMMARY
+        # override variables and start bot
+        cls.set_variables(
+            dataset_q=variables.get('DATASET_Q'),
+            dataset_id=variables.get('DATASET_ID'),
+            entity_type=variables.get('ENTITY_TYPE'),
+            map_tag=variables.get('MAP_TAG')
         )
         super(KulturnavBotSMM, cls).main(*args)
 

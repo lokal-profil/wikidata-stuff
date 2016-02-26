@@ -4,29 +4,16 @@
 Bot to import and sourced statements about entities also present in
 KulturNav (https://www.wikidata.org/wiki/Q16323066).
 
-usage:
-    python kulturnavBot.py [OPTIONS]
-
-Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
-    /bot/wikidata/rijksmuseum_import.py by Multichill
-
 Author: Lokal_Profil
 License: MIT
 
-Options (may be omitted):
-  -cutoff:INT       number of entries to process before terminating
-  -maxHits:INT      number of items to request at a time from Kulturnav
-                    (default 250)
-  -delay:INT        seconds to delay between each kulturnav request
-                    (default 0)
-Can also handle any pywikibot options. Most importantly:
-  -simulate         don't write to database
-
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
+
+usage:
+    python kulturnavBot.py [OPTIONS]
+
+&params;
 """
-# @todo: Stick the options in a global string (parameterHelp) and add &params;
-#        to docstring  and then docuReplacements = {'&params;': parameterHelp}
-#        as global to any subscripts
 import json
 import time
 import pywikibot
@@ -37,6 +24,23 @@ import re
 
 FOO_BAR = u'A multilingual result (or one with multiple options) was ' \
           u'encountered but I have yet to support that functionality'
+
+parameter_help = u"""\
+Basic KulturNavBot options (may be omitted):
+-cutoff:INT        number of entries to process before terminating
+-max_hits:INT      number of items to request at a time from Kulturnav
+                    (default 250)
+-delay:INT         seconds to delay between each kulturnav request
+                    (default 0)
+-any_item          if present it does not filter kulturnav results on wikidata
+-wdq_cache:INT     set the cache age (in seconds) for wdq queries
+                    (default 0)
+
+Can also handle any pywikibot options. Most importantly:
+-simulate          don't write to database
+-help              output all available options
+"""
+docuReplacements = {'&params;': parameter_help}
 
 
 class Rule():
@@ -80,10 +84,8 @@ class KulturnavBot(object):
     PLACE_P = '276'
     TIME_P = '585'   # date
     DATASET_Q = None
-    STATED_IN_P = '248'
     DISAMBIG_Q = '4167410'
     IS_A_P = '31'
-    PUBLICATION_P = '577'
     CATALOG_P = '972'
     DATASET_ID = None
     ENTITY_TYPE = None
@@ -93,7 +95,7 @@ class KulturnavBot(object):
     locations = {}  # a dict of uuid to wikidata location matches
     current_uuid = ''  # for debugging
 
-    def __init__(self, dictGenerator, verbose=False):
+    def __init__(self, dictGenerator, cache_max_age, verbose=False):
         """
         Arguments:
             * generator    - A generator that yields Dict objects.
@@ -102,26 +104,46 @@ class KulturnavBot(object):
         self.repo = pywikibot.Site().data_repository()
         self.cutoff = None
         self.verbose = verbose
+        self.require_wikidata = True
+        self.cache_max_age = cache_max_age
 
         # trigger wdq query
-        self.itemIds = helpers.fill_cache(self.KULTURNAV_ID_P)
+        self.itemIds = helpers.fill_cache(self.KULTURNAV_ID_P,
+                                          cache_max_age=cache_max_age)
 
         # set up WikidataStuff instance
         self.wd = WD(self.repo)
 
         # load lists
-        self.COUNTRIES = self.wd.wdqLookup(u'TREE[6256][][31]')
-        self.ADMIN_UNITS = self.wd.wdqLookup(u'TREE[15284][][31]')
+        self.COUNTRIES = self.wd.wdqLookup(u'TREE[6256][][31]',
+                                           cache_max_age)
+        self.ADMIN_UNITS = self.wd.wdqLookup(u'TREE[15284][][31]',
+                                             cache_max_age)
 
     @classmethod
-    def setVariables(cls, dataset_q, dataset_id, entity_type,
-                     map_tag, edit_summary=None):
-        cls.DATASET_Q = dataset_q
-        cls.DATASET_ID = dataset_id
-        cls.ENTITY_TYPE = entity_type
-        cls.MAP_TAG = map_tag
-        if edit_summary is not None:
-            cls.EDIT_SUMMARY = edit_summary
+    def set_variables(cls, dataset_q=None, dataset_id=None, entity_type=None,
+                      map_tag=None, edit_summary=None):
+        """Override any class variables.
+
+        Used when command line arguments affect which type of run to do.
+
+        @param dataset_q: the Q-id of the dataset
+        @type dataset_q: str
+        @param dataset_id: the uuid of the dataset
+        @type dataset_id: str
+        @param entity_type: the entity type to provide for the search API
+        @type entity_type: str
+        @param map_tag: the map_tag to use in the search API to find wikidata
+            matches
+        @type map_tag: str
+        @param edit_summary: the edit_summary to use
+        @type edit_summary: str
+        """
+        cls.DATASET_Q = dataset_q or cls.DATASET_Q
+        cls.DATASET_ID = dataset_id or cls.DATASET_ID
+        cls.ENTITY_TYPE = entity_type or cls.ENTITY_TYPE
+        cls.MAP_TAG = map_tag or cls.MAP_TAG
+        cls.EDIT_SUMMARY = edit_summary or cls.EDIT_SUMMARY
 
     def run(self):
         """
@@ -163,7 +185,8 @@ class KulturnavBot(object):
                 u'wikidata': None,
                 u'libris-id': None,
                 u'viaf-id': None,
-                u'getty-id': None
+                u'getty_aat': None,
+                u'ulan': None
             }
             rules.update(datasetRules)
 
@@ -195,8 +218,10 @@ class KulturnavBot(object):
                 protoclaims[u'P906'] = WD.Statement(values[u'libris-id'])
             if values[u'viaf-id']:
                 protoclaims[u'P214'] = WD.Statement(values[u'viaf-id'])
-            if values[u'getty-id']:
-                protoclaims[u'P1014'] = WD.Statement(values[u'getty-id'])
+            if values[u'getty_aat']:
+                protoclaims[u'P1014'] = WD.Statement(values[u'getty_aat'])
+            if values[u'ulan']:
+                protoclaims[u'P245'] = WD.Statement(values[u'ulan'])
 
             # output info for testing
             if self.verbose:
@@ -220,7 +245,7 @@ class KulturnavBot(object):
 
                 # get the "last modified" timestamp and construct a Reference
                 date = helpers.iso_to_WbTime(values[u'modified'])
-                ref = self.makeRef(date)
+                ref = self.make_ref(date)
 
                 # add each property (if new) and source it
                 self.addProperties(protoclaims, hitItem, ref)
@@ -347,12 +372,16 @@ class KulturnavBot(object):
             elif u'viaf-id' in values.keys() and \
                     u'viaf.org/viaf/' in sa:
                 values[u'viaf-id'] = sa.split('/')[-1]
-            elif u'getty-id' in values.keys() and \
+            elif u'getty_aat' in values.keys() and \
                     u'vocab.getty.edu/aat/' in sa:
-                values[u'getty-id'] = sa.split('/')[-1]
+                values[u'getty_aat'] = sa.split('/')[-1]
+            elif u'ulan' in values.keys() and \
+                    u'vocab.getty.edu/ulan/' in sa:
+                values[u'ulan'] = sa.split('/')[-1]
 
-        # we only care about seeAlso if we didn't find a Wikidata link
-        if values[u'wikidata'] is None and values[u'seeAlso'] is not None:
+        # only look at seeAlso if we found no Wikidata link and require one
+        if self.require_wikidata and \
+                (not values[u'wikidata'] and values[u'seeAlso']):
             if isinstance(values[u'seeAlso'], (str, unicode)):
                 values[u'seeAlso'] = [values[u'seeAlso'], ]
             for sa in values[u'seeAlso']:
@@ -439,8 +468,12 @@ class KulturnavBot(object):
         """
         if values[u'identifier'] in self.itemIds:
             hitItemTitle = u'Q%s' % \
-                (self.itemIds.get(values[u'identifier']),)
-            if values[u'wikidata'] != hitItemTitle:
+                self.itemIds.get(values[u'identifier'])
+
+            if not values[u'wikidata'] and not self.require_wikidata:
+                # i.e. uuid has been supplied manually and exists on wikidata
+                pass
+            elif values[u'wikidata'] != hitItemTitle:
                 # this may be caused by either being a redirect
                 wd = self.wd.QtoItemPage(values[u'wikidata'])
                 wi = self.wd.QtoItemPage(hitItemTitle)
@@ -621,7 +654,7 @@ class KulturnavBot(object):
             # store as a resolved hit, in case wdq yields nothing
             self.locations[uuid] = None
             wdqQuery = u'STRING[%s:"%s"]' % (self.GEONAMES_ID_P, geonames)
-            wdqResult = self.wd.wdqLookup(wdqQuery)
+            wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
             if wdqResult and len(wdqResult) == 1:
                 self.locations[uuid] = wdqResult[0]
                 qNo = u'Q%d' % self.locations[uuid]
@@ -685,7 +718,7 @@ class KulturnavBot(object):
                     code = s.split('#')[-1]
                     wdqQuery = u'STRING[%s:"%s"]' % (self.SWE_KOMMUNKOD_P,
                                                      code)
-                    wdqResult = self.wd.wdqLookup(wdqQuery)
+                    wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
                     if wdqResult and len(wdqResult) == 1:
                         self.ADMIN_UNITS.append(wdqResult[0])
                         return wdqResult[0]
@@ -693,7 +726,7 @@ class KulturnavBot(object):
                     code = s.split('#')[-1]
                     wdqQuery = u'STRING[%s:"%s"]' % (self.SWE_COUNTYKOD_P,
                                                      code)
-                    wdqResult = self.wd.wdqLookup(wdqQuery)
+                    wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
                     if wdqResult and len(wdqResult) == 1:
                         self.ADMIN_UNITS.append(wdqResult[0])
                         return wdqResult[0]
@@ -792,20 +825,10 @@ class KulturnavBot(object):
     @staticmethod
     def bundleValues(values):
         """
-        Given a list of values (which might or might not be lists)
-        merge all into one list
-        param values list
-        return list|None
+        Deprecated in favour of helpers.bundle_values
         """
-        bundle = []
-        for v in values:
-            if v is not None:
-                v = helpers.listify(v)
-                bundle += v
-        if not bundle:
-            return None
-        else:
-            return bundle
+        print 'call to deprecated KulturnavBot.bundleValues()'
+        return helpers.bundle_values(values)
 
     @staticmethod
     def shuffleNames(nameObj):
@@ -823,17 +846,37 @@ class KulturnavBot(object):
         nameObj['@value'] = name
         return nameObj
 
-    def makeRef(self, date):
+    def make_ref(self, date):
+        """Make a correctly formatted ref object for claims.
+
+        @todo: Shift P854 to source_test after retroactively fixing references
+
+        Contains 4 parts:
+        * P248: Stated in <the kulturnav dataset>
+        * P577: Publication date <from the document>
+        * P854: Reference url <using the current uuid>
+        * P813: Retrieval date <current date>
+
+        @param date: The "last modified" time of the document
+        @type date: pywikibot.WbTime
+        @return: the formated reference
+        @rtype WD.Reference
         """
-        Make a correctly formatted ref object for claims
-        """
+        reference_url = 'http://kulturnav.org/%s' % self.current_uuid
         ref = WD.Reference(
             source_test=self.wd.make_simple_claim(
-                self.STATED_IN_P,
+                'P248',
                 self.wd.QtoItemPage(self.DATASET_Q)),
-            source_notest=self.wd.make_simple_claim(
-                self.PUBLICATION_P,
-                date))
+            source_notest=[
+                self.wd.make_simple_claim(
+                    'P577',
+                    date),
+                self.wd.make_simple_claim(
+                    'P854',
+                    reference_url),
+                self.wd.make_simple_claim(
+                    'P813',
+                    helpers.today_as_WbTime())])
         return ref
 
     def addLabelOrAlias(self, nameObj, item, caseSensitive=False):
@@ -858,83 +901,204 @@ class KulturnavBot(object):
                                 item, prefix=self.EDIT_SUMMARY,
                                 caseSensitive=caseSensitive)
 
+    @staticmethod
+    def get_kulturnav_generator(uuids, delay=0):
+        """Generate KulturNav items from a list of uuids.
+
+        @param uuids: uuids to request items for
+        @type uuids: list of str
+        @param delay: delay in seconds between each kulturnav request
+        @type delay: int
+        @yield: dict
+        """
+        for uuid in uuids:
+            time.sleep(delay)
+            try:
+                json_data = KulturnavBot.get_single_entry(uuid)
+            except pywikibot.Error, e:
+                pywikibot.output(e)
+            else:
+                yield json_data
+
     @classmethod
-    def getKulturnavGenerator(cls, maxHits=250, delay=0):
-        """
-        Generator of the entries at KulturNav based on a search for all items
-        of given type in the given dataset which contains Wikidata as a
-        given value.
-        param maxHits: max hits to request per search
-        param delay: delay in seconds between each kulturnav request
-        """
-        patterns = (u'http://www.wikidata.org/entity/',
-                    u'https://www.wikidata.org/entity/')
-        q = '*%2F%2Fwww.wikidata.org%2Fentity%2FQ*'
-        searchurl = 'http://kulturnav.org/api/search/' + \
-                    'entityType:' + cls.ENTITY_TYPE + ',' + \
-                    'entity.dataset_r:' + cls.DATASET_ID + ',' + \
-                    cls.MAP_TAG + ':%s/%d/%d'
-        queryurl = 'http://kulturnav.org/%s?format=application/ld%%2Bjson'
+    def get_search_results(cls, max_hits=250, require_wikidata=True):
+        """Make a KulturNav search for all items of a given type in a dataset.
 
-        # get all id's in KulturNav which link to Wikidata
-        wdDict = {}
+        @param max_hits: the maximum number of results to request at once
+        @type max_hits: int
+        @param require_wikidata: whether to filter results on having a wikidata
+            url in sameAs
+        @type require_wikidata: bool
+        @return: the resulting uuids
+        @rtype: list of str
+        """
+        search_url = 'http://kulturnav.org/api/search/' + \
+                     'entityType:' + cls.ENTITY_TYPE + ',' + \
+                     'entity.dataset_r:' + cls.DATASET_ID
+        q = None  # the map_tag query
 
+        # only filter on MAP_TAG if filtering on wikidata
+        if require_wikidata:
+            search_url += ',' + cls.MAP_TAG + ':%s/%d/%d'
+            q = '*%2F%2Fwww.wikidata.org%2Fentity%2FQ*'
+        else:
+            search_url += '/%d/%d'
+
+        # start search
+        results = []
         offset = 0
-        # overviewPage = json.load(urllib2.urlopen(searchurl % (q, offset, maxHits)))
-        searchPage = urllib2.urlopen(searchurl % (q, offset, maxHits))
-        searchData = searchPage.read()
-        overviewPage = json.loads(searchData)
+        overview_page = KulturnavBot.get_single_search_results(
+            search_url, q, offset, max_hits)
+        while overview_page:
+            for item in overview_page:
+                uuid = item[u'uuid']
+                if not require_wikidata or \
+                        KulturnavBot.has_wikidata_in_sameas(item, cls.MAP_TAG):
+                    results.append(uuid)
 
-        while overviewPage:
-            for o in overviewPage:
-                sameAs = o[u'properties'][cls.MAP_TAG[:cls.MAP_TAG.rfind('_')]]
-                for s in sameAs:
-                    if s[u'value'].startswith(patterns):
-                        wdDict[o[u'uuid']] = s[u'value'].split('/')[-1]
-                        break
             # continue
-            offset += maxHits
-            searchPage = urllib2.urlopen(searchurl % (q, offset, maxHits))
-            searchData = searchPage.read()
-            overviewPage = json.loads(searchData)
+            offset += max_hits
+            overview_page = KulturnavBot.get_single_search_results(
+                search_url, q, offset, max_hits)
 
         # some feedback
         pywikibot.output(u'Found %d matching entries in Kulturnav'
-                         % len(wdDict))
+                         % len(results))
+        return results
 
-        # get the record for each of these entries
-        for kulturnavId, wikidataId in wdDict.iteritems():
-            # jsonData = json.load(urllib2.urlopen(queryurl % kulturnavId))
-            time.sleep(delay)
-            recordPage = urllib2.urlopen(queryurl % kulturnavId)
-            recordData = recordPage.read()
-            jsonData = json.loads(recordData)
-            if jsonData.get(u'@graph'):
-                yield jsonData
-            else:
-                print jsonData
+    @staticmethod
+    def has_wikidata_in_sameas(item, map_tag):
+        """Check if a wikidata url is present in the sameAs property.
+
+        @param item: the search item to check
+        @type item: dict
+        @param map_tag: the tag to use (concepts don't use sameAs)
+        @type map_tag: str
+        @rtype: bool
+        """
+        # The patterns used if we filter on wikidata
+        patterns = (u'http://www.wikidata.org/entity/',
+                    u'https://www.wikidata.org/entity/')
+
+        same_as = item[u'properties'][map_tag[:map_tag.rfind('_')]]
+        for s in same_as:
+            if s[u'value'].startswith(patterns):
+                return True
+        return False
+
+    @staticmethod
+    def get_single_search_results(search_url, q, offset, max_hits):
+        """Retrieve the results from a single API search.
+
+        @param search_url: basic url from whih to build search
+        @type search_url: str
+        @param q: the map_tag query, if any
+        @type q: str or None
+        @param offset: the offset in search results
+        @type offset: int
+        @param max_hits: the maximum number of results to request at once
+        @type max_hits: int
+        @return: the search result object
+        @rtype: dict
+        """
+        actual_url = ''
+        if q is None:
+            actual_url = search_url % (offset, max_hits)
+        else:
+            actual_url = search_url % (q, offset, max_hits)
+
+        search_page = urllib2.urlopen(actual_url)
+        return json.loads(search_page.read())
+
+    @staticmethod
+    def get_single_entry(uuid):
+        """Retrieve the data on a single kulturnav entry.
+
+        Raises an pywikibot.Error if:
+        * @graph is not a key in the json response
+        * a non-json response is received
+
+        @param uuid: the uuid for the target item
+        @type uuid: str
+        @return: the entry object
+        @rtype: dict
+        @raise: pywikibot.Error
+        """
+        query_url = 'http://kulturnav.org/%s?format=application/ld%%2Bjson'
+        item_url = query_url % uuid
+        try:
+            record_page = urllib2.urlopen(item_url)
+            json_data = json.loads(record_page.read())
+        except ValueError, e:
+            raise pywikibot.Error('Error loading KulturNav item at '
+                                  '%s with error %s' % (item_url, e))
+        if json_data.get(u'@graph'):
+            return json_data
+        else:
+            raise pywikibot.Error('No @graph in KulturNav reply at '
+                                  '%s\n data: %s' % (item_url, json_data))
 
     @classmethod
     def main(cls, *args):
-        # handle arguments
-        cutoff = None
-        maxHits = 250
-        delay = 0
+        """Start the bot from the command line."""
+        options = cls.handle_args(args)
+
+        search_results = cls.get_search_results(
+            max_hits=options['max_hits'],
+            require_wikidata=options['require_wikidata'])
+        kulturnav_generator = cls.get_kulturnav_generator(
+            search_results, delay=options['delay'])
+
+        kulturnav_bot = cls(kulturnav_generator, options['cache_max_age'])
+        kulturnav_bot.cutoff = options['cutoff']
+        kulturnav_bot.require_wikidata = options['require_wikidata']
+        kulturnav_bot.run()
+
+    @classmethod
+    def run_from_list(cls, uuids, *args):
+        """Start the bot with a list of uuids."""
+        options = cls.handle_args(args)
+
+        kulturnav_generator = cls.get_kulturnav_generator(
+            uuids, delay=options['delay'])
+        kulturnav_bot = cls(kulturnav_generator, options['cache_max_age'])
+        kulturnav_bot.cutoff = options['cutoff']
+        kulturnav_bot.require_wikidata = False
+        kulturnav_bot.run()
+
+    @staticmethod
+    def handle_args(args):
+        """Parse and load all of the basic arguments.
+
+        Also passes any needed arguments on to pywikibot and sets any defaults.
+
+        @param args: arguments to be handled
+        @type args: list of strings
+        @return: list of options
+        @rtype: dict
+        """
+        options = {
+            'cutoff': None,
+            'max_hits': 250,
+            'delay': 0,
+            'require_wikidata': True,
+            'cache_max_age': 0,
+            }
 
         for arg in pywikibot.handle_args(args):
-            for v in helpers.if_arg_value(arg, '-cutoff'):
-                cutoff = int(v)
-            for v in helpers.if_arg_value(arg, '-maxHits'):
-                maxHits = int(v)
-            for v in helpers.if_arg_value(arg, '-delay'):
-                delay = int(v)
+            option, sep, value = arg.partition(':')
+            if option == '-cutoff':
+                options['cutoff'] = int(value)
+            elif option == '-max_hits':
+                options['max_hits'] = int(value)
+            elif option == '-delay':
+                options['delay'] = int(value)
+            elif option == '-any_item':
+                options['require_wikidata'] = False
+            elif option == '-wdq_cache':
+                options['cache_max_age'] = int(value)
 
-        kulturnavGenerator = cls.getKulturnavGenerator(maxHits=maxHits,
-                                                       delay=delay)
-
-        kulturnavBot = cls(kulturnavGenerator)
-        kulturnavBot.cutoff = cutoff
-        kulturnavBot.run()
+        return options
 
     @staticmethod
     def foobar(item):

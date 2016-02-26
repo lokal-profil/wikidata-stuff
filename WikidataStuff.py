@@ -168,17 +168,17 @@ class WikidataStuff(object):
             return u'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
         pywikibot.Claim.__repr__ = new_repr
 
-    def wdqLookup(self, query, cacheMaxAge=0):
+    def wdqLookup(self, query, cache_max_age=0):
         """
         Do a simple WDQ lookup returning the items ( less advanced than
         fillCache() in KulturnavBot )
 
         param query: a correctly formated wdq query
-        param cacheMaxAge: age of local cache, 0 = disabled
+        param cache_max_age: age of local cache, 0 = disabled
         return list|None
         """
         wd_queryset = wdquery.QuerySet(query)
-        wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
+        wd_query = wdquery.WikidataQuery(cacheMaxAge=cache_max_age)
         data = wd_query.query(wd_queryset)
 
         if data.get('status').get('error') == 'OK':
@@ -256,6 +256,9 @@ class WikidataStuff(object):
         """
         # check if any of the sources are already present
         # note that this can be in any of its references
+        if ref is None:
+            return False
+
         if any(self.hasRef(source.getID(), source.getTarget(), claim)
                 for source in ref.source_test):
             return False
@@ -320,14 +323,14 @@ class WikidataStuff(object):
 
         try:
             claim.addQualifier(qClaim)  # writes to database
-            pywikibot.output('Adding qualifier to %s in %s' % (qual.prop,
-                                                               item))
+            pywikibot.output('Adding qualifier %s to %s in %s' %
+                             (qual.prop, claim.getID(), item))
             return True
         except pywikibot.data.api.APIError, e:
             if e.code == u'modification-failed':
                 pywikibot.output(u'modification-failed error: '
-                                 u'qualifier to %s in %s' % (qual.prop,
-                                                             item))
+                                 u'qualifier to %s to %s in %s' %
+                                 (qual.prop, claim.getID(), item))
                 return False
             else:
                 raise pywikibot.Error(
@@ -383,10 +386,10 @@ class WikidataStuff(object):
             claim.setTarget(statement.itis)
             priorClaim = self.hasClaim(prop, statement.itis, item)
 
-        # test reference
-        if not isinstance(ref, WikidataStuff.Reference):
-            raise pywikibot.Error('No reference was given when making a new '
-                                  'claim. Crashing')
+        # test reference (must be a Reference or explicitly missing)
+        if not isinstance(ref, WikidataStuff.Reference) and ref is not None:
+            raise pywikibot.Error('The provided reference was not a Reference '
+                                  'object. Crashing')
 
         # test qualifier
         if priorClaim and statement.quals:

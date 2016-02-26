@@ -11,13 +11,7 @@ Based on http://git.wikimedia.org/summary/labs%2Ftools%2Fmultichill.git
 
 @todo: Allow image updates to run without having to hammer the Europeana api
 
-usage:
-    python NatMus/nationalmuseumSE.py [OPTIONS]
-
-Options (may be omitted):
--rows:INT         Number of entries to process (default: All)
-
--add_new:bool     Whether new objects should be created (default: True)
+&params;
 
 Can also handle any pywikibot options. Most importantly:
 -simulate         Don't write to database
@@ -29,7 +23,6 @@ import config as config
 import helpers
 from WikidataStuff import WikidataStuff as WD
 import json
-import datetime
 import codecs
 import urllib2
 
@@ -40,7 +33,12 @@ Usage:            python NatMus/nationalmuseumSE.py [OPTIONS]
 -rows:INT         Number of entries to process (default: All)
 
 -add_new:bool     Whether new objects should be created (default: True)
+
+-cursor:str       The Europeana pagination cursor at which to start the search
+
+-wdq_cache:INT    Set the cache age (in seconds) for wdq queries (default 0)
 """
+docuReplacements = {'&params;': usage}
 
 EDIT_SUMMARY = u'NationalmuseumBot'
 COMMONS_Q = u'565'
@@ -55,25 +53,22 @@ MAX_ROWS = 100  # max number of rows per request in Europeana API
 class PaintingsBot:
     """Bot to enrich, and create, for items about paintings on Wikidata."""
 
-    def __init__(self, dict_generator, painting_id_prop, add_new=False,
-                 skip_miniatures=True):
+    def __init__(self, dict_generator, painting_id_prop, cache_max_age=0):
         """Initiate the bot, loading files and querying WDQ.
 
         @param dict_generator: The generator for the Europeana painting objects
         @type dict_generator: generator (that yields Dict objects).
         @param painting_id_prop: the P-id of the painting-id property
         @type painting_id_prop: str
-        @param add_new: Whether new objects should be created
-        @type add_new: bool
-        @param skip_miniatures: Whether (new) miniatures should be skipped
-        @type skip_miniatures: bool
+        @param cache_max_age: Max age of local wdq cache, defaults to 0
+        @type cache_max_age: int
         """
         self.generator = dict_generator
         self.repo = pywikibot.Site().data_repository()
         self.commons = pywikibot.Site(u'commons', u'commons')
         self.wd = WD(self.repo)
-        self.add_new = add_new
-        self.skip_miniatures = skip_miniatures
+        self.add_new = False  # If new objects should be created
+        self.skip_miniatures = True  # If (new) miniatures should be skipped
 
         # Load prefixes and find allowed collections
         collections = set([INSTITUTION_Q])
@@ -86,11 +81,21 @@ class PaintingsBot:
                 collections.add(k['subcol'].strip('Q'))
         self.collections = list(collections)
 
-        # prepare WDQ query
+        # Load creator dump file
+        self.creator_dump = helpers.load_json_file('Oku_NM_arbetskopia.json',
+                                                   force_path=__file__)
+
+        # prepare WDQ painting query
         query = u'CLAIM[195:%s] AND CLAIM[%s]' % \
                 (',195:'.join(self.collections), painting_id_prop)
         self.painting_ids = helpers.fill_cache(painting_id_prop,
-                                               queryoverride=query)
+                                               queryoverride=query,
+                                               cache_max_age=cache_max_age)
+
+        # prepare WDQ artist query (nat_mus_id - Q_id pairs)
+        self.artist_ids = helpers.fill_cache('P2538',
+                                             cache_max_age=cache_max_age)
+
         self.painting_id_prop = 'P%s' % painting_id_prop
 
     def run(self):
@@ -147,6 +152,9 @@ class PaintingsBot:
             data = painting_item.get(force=True)
             claims = data.get('claims')
 
+            # add natmus id claim
+            self.add_natmus_id(painting_item, obj_id, uri)
+
             # add inventory number with collection
             self.add_inventory_and_collection_claim(painting_item, painting_id,
                                                     painting, uri)
@@ -168,9 +176,11 @@ class PaintingsBot:
             if u'P18' not in claims:
                 self.add_image_claim(painting_item, uri)
 
+            # creator through Nat_mus_database dump
+            self.add_natmus_creators(painting_item, obj_id, uri)
             # creator IFF through dbpedia
-            if u'P170' not in claims:
-                self.add_dbpedia_creator(painting_item, painting)
+            # if u'P170' not in claims:
+            #    self.add_dbpedia_creator(painting_item, painting)
 
     def add_title_claim(self, painting_item, painting):
         """Add a title/P1476 claim based on dcTitle.
@@ -234,12 +244,10 @@ class PaintingsBot:
         except KeyError:
             return
 
-        if creator_id is not None:
-            creator_item = self.wd.QtoItemPage(creator_id)
-            self.wd.addNewClaim(
-                u'P170',
-                WD.Statement(creator_item),
+        if creator_id:
+            self.set_known_creator(
                 painting_item,
+                creator_id,
                 self.make_europeana_reference(painting))
 
     def add_image_claim(self, painting_item, uri):
@@ -417,6 +425,151 @@ class PaintingsBot:
 
         return painting_item
 
+    def add_natmus_id(self, painting_item, obj_id, uri):
+        """Add a natmus_painting_id/P2539 claim.
+
+        @param painting_item: item to which claim is added
+        @type painting_item: pywikibot.ItemPage
+        @param obj_id: the nationalmuseum database id
+        @type obj_id: str
+        @param uri: reference url on nationalmuseum.se
+        @type uri: str
+        """
+        self.wd.addNewClaim(
+            u'P2539',
+            WD.Statement(obj_id),
+            painting_item,
+            self.make_url_reference(uri))
+
+    def add_natmus_creators(self, painting_item, obj_id, uri):
+        """Add creator/P170 claim(s) based on the database dump info.
+
+        @param painting_item: item to which claim is added
+        @type painting_item: pywikibot.ItemPage
+        @param obj_id: the nationalmuseum database id
+        @type obj_id: str
+        @param uri: reference url on nationalmuseum.se
+        @type uri: str
+        """
+        if obj_id not in self.creator_dump.keys():
+            return
+
+        # for now avoid any entries with mulitple creators
+        if len(self.creator_dump[obj_id]) != 1:
+            return
+
+        # each artwork may have multiple artists,
+        # which may or may not be on wikidata
+        for artist_id, artist_info in self.creator_dump[obj_id].iteritems():
+            if artist_id in self.artist_ids.keys():
+                self.add_natmus_creator(painting_item,
+                                        self.artist_ids[artist_id],
+                                        artist_info, uri)
+
+    def add_natmus_creator(self, painting_item, artist_Q, artist_info, uri):
+        u"""Add a creator/P170 claim based on the database dump info.
+
+        For now only handles the following cases:
+        * OkuFunktionS = Konstnär and no other details
+        * OkuFunktionS = Konstnär and a few anonymous cases
+
+        For Forgery/After work by the bot needs to be aware of both parties,
+        and both must exsist on WIkidata
+
+        @param painting_item: item to which claim is added
+        @type painting_item: pywikibot.ItemPage
+        @param artist_Q: the Q-id of the artist
+        @type artist_Q: str
+        @param artist_info: detailed info for how artist and artwork are
+            related
+        @type artist_info: dict
+        @param uri: reference url on nationalmuseum.se
+        @type uri: str
+        """
+        anonymous_combos = {
+            u'Tillskriven': 'P1773',
+            u'Hennes ateljé': 'P1774',
+            u'Hans ateljé': 'P1774',
+            u'Hennes skola': 'P1780',
+            u'Hans skola': 'P1780',
+            u'Hennes art': 'P1777',
+            u'Hans art': 'P1777',
+        }
+
+        if artist_info.get('OkuBeschreibungS') or \
+                artist_info.get('OkuValidierungS'):
+            # this always indicates some special case which we cannot handle
+            # for now
+            return
+
+        if artist_info.get('OkuFunktionS') and \
+                artist_info.get('OkuFunktionS') == u'Konstnär':
+            if len(artist_info.keys()) == 1:  # i.e. all other are empty
+                self.set_known_creator(
+                    painting_item,
+                    artist_Q,
+                    self.make_url_reference(uri))
+            elif artist_info.get('OkuArtS') in anonymous_combos.keys() and \
+                    len(artist_info.keys()) == 2:
+                # anonymous but attributed to the artist
+                related_info = {
+                    'P': anonymous_combos[artist_info.get('OkuArtS')],
+                    'itis': self.wd.QtoItemPage(artist_Q)}
+                self.set_anonymous_creator(
+                    painting_item,
+                    related_info,
+                    self.make_url_reference(uri))
+
+    def set_anonymous_creator(self, target_item, related_info, reference):
+        """Set a creator/P170 claim for an unknown creator.
+
+        Allows for simple anonymous claims as well as more complex
+        "in the manner of" etc.
+
+        @todo: Consider merging with set_known_creator so that it can be used
+            also for more complicated cases.
+
+        @param target_item: item to which claim is added
+        @type target_item: pywikibot.ItemPage
+        @param related_info: related info as a dict with P/itis pairs
+        @type related_info: dict
+        @param reference: the reference for the statment
+        @type uri: WD.Reference
+        """
+        anonymous_q = 'Q4233718'
+        anon_statement = WD.Statement(self.wd.QtoItemPage(anonymous_q))
+
+        # set any related qualifiers
+        if related_info:
+            anon_statement.addQualifier(
+                WD.Qualifier(
+                    P=related_info['P'],
+                    itis=related_info['itis']))
+
+        # set claim
+        self.wd.addNewClaim(
+            u'P170',
+            anon_statement,
+            target_item,
+            reference)
+
+    def set_known_creator(self, target_item, creator_Q, reference):
+        """Set a creator/P170 claim for a known creator.
+
+        @param target_item: item to which claim is added
+        @type target_item: pywikibot.ItemPage
+        @param creator_Q: the Q-id of the creator
+        @type creator_Q: str
+        @param reference: the reference for the statment
+        @type uri: WD.Reference
+        """
+        creator_item = self.wd.QtoItemPage(creator_Q)
+        self.wd.addNewClaim(
+            u'P170',
+            WD.Statement(creator_item),
+            target_item,
+            reference)
+
     def add_inventory_and_collection_claim(self, painting_item, painting_id,
                                            painting, uri):
         """Add an inventory_no, with qualifier, and a collection/P195 claim.
@@ -455,7 +608,7 @@ class PaintingsBot:
                     itis=nationalmuseum_item),
                 force=True),
             painting_item,
-            self.make_reference(uri))
+            self.make_url_reference(uri))
 
         # add collection (or subcollection)
         subcol = self.prefix_map[painting_id.split(' ')[0]]['subcol']
@@ -478,19 +631,16 @@ class PaintingsBot:
         """
         europeana_url = u'http://europeana.eu/portal/record%s.html' % \
                         painting['object']['about']
-        return self.make_reference(europeana_url)
+        return self.make_url_reference(europeana_url)
 
-    def make_reference(self, uri):
+    def make_url_reference(self, uri):
         """Make a Reference object with a retrieval url and today's date.
 
         @param uri: retrieval uri/url
         @type uri: str
         @rtype: WD.Reference
         """
-        today = datetime.datetime.today()
-        date = pywikibot.WbTime(year=today.year,
-                                month=today.month,
-                                day=today.day)
+        date = helpers.today_as_WbTime()
         ref = WD.Reference(
             source_test=self.wd.make_simple_claim(u'P854', uri),
             source_notest=self.wd.make_simple_claim(u'P813', date))
@@ -526,7 +676,7 @@ class PaintingsBot:
 
         return images
 
-    def most_missed_creators(self, cacheMaxAge=0):
+    def most_missed_creators(self, cache_max_age=0):
         """Produce list of most frequent, but unlinked, creators.
 
         Query WDQ for all objects in the collection missing an artist
@@ -537,7 +687,7 @@ class PaintingsBot:
                 ',195:'.join(self.collections)  # collection
         wd_queryset = wdquery.QuerySet(query)
 
-        wd_query = wdquery.WikidataQuery(cacheMaxAge=cacheMaxAge)
+        wd_query = wdquery.WikidataQuery(cacheMaxAge=cache_max_age)
         data = wd_query.query(wd_queryset)
 
         if data.get('status').get('error') == 'OK':
@@ -698,7 +848,7 @@ def get_painting_generator(rows=None, cursor=None, counter=0):
     if cursor:
         if not rows or num_rows > MAX_ROWS:
             counter += MAX_ROWS
-            pywikibot.output(u'%d...' % (counter))
+            pywikibot.output(u'%d... %s' % (counter, cursor))
             rows = min(rows, num_rows - MAX_ROWS)  # preserves None
             for g in get_painting_generator(rows=rows,
                                             cursor=cursor,
@@ -781,24 +931,32 @@ def main(*args):
     # handle arguments
     rows = None
     add_new = True
+    cursor = None
+    cache_max_age = 0
 
     for arg in pywikibot.handle_args(args):
-        for v in helpers.if_arg_value(arg, '-rows'):
-            if helpers.is_pos_int(v):
-                rows = int(v)
+        option, sep, value = arg.partition(':')
+        if option == '-rows':
+            if helpers.is_pos_int(value):
+                rows = int(value)
             else:
                 raise pywikibot.Error(usage)
-        for v in helpers.if_arg_value(arg, '-new'):
-            if v.lower() in ('t', 'true'):
+        elif option == '-new':
+            if value.lower() in ('t', 'true'):
                 add_new = True
-            elif v.lower() in ('f', 'false'):
+            elif value.lower() in ('f', 'false'):
                 add_new = True
             else:
                 raise pywikibot.Error(usage)
+        elif option == '-cursor':
+            cursor = value
+        elif option == '-wdq_cache':
+            cache_max_age = int(value)
 
-    painting_gen = get_painting_generator(rows=rows)
+    painting_gen = get_painting_generator(rows=rows, cursor=cursor)
 
-    paintings_bot = PaintingsBot(painting_gen, INVNO_P, add_new)  # inv nr.
+    paintings_bot = PaintingsBot(painting_gen, INVNO_P, cache_max_age)
+    paintings_bot.add_new = add_new
     paintings_bot.run()
     # paintings_bot.most_missed_creators()
 
