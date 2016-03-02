@@ -243,9 +243,9 @@ def run_test(dataset_id, dataset_q, owner_q, outfile):
     """
     response = compare(dataset_id, dataset_q)
     response['_status']['source_references'] = get_references(owner_q)
-    f = open(outfile, 'w')
-    f.write(json.dumps(response))
-    f.close()
+    with open(outfile, 'w') as f:
+        f.write(json.dumps(response))
+        f.close()
 
 if __name__ == "__main__":
     import sys
