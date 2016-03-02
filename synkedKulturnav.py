@@ -1,10 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-Quick bot for checking reciprocity of Wikidata-Kulturnav links
+Quick bot for checking reciprocity of Wikidata-Kulturnav links.
 
-@todo: Add some type of simple htmloutput (e.g. bootstrap from json)
-@todo: make use of WD.wdqLookup and/or wdqsLookup
+@todo: Add some type of simple html output (e.g. bootstrap from json)
 """
 import json
 import urllib2
@@ -20,7 +19,7 @@ def get_wdq(dataset=None, data=None):
     @param data: dictionary to which data should be added
     @type data: dict
     @return: (timestamp, dict {qid: uuid})
-    @rtype: tupple
+    @rtype: tuple
     """
     # initialise if needed
     data = data or {}
@@ -51,12 +50,15 @@ def get_wdq(dataset=None, data=None):
     return (time, data)
 
 
-def getKulturnav(dataset=None, data=None):
-    """
-    Use wdq to find all links from Wikidata to Kulturnav
-    @param dataset the uuid corresponding to a dataset
+def get_kulturnav(dataset=None, data=None):
+    """Use wdq to find all links from Wikidata to Kulturnav.
 
-    @return dict {uuid: qid}
+    @param dataset: the uuid corresponding to a dataset
+    @type dataset: str
+    @param data: object to add the matches to
+    @type data: dict
+    @return: matches as key-value pairs {uuid: qid}
+    @rtype: dict
     """
     # initialise if needed
     if data is None:
@@ -65,13 +67,13 @@ def getKulturnav(dataset=None, data=None):
     # handle lists
     if isinstance(dataset, list):
         for d in dataset:
-            getKulturnav(dataset=d, data=data)
+            get_kulturnav(dataset=d, data=data)
         return data
 
     # single lookup
-    batchSize = 250
+    batch_size = 250
     needles = (u'http://www.wikidata.org', 'https://www.wikidata.org')
-    searchStr = u'*%2F%2Fwww.wikidata.org%2Fentity%2FQ*'
+    search_str = u'*%2F%2Fwww.wikidata.org%2Fentity%2FQ*'
     matched_tags = ['entity.sameAs_s', 'concept.exactMatch_s']
     if dataset is None:
         dataset = ''
@@ -81,8 +83,8 @@ def getKulturnav(dataset=None, data=None):
 
     for match in matched_tags:
         offset = 0
-        url = urlbase + u'%s:%s/' % (match, searchStr)
-        j = json.load(urllib2.urlopen(url + '%d/%d' % (offset, batchSize)))
+        url = urlbase + u'%s:%s/' % (match, search_str)
+        j = json.load(urllib2.urlopen(url + '%d/%d' % (offset, batch_size)))
         while j:
             tag = match.split('_')[0]
             for i in j:
@@ -95,18 +97,19 @@ def getKulturnav(dataset=None, data=None):
                         data[uuid] = qid
 
             # do next batch of requests
-            offset += batchSize
-            j = json.load(urllib2.urlopen(url + '%d/%d' % (offset, batchSize)))
+            offset += batch_size
+            batch_url = url + '%d/%d' % (offset, batch_size)
+            j = json.load(urllib2.urlopen(batch_url))
 
     return data
 
 
 def get_references(owner=None):
-    """Query for the number of statments sourced through Kulturnav.
+    """Query for the number of statements sourced through Kulturnav.
 
     @param owner: the Qid of the dataset owning organisation
     @type owner: str or None
-    @return the number of sourced statment
+    @return: the number of sourced statement
     @rtype: int
     """
     query = ""\
@@ -124,65 +127,75 @@ def get_references(owner=None):
     return int(data[0])
 
 
-def compare(kDataset=None, wDataset=None):
+def compare(k_dataset=None, w_dataset=None):
+    """Compare the links from Wikidata to Kulturnav and vice versa.
+
+    @param k_dataset: the uuid corresponding to a dataset
+    @type k_dataset: str
+    @param w_dataset: the qid corresponding to a dataset
+    @type w_dataset: str
+    @return: comparison {_status, kulturnav_only, wikidata_only, mismatches}
+    @rtype: dict
     """
-    Compare the links from Wikidata to Kulturnav and vice versa
+    k_data = get_kulturnav(k_dataset)
+    time, w_data = get_wdq(w_dataset)
+    k_count = len(k_data)
+    w_count = len(w_data)
 
-    @param datasetK the uuid corresponding to a dataset
-    @param datasetW the qid corresponding to a dataset
-
-    @return dict {_status, kulturnav_only, wikidata_only, mismatches}
-    """
-    kData = getKulturnav(kDataset)
-    time, wData = get_wdq(wDataset)
-    kCount = len(kData)
-    wCount = len(wData)
-
-    kOnly = {}
+    k_only = {}
     mismatch = []
-    for uuid, qid in kData.iteritems():
-        if qid in wData.keys():
-            if wData[qid] != uuid:
-                mismatch.append((uuid, qid, wData[qid]))
-            del wData[qid]
+    for uuid, qid in k_data.iteritems():
+        if qid in w_data.keys():
+            if w_data[qid] != uuid:
+                mismatch.append((uuid, qid, w_data[qid]))
+            del w_data[qid]
         else:
-            kOnly[uuid] = qid
+            k_only[uuid] = qid
 
-    for qid, uuid in wData.iteritems():
-        if uuid in kOnly.keys():
-            mismatch.append((qid, uuid, kOnly[uuid]))
-            del kOnly[uuid]
+    for qid, uuid in w_data.iteritems():
+        if uuid in k_only.keys():
+            mismatch.append((qid, uuid, k_only[uuid]))
+            del k_only[uuid]
 
     # prepare response
-    status = {'wdq_time': time,
-              'kulturnav_hits': kCount,
-              'kulturnav_dataset': kDataset,
-              'wikidata_hits': wCount,
-              'wikidata_dataset': wDataset,
-              'mismatches': len(mismatch)}
-    response = {'_status': status,
-                'kulturnav_only': kOnly,
-                'wikidata_only': wData,
-                'mismatches': mismatch}
+    status = {
+        'wdq_time': time,
+        'kulturnav_hits': k_count,
+        'kulturnav_dataset': k_dataset,
+        'wikidata_hits': w_count,
+        'wikidata_dataset': w_dataset,
+        'mismatches': len(mismatch)
+    }
+    response = {
+        '_status': status,
+        'kulturnav_only': k_only,
+        'wikidata_only': w_data,
+        'mismatches': mismatch
+    }
     return response
 
 
-def testAll(outDir):
+def test_all(out_dir):
     """Run test for all data."""
-    outfile = '%ssynk-All.json' % outDir
-    run_test(None, None, None, outfile)
+    run_test(
+        dataset_id=None,
+        dataset_q=None,
+        owner_q=None,
+        outfile='%ssynk-All.json' % out_dir
+    )
 
 
-def testArkDes(outDir):
+def test_ArkDes(out_dir):
     """Run test for ArkDes data."""
-    dataset_id = '2b7670e1-b44e-4064-817d-27834b03067c'
-    dataset_q = 'Q17373699'
-    owner_q = 'Q4356728'
-    outfile = '%ssynk-Arkdes.json' % outDir
-    run_test(dataset_id, dataset_q, owner_q, outfile)
+    run_test(
+        dataset_id='2b7670e1-b44e-4064-817d-27834b03067c',
+        dataset_q='Q17373699',
+        owner_q='Q4356728',
+        outfile='%ssynk-Arkdes.json' % out_dir
+    )
 
 
-def testSMM(outDir):
+def test_SMM(out_dir):
     """Run test for SMM data."""
     dataset_id = ['9a816089-2156-42ce-a63a-e2c835b20688',
                   'c43d8eba-030b-4542-b1ac-6a31a0ba6d00',
@@ -198,24 +211,35 @@ def testSMM(outDir):
                  'Q20742975',
                  'Q20742782',
                  'Q20669386']
-    owner_q = 'Q10677695'
-    outfile = '%ssynk-SMM.json' % outDir
-    run_test(dataset_id, dataset_q, owner_q, outfile)
+    run_test(
+        dataset_id=dataset_id,
+        dataset_q=dataset_q,
+        owner_q='Q10677695',
+        outfile='%ssynk-SMM.json' % out_dir
+    )
 
 
-def testNatMus(outDir):
+def test_NatMus(out_dir):
     """Run test for NatMus data."""
-    dataset_id = 'c6efd155-8433-4c58-adc9-72db80c6ce50'
-    dataset_q = 'Q22681075'
-    owner_q = 'Q842858'
-    outfile = '%ssynk-Natmus.json' % outDir
-    run_test(dataset_id, dataset_q, owner_q, outfile)
+    run_test(
+        dataset_id='c6efd155-8433-4c58-adc9-72db80c6ce50',
+        dataset_q='Q22681075',
+        owner_q='Q842858',
+        outfile='%ssynk-Natmus.json' % out_dir
+    )
 
 
 def run_test(dataset_id, dataset_q, owner_q, outfile):
     """Run a test for a given set of parameters and output.
 
-    @todo
+    @param dataset_id: kulturnav uuid of the dataset
+    @type dataset_id: str or list of str
+    @param dataset_q: Wikidata qid of the dataset
+    @type dataset_q: str or list of str
+    @param owner_q: Wikidata qid of the "owner" organisation
+    @type owner_q: str
+    @param outfile: file to write to
+    @type outfile: str
     """
     response = compare(dataset_id, dataset_q)
     response['_status']['source_references'] = get_references(owner_q)
@@ -229,10 +253,10 @@ if __name__ == "__main__":
             "\toutdir(optional): dir in which to stick output. " \
             "Defaults to current."
     argv = sys.argv[1:]
-    outDir = './'
+    out_dir = './'
     if len(argv) == 1:
-        outDir = argv[0]
-    testAll(outDir)
-    testArkDes(outDir)
-    testSMM(outDir)
-    testNatMus(outDir)
+        out_dir = argv[0]
+    test_all(out_dir)
+    test_ArkDes(out_dir)
+    test_SMM(out_dir)
+    test_NatMus(out_dir)
