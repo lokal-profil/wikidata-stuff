@@ -335,18 +335,14 @@ class KulturnavBotSMM(KulturnavBot):
             @rtype: dict PID-WD.Statement pairs
             """
             # handle altNames together with names
-            values[u'entity.name'] = self.bundleValues(
-                [values[u'entity.name'],
-                 values[u'altLabel']])
+            values[u'entity.name'] = KulturnavBotSMM.prep_names(values)
             # convert from ALL-CAPS
             for i, v in enumerate(values[u'entity.name']):
                 values[u'entity.name'][i][u'@value'] = \
                     v[u'@value'].capitalize()
 
             # bundle type and otherType
-            values[u'navalVessel.type'] = self.bundleValues(
-                [values[u'navalVessel.type'],
-                 values[u'navalVessel.otherType']])
+            values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
             # check that we can always safely ignore entity.code
             if values[u'navalVessel.signalLetters'] != values[u'entity.code']:
@@ -522,14 +518,10 @@ class KulturnavBotSMM(KulturnavBot):
             @rtype: dict PID-WD.Statement pairs
             """
             # handle altNames together with names
-            values[u'entity.name'] = self.bundleValues(
-                [values[u'entity.name'],
-                 values[u'altLabel']])
+            values[u'entity.name'] = KulturnavBotSMM.prep_names(values)
 
             # bundle type and otherType
-            values[u'navalVessel.type'] = self.bundleValues(
-                [values[u'navalVessel.type'],
-                 values[u'navalVessel.otherType']])
+            values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
             protoclaims = {
                 # operator, SwedishNavy
@@ -549,14 +541,7 @@ class KulturnavBotSMM(KulturnavBot):
                 pywikibot.ItemPage(self.repo, class_Q))
 
             # P279 - subgroup
-            if values[u'navalVessel.type']:
-                claims = []
-                for t in values[u'navalVessel.type']:
-                    item = self.kulturnav2Wikidata(t)
-                    if item:
-                        claims.append(WD.Statement(item))
-                if claims:
-                    protoclaims[u'P279'] = claims
+            self.set_subgroup(values, protoclaims)
 
             # P287 - Designer (Constructor)
             self.set_constructor(values, protoclaims)
@@ -608,12 +593,9 @@ class KulturnavBotSMM(KulturnavBot):
             # handle prefLabel together with altLabel
             values[u'prefLabel'] = KulturnavBotSMM.prepare_labels(values)
 
-            protoclaims = {
-                # instance of
-                u'P31': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.SHIPTYPE_Q))
-            }
+            protoclaims = {}
+            # P31 - instance of
+            self.set_is_ship(values, protoclaims)
 
             # P279 - subgroup self.kulturnav2Wikidata(broader)
             if values[u'broader']:
@@ -650,26 +632,14 @@ class KulturnavBotSMM(KulturnavBot):
             values[u'prefLabel'] = KulturnavBotSMM.prepare_labels(values)
 
             # bundle type and otherType
-            values[u'navalVessel.type'] = self.bundleValues(
-                [values[u'navalVessel.type'],
-                 values[u'navalVessel.otherType']])
+            values[u'navalVessel.type'] = KulturnavBotSMM.prepare_type(values)
 
-            protoclaims = {
-                # instance of
-                u'P31': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.SHIPTYPE_Q))
-            }
+            protoclaims = {}
+            # P31 - instance of
+            self.set_is_ship(values, protoclaims)
 
             # P279 - subgroup
-            if values[u'navalVessel.type']:
-                claims = []
-                for t in values[u'navalVessel.type']:
-                    item = self.kulturnav2Wikidata(t)
-                    if item:
-                        claims.append(WD.Statement(item))
-                if claims:
-                    protoclaims[u'P279'] = claims
+            self.set_subgroup(values, protoclaims)
 
             return protoclaims
 
@@ -716,31 +686,17 @@ class KulturnavBotSMM(KulturnavBot):
             @rtype: dict PID-WD.Statement pairs
             """
             # handle altNames together with names
-            values[u'entity.name'] = self.bundleValues(
-                [values[u'entity.name'],
-                 values[u'altLabel']])
+            values[u'entity.name'] = KulturnavBotSMM.prep_names(values)
 
             # bundle type and otherType
-            values[u'navalVessel.type'] = self.bundleValues(
-                [values[u'navalVessel.type'],
-                 values[u'navalVessel.otherType']])
+            values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
-            protoclaims = {
-                # instance of
-                u'P31': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.SHIPTYPE_Q))
-            }
+            protoclaims = {}
+            # P31 - instance of
+            self.set_is_ship(values, protoclaims)
 
             # P279 - subgroup
-            if values[u'navalVessel.type']:
-                claims = []
-                for t in values[u'navalVessel.type']:
-                    item = self.kulturnav2Wikidata(t)
-                    if item:
-                        claims.append(WD.Statement(item))
-                if claims:
-                    protoclaims[u'P279'] = claims
+            self.set_subgroup(values, protoclaims)
 
             # P287 - Designer (Constructor)
             self.set_constructor(values, protoclaims)
@@ -767,6 +723,25 @@ class KulturnavBotSMM(KulturnavBot):
                                       self.SHIPTYPE_Q,
                                       u'ship type')
 
+    def set_subgroup(self, values, protoclaims):
+        """Identify subgroup (P279) and add to claims.
+
+        Adds the claim to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        if values[u'navalVessel.type']:
+            claims = []
+            for t in values[u'navalVessel.type']:
+                item = self.kulturnav2Wikidata(t)
+                if item:
+                    claims.append(WD.Statement(item))
+            if claims:
+                protoclaims[u'P279'] = claims
+
     def set_constructor(self, values, protoclaims):
         """Identify constructor(s)/designers (P287) and add to claims.
 
@@ -789,6 +764,19 @@ class KulturnavBotSMM(KulturnavBot):
                         values[u'constructor.end']))
             if claims:
                 protoclaims[u'P287'] = claims
+
+    def set_is_ship(self, values, protoclaims):
+        """Set instance_of/P31 to Ship/Q2235308.
+
+        Adds the claim, with the suitable property, to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        protoclaims[u'P31'] = WD.Statement(
+            self.wd.QtoItemPage(u'Q%s' % self.SHIPTYPE_Q))
 
     def set_location(self, values, protoclaims):
         """Identify a location and its type then add to claims.
@@ -860,7 +848,7 @@ class KulturnavBotSMM(KulturnavBot):
 
         @param values: the values extracted using the rules
         @type values: dict
-        @return: the combined list of scurbbed labels
+        @return: the combined list of scrubbed labels
         @rtype: list
         """
         # handle prefLabel together with altLabel
@@ -875,6 +863,31 @@ class KulturnavBotSMM(KulturnavBot):
                 pref_label[i]['@value'] = val
 
         return pref_label
+
+    def prep_names(values):
+        """Handle altLabel together with entity.name.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @return: the combined list of names
+        @rtype: list
+        """
+        # handle altNames together with names
+        return helpers.bundleValues(
+            [values[u'entity.name'],
+             values[u'altLabel']])
+
+    def prep_types(values):
+        """Handle otherType together with type.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @return: the combined list of types
+        @rtype: list
+        """
+        return helpers.bundleValues(
+            [values[u'navalVessel.type'],
+             values[u'navalVessel.otherType']])
 
     @classmethod
     def get_dataset_variables(cls, *args):
