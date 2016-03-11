@@ -13,23 +13,18 @@ BASE_URL = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql?' \
            'format=json&query='
 
 
-def make_simple_wdqs_query(hook, query, verbose=False):
+def make_simple_wdqs_query(query, verbose=False):
     """Make limited queries to the wdqs service for wikidata.
 
-    This will behave badly for anything selecting for more than one variable.
-    It needs to be supplied with either where or override_query.
+    Allows for simpler queries to be asked and for the results to be somewhat
+    processed.
 
-    @todo: get hook from j['head']
-
-    @param hook: the selected variable (or one of them) as specified in the
-        query or override_query parameter
-    @type hook: str
     @param query: a SELECT SPARQL query (i.e. no prefix)
     @type query: str
     @param verbose: if the query should be outputted
     @type verbose: bool
-    @return: results matching the hook
-    @rtype: list
+    @return: results in the format [entry{hook:value}, ]
+    @rtype: list of dicts
     """
     prefix = "" \
         "prefix wdt: <http://www.wikidata.org/prop/direct/>\n" \
@@ -44,10 +39,14 @@ def make_simple_wdqs_query(hook, query, verbose=False):
 
     try:
         data = []
+        hooks = j['head']['vars']
         for binding in j['results']['bindings']:
-            data.append(binding[hook]['value'])
+            entry = {}
+            for hook in hooks:
+                entry[hook] = binding[hook]['value']
+            data.append(entry.copy())
     except:
-        raise pywikibot.Error('shit went wronq with the wdqs query:\n'
+        raise pywikibot.Error('Shit went wronq with the wdqs query:\n'
                               '%s' % query)
     return data
 
@@ -97,15 +96,72 @@ def sanitize_wdqs_result(data):
     """Strip url component out of wdqs results.
 
     I.e. strip out http://www.wikidata.org/entity/
+    For dicts it is assumed that it is the key which should be sanitized
 
     @param data: data to sanitize
-    @type data: list of str
+    @type data: str, or list of str or dict
     @return: sanitized data
     @rtype: list of str
     """
-    for i, d in enumerate(data):
-        data[i] = d.split('/')[-1]
-    return data
+    if isinstance(data, (str, unicode)):
+        return data.split('/')[-1]
+    elif isinstance(data, list):
+        for i, d in enumerate(data):
+            data[i] = d.split('/')[-1]
+        return data
+    if isinstance(data, dict):
+        new_data = {}
+        for k, v in data.iteritems():
+            new_data[k.split('/')[-1]] = v
+        return new_data
+    else:
+        raise pywikibot.Error('sanitize_wdqs_result() requires a string, dict '
+                              ' or a list of strings. Not a %s' % type(data))
+
+
+def list_of_dict_to_list(data, key):
+    """Given a list of dicts, return a list of values for a given key.
+
+    Crashes badly if the key is not present in each dict entry.
+
+    @param data: the list of dicts
+    @type data: lsit of dict
+    @param key: the key to look for in the dict
+    @type key: str
+    @return: the list of matching  values
+    @rtype: list
+    """
+    results = []
+    for entry in data:
+        results.append(entry[key])
+    return results
+
+
+def list_of_dict_to_dict(data, key_key, value_key):
+    """Given a list of dicts make a dict where the given key is used to get keys.
+
+    Crashes badly if the key is not present in each dict entry.
+
+    @param data: the list of dicts
+    @type data: lsit of dict
+    @param key_key: the key corresponding to the value to use as key for
+        the new dict
+    @type key_key: str
+    @param value_key: the key corresponding to the value to use as value for
+        the new dict
+    @type value_key: str
+    @return: the dict of new key-value pairs
+    @rtype: dict
+    """
+    results = {}
+    for entry in data:
+        if entry[key_key] in results.keys() and \
+                entry[value_key] != results[entry[key_key]]:
+            # two hits corresponding to different values
+            raise pywikibot.Error('Double ids in Wikidata: %s, %s' %
+                                  (entry[value_key], results[entry[key_key]]))
+        results[entry[key_key]] = entry[value_key]
+    return results
 
 
 def make_string_wdqs_search(prop, string):
@@ -127,8 +183,9 @@ def make_string_wdqs_search(prop, string):
         "}"
 
     # make the query
-    data = make_simple_wdqs_query('item', query % (prop, string))
-    return sanitize_wdqs_result(data)
+    data = make_simple_wdqs_query(query % (prop, string))
+    return sanitize_wdqs_result(
+        list_of_dict_to_list(data, 'item'))
 
 
 def make_tree_wdqs_search(item_1, prop_2, prop_3):
@@ -185,5 +242,39 @@ def make_tree_wdqs_search(item_1, prop_2, prop_3):
     query += "}"
 
     # make the query
-    data = make_simple_wdqs_query('item', query)
-    return sanitize_wdqs_result(data)
+    data = make_simple_wdqs_query(query)
+    return sanitize_wdqs_result(
+        list_of_dict_to_list(data, 'item'))
+
+
+def make_claim_wdqs_search(prop, get_values=False):
+    """Make a simple search for items with a certain property.
+
+    A replacement for the WDQ CLAIM[prop] with get_values corresponding to the
+    props addon (but limited to the same prop as queried).
+
+    @param prop: Property id, with or without P
+    @type prop: str or int
+    @param get_values: whether to also return the values
+    @type get_values: bool
+    @return: the resulting Q-ids, with Q prefix and values if requested
+    @rtype: list of str or dict
+    """
+    prop = 'P%s' % str(prop).lstrip('P')
+    query = ""
+    if get_values:
+        query += "SELECT ?item ?value WHERE { "
+    else:
+        query += "SELECT ?item WHERE { "
+    query += ""\
+        "?item wdt:%s ?value " \
+        "}"
+
+    # make the query
+    data = make_simple_wdqs_query(query % (prop))
+    if not get_values:
+        return sanitize_wdqs_result(
+            list_of_dict_to_list(data, 'item'))
+    else:
+        return sanitize_wdqs_result(
+            list_of_dict_to_dict(data, 'item', 'value'))
