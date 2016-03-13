@@ -569,7 +569,7 @@ class KulturnavBotSMM(KulturnavBot):
 
             protoclaims = {}
             # P31 - instance of
-            self.set_is_ship(values, protoclaims)
+            self.set_is_ship(protoclaims)
 
             # P279 - subgroup self.kulturnav2Wikidata(broader)
             if values[u'broader']:
@@ -610,7 +610,7 @@ class KulturnavBotSMM(KulturnavBot):
 
             protoclaims = {}
             # P31 - instance of
-            self.set_is_ship(values, protoclaims)
+            self.set_is_ship(protoclaims)
 
             # P279 - subgroup
             self.set_subgroup(values, protoclaims)
@@ -667,7 +667,7 @@ class KulturnavBotSMM(KulturnavBot):
 
             protoclaims = {}
             # P31 - instance of
-            self.set_is_ship(values, protoclaims)
+            self.set_is_ship(protoclaims)
 
             # P279 - subgroup
             self.set_subgroup(values, protoclaims)
@@ -787,7 +787,7 @@ class KulturnavBotSMM(KulturnavBot):
             if claims:
                 protoclaims[u'P287'] = claims
 
-    def set_is_ship(self, values, protoclaims):
+    def set_is_ship(self, protoclaims):
         """Set instance_of (P31) to Ship/Q2235308.
 
         Adds the claim, with the suitable property, to the protoclaims dict.
@@ -811,8 +811,8 @@ class KulturnavBotSMM(KulturnavBot):
         @type protoclaims: dict
         """
         if values[u'location']:
-            location_Q = self.location2Wikidata(values[u'location'])
-            prop = self.getLocationProperty(location_Q)
+            location_q = self.location2Wikidata(values[u'location'])
+            prop = self.getLocationProperty(location_q)
             if prop:
                 protoclaims[prop] = WD.Statement(
                     self.location2Wikidata(values[u'location']))
