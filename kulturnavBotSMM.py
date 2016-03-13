@@ -188,10 +188,10 @@ class KulturnavBotSMM(KulturnavBot):
             # handle values
             if values[u'establishment.date']:
                 protoclaims[u'P571'] = WD.Statement(
-                    self.dbDate(values[u'establishment.date']))
+                    helpers.iso_to_WbTime(values[u'establishment.date']))
             if values[u'termination.date']:
                 protoclaims[u'P576'] = WD.Statement(
-                    self.dbDate(values[u'termination.date']))
+                    helpers.iso_to_WbTime(values[u'termination.date']))
             if values[u'agent.ownership.owner']:
                 protoclaims[u'P127'] = WD.Statement(
                     self.kulturnav2Wikidata(
@@ -340,12 +340,7 @@ class KulturnavBotSMM(KulturnavBot):
             values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
             # check that we can always safely ignore entity.code
-            if values[u'navalVessel.signalLetters'] != values[u'entity.code']:
-                pywikibot.output(u'signalLetters!=code for %s: %s <> %s' %
-                                 (values[u'identifier'],
-                                  values[u'navalVessel.signalLetters'],
-                                  values[u'entity.code']))
-                exit(1)
+            KulturnavBotSMM.verify_entity_code_assumption(values)
 
             protoclaims = {}
 
@@ -560,7 +555,7 @@ class KulturnavBotSMM(KulturnavBot):
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
-                       datasetSanityTest=self.test_shiptype,
+                       datasetSanityTest=KulturnavBotSMM.test_shiptype,
                        label=u'prefLabel',
                        shuffle=False)
 
@@ -599,7 +594,7 @@ class KulturnavBotSMM(KulturnavBot):
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
-                       datasetSanityTest=self.test_shiptype,
+                       datasetSanityTest=KulturnavBotSMM.test_shiptype,
                        label=u'prefLabel',
                        shuffle=False)
 
@@ -659,22 +654,25 @@ class KulturnavBotSMM(KulturnavBot):
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
-                       datasetSanityTest=self.test_shiptype,
+                       datasetSanityTest=KulturnavBotSMM.test_shiptype,
                        label=u'entity.name',
                        shuffle=False)
 
-    def test_shiptype(self, hit_item):
+    @staticmethod
+    def test_shiptype(bot, hit_item):
         """Fail if there are instance claims and none of them are ship type.
 
+        @param bot: the instance of the bot calling upon the test
+        @param bot: KulturnavBotSMM
         @parm hit_item: item to check
         @type hit_item: pywikibot.ItemPage
         @return: if test passed
         @rtype: bool
         """
-        return self.withClaimTest(hit_item,
-                                  self.IS_A_P,
-                                  self.SHIPTYPE_Q,
-                                  u'ship type')
+        return bot.withClaimTest(hit_item,
+                                 bot.IS_A_P,
+                                 bot.SHIPTYPE_Q,
+                                 u'ship type')
 
     def set_shipyard(self, values, protoclaims):
         """Identify Manufacturer/Shipyard (P176) and add to claims.
@@ -687,7 +685,7 @@ class KulturnavBotSMM(KulturnavBot):
         @type protoclaims: dict
         """
         if values[u'built.shipyard'] or values[u'launched.shipyard']:
-            shipyard = helpers.bundleValues(
+            shipyard = helpers.bundle_values(
                 [values[u'built.shipyard'],
                  values[u'launched.shipyard']])
             shipyard = list(set(shipyard))
@@ -869,7 +867,7 @@ class KulturnavBotSMM(KulturnavBot):
         statement.addQualifier(
             WD.Qualifier(
                 P=prop,
-                itis=self.dbDate(values[date_key])))
+                itis=helpers.iso_to_WbTime(values[date_key])))
         return True
 
     @staticmethod
@@ -894,6 +892,7 @@ class KulturnavBotSMM(KulturnavBot):
 
         return pref_label
 
+    @staticmethod
     def prep_names(values):
         """Handle altLabel together with entity.name.
 
@@ -903,10 +902,11 @@ class KulturnavBotSMM(KulturnavBot):
         @rtype: list
         """
         # handle altNames together with names
-        return helpers.bundleValues(
+        return helpers.bundle_values(
             [values[u'entity.name'],
              values[u'altLabel']])
 
+    @staticmethod
     def prep_types(values):
         """Handle otherType together with type.
 
@@ -915,9 +915,27 @@ class KulturnavBotSMM(KulturnavBot):
         @return: the combined list of types
         @rtype: list
         """
-        return helpers.bundleValues(
+        return helpers.bundle_values(
             [values[u'navalVessel.type'],
              values[u'navalVessel.otherType']])
+
+    @staticmethod
+    def verify_entity_code_assumption(values):
+        """Verify assumption made about entity code.
+
+        The assumption is that the entity code and signalLsetters always
+        coincide.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @raise pywikibot.Error
+        """
+        if values[u'navalVessel.signalLetters'] != values[u'entity.code']:
+                raise pywikibot.Error(
+                    u'signalLetters!=code for %s: %s <> %s' %
+                    (values[u'identifier'],
+                     values[u'navalVessel.signalLetters'],
+                     values[u'entity.code']))
 
     @classmethod
     def get_dataset_variables(cls, *args):
