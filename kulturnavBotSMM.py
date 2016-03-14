@@ -752,23 +752,23 @@ class KulturnavBotSMM(KulturnavBot):
         @type protoclaims: dict
         """
         if values[u'navalVessel.type']:
-            shipClass = []
-            shipType = []
+            ship_class = []
+            ship_type = []
             for val in values[u'navalVessel.type']:
                 item = self.kulturnav2Wikidata(val)
                 if item:
                     q = int(item.title()[1:])
                     if q in self.classList:
-                        shipClass.append(WD.Statement(item))
+                        ship_class.append(WD.Statement(item))
                     elif q in self.typeList:
-                        shipType.append(WD.Statement(item))
+                        ship_type.append(WD.Statement(item))
                     else:
                         pywikibot.output(u'Q%d not matched as either ship'
                                          u'type or ship class' % q)
-            if shipClass:
-                protoclaims[u'P289'] = shipClass
-            if shipType:
-                protoclaims[u'P31'] = shipType
+            if ship_class:
+                protoclaims[u'P289'] = ship_class
+            if ship_type:
+                protoclaims[u'P31'] = ship_type
 
     def set_constructor(self, values, protoclaims):
         """Identify constructor(s)/designers (P287) and add to claims.
