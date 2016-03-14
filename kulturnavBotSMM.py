@@ -514,7 +514,7 @@ class KulturnavBotSMM(KulturnavBot):
             @rtype: dict PID-WD.Statement pairs
             """
             # handle prefLabel together with altLabel
-            values[u'prefLabel'] = KulturnavBotSMM.prepare_labels(values)
+            values[u'prefLabel'] = KulturnavBotSMM.prep_labels(values)
 
             protoclaims = {}
             # P31 - instance of
@@ -552,10 +552,10 @@ class KulturnavBotSMM(KulturnavBot):
             @rtype: dict PID-WD.Statement pairs
             """
             # handle prefLabel together with altLabel
-            values[u'prefLabel'] = KulturnavBotSMM.prepare_labels(values)
+            values[u'prefLabel'] = KulturnavBotSMM.prep_labels(values)
 
             # bundle type and otherType
-            values[u'navalVessel.type'] = KulturnavBotSMM.prepare_type(values)
+            values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
             protoclaims = {}
             # P31 - instance of
@@ -883,7 +883,7 @@ class KulturnavBotSMM(KulturnavBot):
         return True
 
     @staticmethod
-    def prepare_labels(values):
+    def prep_labels(values):
         """Combine prefLabel with altLabel and trim any comments.
 
         @param values: the values extracted using the rules
