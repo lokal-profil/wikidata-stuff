@@ -369,32 +369,7 @@ class KulturnavBotSMM(KulturnavBot):
             self.set_constructor(values, protoclaims)
 
             # P793 - Events
-            # events are only added IFF they have an associated date
-            # @todo: commissioned: Q14475832
-            events = []
-
-            # built: Q474200
-            event = WD.Statement(self.wd.QtoItemPage('Q474200'))
-            if self.set_date_qualifier(values, 'built', event,
-                                       prop=helpers.END_P):
-                self.set_location_qualifier(values, 'built', event)
-                # u'built.shipyard'
-                events.append(event)
-
-            # launched: Q596643
-            event = WD.Statement(self.wd.QtoItemPage('Q596643'))
-            if self.set_date_qualifier(values, 'launched', event):
-                # u'launched.shipyard'
-                events.append(event)
-
-            # decommissioned: Q7497952
-            event = WD.Statement(self.wd.QtoItemPage('Q7497952'))
-            if self.set_date_qualifier(values, 'decommissioned', event):
-                events.append(event)
-
-            # set all events
-            if events:
-                protoclaims[u'P793'] = events
+            self.set_ship_events(values, protoclaims)
 
             return protoclaims
 
@@ -781,7 +756,7 @@ class KulturnavBotSMM(KulturnavBot):
         @type protoclaims: dict
         """
         if values[u'constructor']:
-            values[u'constructor'] = self.listify(values[u'constructor'])
+            values[u'constructor'] = helpers.listify(values[u'constructor'])
             claims = []
             for val in values[u'constructor']:
                 claim = WD.Statement(self.kulturnav2Wikidata(val))
@@ -844,6 +819,43 @@ class KulturnavBotSMM(KulturnavBot):
                 P=self.PLACE_P,
                 itis=self.location2Wikidata(values[location_key])))
         return True
+
+    def set_ship_events(self, values, protoclaims):
+        """Identify any events (P793) for a ship then add to claims.
+
+        Adds the claim(s) to the protoclaims dict.
+        Events are only added IFF they have an associated date.
+        @todo: commissioned: Q14475832
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        events = []
+
+        # built: Q474200
+        event = WD.Statement(self.wd.QtoItemPage('Q474200'))
+        if self.set_date_qualifier(values, 'built', event,
+                                   prop=helpers.END_P):
+            self.set_location_qualifier(values, 'built', event)
+            # u'built.shipyard'
+            events.append(event)
+
+        # launched: Q596643
+        event = WD.Statement(self.wd.QtoItemPage('Q596643'))
+        if self.set_date_qualifier(values, 'launched', event):
+            # u'launched.shipyard'
+            events.append(event)
+
+        # decommissioned: Q7497952
+        event = WD.Statement(self.wd.QtoItemPage('Q7497952'))
+        if self.set_date_qualifier(values, 'decommissioned', event):
+            events.append(event)
+
+        # set all events
+        if events:
+            protoclaims[u'P793'] = events
 
     def set_date_qualifier(self, values, key, statement, prop=None):
         """Add a date qualifier to a statement.
