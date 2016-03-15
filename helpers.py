@@ -80,8 +80,8 @@ def fill_cache(pid, queryoverride=None, cache_max_age=0):
         for prop in props:
             if prop[2] in result.keys() and prop[0] != result[prop[2]]:
                 # Detect id's that are used more than once.
-                raise pywikibot.Error('Double ids in Wikidata: %s, %s' %
-                                      (prop[0], result[prop[2]]))
+                raise pywikibot.Error('Double ids in Wikidata: %s, %s (%s)' %
+                                      (prop[0], result[prop[2]], query))
             result[prop[2]] = prop[0]
 
         if expectedItems == len(result):

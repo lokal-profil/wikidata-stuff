@@ -19,6 +19,7 @@ import time
 import pywikibot
 import urllib2
 from WikidataStuff import WikidataStuff as WD
+import wdqsLookup
 import helpers
 import re
 
@@ -115,10 +116,12 @@ class KulturnavBot(object):
         self.wd = WD(self.repo)
 
         # load lists
-        self.COUNTRIES = self.wd.wdqLookup(u'TREE[6256][][31]',
-                                           cache_max_age)
-        self.ADMIN_UNITS = self.wd.wdqLookup(u'TREE[15284][][31]',
-                                             cache_max_age)
+        #self.COUNTRIES = self.wd.wdqLookup(u'TREE[6256][][31]',
+        #                                   cache_max_age)
+        #self.ADMIN_UNITS = self.wd.wdqLookup(u'TREE[15284][][31]',
+        #                                     cache_max_age)
+        self.COUNTRIES = wdqsLookup.wdq_to_wdqs(u'TREE[6256][][31]')
+        self.ADMIN_UNITS = wdqsLookup.wdq_to_wdqs(u'TREE[15284][][31]')
 
     @classmethod
     def set_variables(cls, dataset_q=None, dataset_id=None, entity_type=None,
@@ -654,7 +657,8 @@ class KulturnavBot(object):
             # store as a resolved hit, in case wdq yields nothing
             self.locations[uuid] = None
             wdqQuery = u'STRING[%s:"%s"]' % (self.GEONAMES_ID_P, geonames)
-            wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
+            #wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
+            wdqResult = wdqsLookup.wdq_to_wdqs(wdqQuery)
             if wdqResult and len(wdqResult) == 1:
                 self.locations[uuid] = wdqResult[0]
                 qNo = u'Q%d' % self.locations[uuid]
@@ -718,7 +722,8 @@ class KulturnavBot(object):
                     code = s.split('#')[-1]
                     wdqQuery = u'STRING[%s:"%s"]' % (self.SWE_KOMMUNKOD_P,
                                                      code)
-                    wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
+                    #wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
+                    wdqResult = wdqsLookup.wdq_to_wdqs(wdqQuery)
                     if wdqResult and len(wdqResult) == 1:
                         self.ADMIN_UNITS.append(wdqResult[0])
                         return wdqResult[0]
@@ -726,7 +731,8 @@ class KulturnavBot(object):
                     code = s.split('#')[-1]
                     wdqQuery = u'STRING[%s:"%s"]' % (self.SWE_COUNTYKOD_P,
                                                      code)
-                    wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
+                    #wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
+                    wdqResult = wdqsLookup.wdq_to_wdqs(wdqQuery)
                     if wdqResult and len(wdqResult) == 1:
                         self.ADMIN_UNITS.append(wdqResult[0])
                         return wdqResult[0]
@@ -851,13 +857,16 @@ class KulturnavBot(object):
     def make_ref(self, date):
         """Make a correctly formatted ref object for claims.
 
-        @todo: Shift P854 to source_test after retroactively fixing references
-
         Contains 4 parts:
         * P248: Stated in <the kulturnav dataset>
         * P577: Publication date <from the document>
         * P854: Reference url <using the current uuid>
         * P813: Retrieval date <current date>
+
+        P854
+        Should be in source_test (after retroactively fixing older references)
+        but by being in source_notest we ensure that duplicate uuids don't
+        source the statement twice.
 
         @param date: The "last modified" time of the document
         @type date: pywikibot.WbTime
@@ -935,13 +944,13 @@ class KulturnavBot(object):
         @rtype: list of str
         """
         search_url = 'http://kulturnav.org/api/search/' + \
-                     'entityType:' + cls.ENTITY_TYPE + ',' + \
-                     'entity.dataset_r:' + cls.DATASET_ID
+                     'entityType:%s,' % cls.ENTITY_TYPE + \
+                     'entity.dataset_r:%s' % cls.DATASET_ID
         q = None  # the map_tag query
 
         # only filter on MAP_TAG if filtering on wikidata
         if require_wikidata:
-            search_url += ',' + cls.MAP_TAG + ':%s/%d/%d'
+            search_url += ',%s' % cls.MAP_TAG + ':%s/%d/%d'
             q = '*%2F%2Fwww.wikidata.org%2Fentity%2FQ*'
         else:
             search_url += '/%d/%d'
