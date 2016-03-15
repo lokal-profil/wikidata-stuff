@@ -182,8 +182,8 @@ class KulturnavBotSMM(KulturnavBot):
             @rtype: dict PID-WD.Statement pairs
             """
             protoclaims = {}
-            # P31 - instance of
             self.set_is_instance(self.SHIPYARD_Q, protoclaims)
+            self.set_location(values, protoclaims)
 
             # handle values
             if values[u'establishment.date']:
@@ -196,7 +196,6 @@ class KulturnavBotSMM(KulturnavBot):
                 protoclaims[u'P127'] = WD.Statement(
                     self.kulturnav2Wikidata(
                         values[u'agent.ownership.owner']))
-            self.set_location(values, protoclaims)
 
             return protoclaims
 
@@ -343,35 +342,17 @@ class KulturnavBotSMM(KulturnavBot):
             KulturnavBotSMM.verify_entity_code_assumption(values)
 
             protoclaims = {}
-
-            # P31/P289 - ship type/class
             self.set_type_and_class(values, protoclaims)
-
-            # P879 - registration number
             self.set_registration_no(values, protoclaims)
-
-            # P504 - homeport
-            if values[u'homePort']:
-                claim = WD.Statement(
-                    self.kulturnav2Wikidata(values[u'homePort']))
-                protoclaims[u'P504'] = helpers.add_start_end_qualifiers(
-                    claim,
-                    values[u'homePort.start'],
-                    values[u'homePort.end'])
+            self.set_homeport(values, protoclaims)
+            self.set_shipyard(values, protoclaims)  # Manufacturer (Shipyard)
+            self.set_constructor(values, protoclaims)  # Designer (Constructor)
+            self.set_ship_events(values, protoclaims)
 
             # P2317 - call sign
             if values[u'navalVessel.signalLetters']:
                 protoclaims[u'P2317'] = WD.Statement(
                     values[u'navalVessel.signalLetters'])
-
-            # P176 - Manufacturer (Shipyard)
-            self.set_shipyard(values, protoclaims)
-
-            # P287 - Designer (Constructor)
-            self.set_constructor(values, protoclaims)
-
-            # P793 - Events
-            self.set_ship_events(values, protoclaims)
 
             return protoclaims
 
@@ -450,7 +431,7 @@ class KulturnavBotSMM(KulturnavBot):
             values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
             protoclaims = {
-                # operator, SwedishNavy
+                # operator = Swedish Navy
                 u'P137': WD.Statement(
                     self.wd.QtoItemPage(self.SWENAVY_Q))
             }
@@ -519,7 +500,6 @@ class KulturnavBotSMM(KulturnavBot):
             values[u'prefLabel'] = KulturnavBotSMM.prep_labels(values)
 
             protoclaims = {}
-            # P31 - instance of
             self.set_is_instance(self.SHIPTYPE_Q, protoclaims)
 
             # P279 - subgroup self.kulturnav2Wikidata(broader)
@@ -560,10 +540,7 @@ class KulturnavBotSMM(KulturnavBot):
             values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
             protoclaims = {}
-            # P31 - instance of
             self.set_is_instance(self.SHIPTYPE_Q, protoclaims)
-
-            # P279 - subgroup
             self.set_subgroup(values, protoclaims)
 
             return protoclaims
@@ -617,14 +594,9 @@ class KulturnavBotSMM(KulturnavBot):
             values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
             protoclaims = {}
-            # P31 - instance of
             self.set_is_instance(self.SHIPTYPE_Q, protoclaims)
-
-            # P279 - subgroup
             self.set_subgroup(values, protoclaims)
-
-            # P287 - Designer (Constructor)
-            self.set_constructor(values, protoclaims)
+            self.set_constructor(values, protoclaims)  # Designer (Constructor)
 
             return protoclaims
 
@@ -717,6 +689,24 @@ class KulturnavBotSMM(KulturnavBot):
                     claims.append(WD.Statement(item))
             if claims:
                 protoclaims[u'P279'] = claims
+
+    def set_homeport(self, values, protoclaims):
+        """Identify homePort (P504) and add, with start/end dates, to claims.
+
+        Adds the claim to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        if values[u'homePort']:
+            claim = WD.Statement(
+                self.kulturnav2Wikidata(values[u'homePort']))
+            protoclaims[u'P504'] = helpers.add_start_end_qualifiers(
+                claim,
+                values[u'homePort.start'],
+                values[u'homePort.end'])
 
     def set_type_and_class(self, values, protoclaims):
         """Identify type (P31) and class (P289) and add to claims.
