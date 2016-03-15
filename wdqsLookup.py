@@ -55,7 +55,12 @@ def wdq_to_wdqs(wdq_query):
     """A wrapper for easily swapping in wdqs for WDQ queries.
 
     Tries to convert the query & convert the results to the same
-    format as that outputted by WDQ.
+    format as that outputted by WDQ. In addition to the caught exceptions this
+    cannot handle:
+    * qualifiers CLAIM[...]{CLAIM[...]}
+    * multiple values CLAIM[piq:qid,pid2:qid2]
+    could possibly be replaced by a call to
+    https://tools.wmflabs.org/wdq2sparql/w2s.php?wdq=<wdq_query>
 
     @param wdq_query: the WDQ query
     @type wdq_query: str
