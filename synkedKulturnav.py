@@ -91,7 +91,6 @@ def get_kulturnav(dataset=None, data=None):
     if dataset:
         urlbase += 'entity.dataset_r:%s,' % dataset
 
-    needles = (u'http://www.wikidata.org', 'https://www.wikidata.org')
     search_str = u'*%2F%2Fwww.wikidata.org%2Fentity%2FQ*'
     matched_tags = ['entity.sameAs_s', 'concept.exactMatch_s']
 
@@ -103,14 +102,7 @@ def get_kulturnav(dataset=None, data=None):
         tag = match.split('_')[0]
 
         while search_data:
-            for entry in search_data:
-                # extract uuid and wikidata qid
-                uuid = entry[u'uuid']
-                matches = entry[u'properties'][tag]
-                for m in matches:
-                    if m[u'value'].startswith(needles):
-                        qid = m[u'value'].split('/')[-1]
-                        data[uuid] = qid
+            find_kulturnav_matches(search_data, tag, data)
 
             # continue
             offset += batch_size
@@ -118,6 +110,29 @@ def get_kulturnav(dataset=None, data=None):
                 search_url, search_str, offset, batch_size)
 
     return data
+
+
+def find_kulturnav_matches(search_data, tag, data):
+    """Extract uuid and wikidata qid from search results.
+
+    Adds the results to the provided data dict.
+
+    @param search_data: the output of KulturnavBot.get_single_search_results()
+    @type search_data: list
+    @param tag: the property tag for sameAs/exactMatch
+    @type tag: str
+    @param data: object to add the matches to
+    @type data: dict
+    """
+    needles = (u'http://www.wikidata.org', 'https://www.wikidata.org')
+    for entry in search_data:
+        # extract uuid and wikidata qid
+        uuid = entry[u'uuid']
+        matches = entry[u'properties'][tag]
+        for m in matches:
+            if m[u'value'].startswith(needles):
+                qid = m[u'value'].split('/')[-1]
+                data[uuid] = qid
 
 
 def get_references(owner=None):
