@@ -23,6 +23,8 @@ class Person(object):
         @rtype: dict of Rule/None
         """
         # Removed years due to 1970 bug
+        # Removed nationality due to discussiona at
+        # https://www.wikidata.org/wiki/User_talk:Andr%C3%A9_Costa_%28WMSE%29#AndreCostaWMSE-bot_adding_nationality
         rules = {
             # u'deathDate': None,
             u'deathPlace': None,
@@ -42,7 +44,7 @@ class Person(object):
             u'gender': None,
             u'lastName': None,
             u'name': None,
-            u'person.nationality': None
+            # u'person.nationality': None
         }
         return rules
 
