@@ -769,13 +769,15 @@ class KulturnavBot(object):
         return None
 
     def kulturnav2Wikidata(self, uuid):
-        """
-        Given a kulturNav uuid or url this returns the Wikidata entity
-        connected to this uuid through the KULTURNAV_ID_P property
-        (if any).
+        """Return Wikidata entity connected to a kulturNav uid or url.
+
+        Relies on the KULTURNAV_ID_P property (if any) to get the connection.
 
         NOTE that the WDQ results may be outdated
-        return pywikibot.ItemPage|None
+        @param uuid: a kulturNav uuid or url
+        @type uuid: str
+        @return: the matching Wikidata item page
+        @rtype: pywikibot.ItemPage or None
         """
         # debugging
         if not self.isUuid(uuid):

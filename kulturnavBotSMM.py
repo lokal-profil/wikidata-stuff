@@ -27,9 +27,7 @@ docuReplacements = {
 
 
 class KulturnavBotSMM(KulturnavBot):
-    """
-    A bot to enrich and create information on Wikidata based on KulturNav info
-    """
+    """Bot to enrich/create info on Wikidata for SMM naval objects."""
 
     # KulturNav based
     EDIT_SUMMARY = 'KulturnavBot(SMM)'
@@ -82,8 +80,6 @@ class KulturnavBotSMM(KulturnavBot):
     MAP_TAG = 'entity.sameAs_s'
 
     DATASET = None  # set by setDataset()
-    GROUP_OF_PEOPLE_Q = '16334295'
-    HUMAN_Q = '5'
     SHIPYARD_Q = '190928'
     SHIPCLASS_Q = '559026'
     SUBMARINECLASS_Q = '1428357'
@@ -158,6 +154,7 @@ class KulturnavBotSMM(KulturnavBot):
                        shuffle=True)
 
     def runVarv(self):
+        """Start a bot for adding info on shipyards."""
         rules = {
             u'name': None,
             u'agent.ownership.owner': None,
@@ -177,40 +174,43 @@ class KulturnavBotSMM(KulturnavBot):
         }
 
         def claims(self, values):
-            protoclaims = {
-                # instance of
-                u'P31': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.SHIPYARD_Q))
-            }
+            """Add protoclaims.
+
+            @param values: the values extracted using the rules
+            @type values: dict
+            @return: the protoclaims
+            @rtype: dict PID-WD.Statement pairs
+            """
+            protoclaims = {}
+            self.set_is_instance(self.SHIPYARD_Q, protoclaims)
+            self.set_location(values, protoclaims)
 
             # handle values
             if values[u'establishment.date']:
                 protoclaims[u'P571'] = WD.Statement(
-                    self.dbDate(values[u'establishment.date']))
+                    helpers.iso_to_WbTime(values[u'establishment.date']))
             if values[u'termination.date']:
                 protoclaims[u'P576'] = WD.Statement(
-                    self.dbDate(values[u'termination.date']))
+                    helpers.iso_to_WbTime(values[u'termination.date']))
             if values[u'agent.ownership.owner']:
                 protoclaims[u'P127'] = WD.Statement(
                     self.kulturnav2Wikidata(
                         values[u'agent.ownership.owner']))
-            if values[u'location']:
-                location_Q = self.location2Wikidata(values[u'location'])
-                prop = self.getLocationProperty(location_Q)
-                if prop:
-                    protoclaims[prop] = WD.Statement(
-                        self.location2Wikidata(values[u'location']))
 
             return protoclaims
 
-        def test(self, hitItem):
-            """
+        def test(self, hit_item):
+            """Test that this isn't something other than a shipyard.
+
             Fail if has instance claims and none of them are
             shipyard/company/organisation
-            return bool
+
+            @parm hit_item: item to check
+            @type hit_item: pywikibot.ItemPage
+            @return: if test passed
+            @rtype: bool
             """
-            return self.withClaimTest(hitItem,
+            return self.withClaimTest(hit_item,
                                       self.IS_A_P,
                                       [self.SHIPYARD_Q,
                                        self.COMPANY_Q,
@@ -225,6 +225,7 @@ class KulturnavBotSMM(KulturnavBot):
                        shuffle=False)
 
     def runFartyg(self):
+        """Start a bot for adding info on ships."""
         rules = {
             u'entity.name': Rule(  # force to look in top level
                 keys='inDataset',
@@ -315,171 +316,62 @@ class KulturnavBotSMM(KulturnavBot):
         }
 
         def claims(self, values):
-            """
+            """Add protoclaims.
+
             @todo: implement:
                 u'delivered.date'
                 u'navalVessel.isSubRecord'
                 u'navalVessel.hasSubRecord'
+
+            @param values: the values extracted using the rules
+            @type values: dict
+            @return: the protoclaims
+            @rtype: dict PID-WD.Statement pairs
             """
             # handle altNames together with names
-            values[u'entity.name'] = self.bundleValues(
-                [values[u'entity.name'],
-                 values[u'altLabel']])
+            values[u'entity.name'] = KulturnavBotSMM.prep_names(values)
             # convert from ALL-CAPS
             for i, v in enumerate(values[u'entity.name']):
-                values[u'entity.name'][i][u'@value'] = v[u'@value'].capitalize()
+                values[u'entity.name'][i][u'@value'] = \
+                    v[u'@value'].capitalize()
 
             # bundle type and otherType
-            values[u'navalVessel.type'] = self.bundleValues(
-                [values[u'navalVessel.type'],
-                 values[u'navalVessel.otherType']])
+            values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
             # check that we can always safely ignore entity.code
-            if values[u'navalVessel.signalLetters'] != values[u'entity.code']:
-                pywikibot.output(u'signalLetters!=code for %s: %s <> %s' %
-                                 (values[u'identifier'],
-                                  values[u'navalVessel.signalLetters'],
-                                  values[u'entity.code']))
-                exit(1)
+            KulturnavBotSMM.verify_entity_code_assumption(values)
 
             protoclaims = {}
-
-            # P31/P289 - ship type/class
-            if values[u'navalVessel.type']:
-                shipClass = []
-                shipType = []
-                for val in values[u'navalVessel.type']:
-                    item = self.kulturnav2Wikidata(val)
-                    if item:
-                        q = int(item.title()[1:])
-                        if q in self.classList:
-                            shipClass.append(WD.Statement(item))
-                        elif q in self.typeList:
-                            shipType.append(WD.Statement(item))
-                        else:
-                            pywikibot.output(u'Q%d not matched as either ship'
-                                             u'type or ship class' % q)
-                if shipClass:
-                    protoclaims[u'P289'] = shipClass
-                if shipType:
-                    protoclaims[u'P31'] = shipType
-
-            # P879 - registration number
-            if values[u'registration.number']:
-                # there can be multiple values
-                values[u'registration.number'] = self.listify(
-                    values[u'registration.number'])
-                values[u'registration.type'] = self.listify(
-                    values[u'registration.type'])
-
-                # only one type is currently mapped
-                claim = []
-                for i, v in enumerate(values[u'registration.number']):
-                    if values[u'registration.type'][i] == self.IKNO_K:
-                        claim.append(WD.Statement(v))
-                if claim:
-                    protoclaims[u'P879'] = claim
-
-            # P504 - homeport
-            if values[u'homePort']:
-                protoclaims[u'P504'] = self.addStartEndStatement(
-                    self.kulturnav2Wikidata(values[u'homePort']),
-                    values[u'homePort.start'],
-                    values[u'homePort.end'])
+            self.set_type_and_class(values, protoclaims)
+            self.set_registration_no(values, protoclaims)
+            self.set_homeport(values, protoclaims)
+            self.set_shipyard(values, protoclaims)  # Manufacturer (Shipyard)
+            self.set_constructor(values, protoclaims)  # Designer (Constructor)
+            self.set_ship_events(values, protoclaims)
 
             # P2317 - call sign
             if values[u'navalVessel.signalLetters']:
                 protoclaims[u'P2317'] = WD.Statement(
                     values[u'navalVessel.signalLetters'])
 
-            # P176 - Manufacturer (Shipyard)
-            if values[u'built.shipyard'] or values[u'launched.shipyard']:
-                shipyard = self.bundleValues(
-                    [values[u'built.shipyard'],
-                     values[u'launched.shipyard']])
-                shipyard = list(set(shipyard))
-                if len(shipyard) > 1:
-                    pywikibot.output(u'Found multiple shipyards, not sure how'
-                                     u'to proceed: %s' % values[u'identifier'])
-                else:
-                    protoclaims[u'P176'] = WD.Statement(
-                        self.kulturnav2Wikidata(
-                            shipyard[0]))
-
-            # P287 - Designer (Constructor)
-            if values[u'constructor']:
-                values[u'constructor'] = self.listify(values[u'constructor'])
-                claims = []
-                for val in values[u'constructor']:
-                    claims.append(self.addStartEndStatement(
-                        self.kulturnav2Wikidata(val),
-                        values[u'constructor.start'],
-                        values[u'constructor.end']))
-                if claims:
-                    protoclaims[u'P287'] = claims
-
-            # P793 - Events
-            #   commissioned: Q14475832
-            events = []
-            # built: Q474200
-            if values[u'built.date']:
-                event = WD.Statement(
-                    pywikibot.ItemPage(self.repo, 'Q474200')
-                    ).addQualifier(
-                        WD.Qualifier(
-                            P=self.END_P,
-                            itis=self.dbDate(values[u'built.date'])))
-                if values[u'built.location']:
-                    event.addQualifier(
-                        WD.Qualifier(
-                            P=self.PLACE_P,
-                            itis=self.location2Wikidata(
-                                values[u'built.location'])))
-                # u'built.shipyard'
-                events.append(event)
-
-            # launched: Q596643
-            if values[u'launched.date']:
-                event = WD.Statement(
-                    pywikibot.ItemPage(self.repo, 'Q596643')
-                    ).addQualifier(
-                        WD.Qualifier(
-                            P=self.TIME_P,
-                            itis=self.dbDate(values[u'launched.date'])))
-                if values[u'launched.location']:
-                    event.addQualifier(
-                        WD.Qualifier(
-                            P=self.PLACE_P,
-                            itis=self.location2Wikidata(
-                                values[u'launched.location'])))
-                # u'launched.shipyard'
-                events.append(event)
-
-            # decommissioned: Q7497952
-            if values[u'decommissioned.date']:
-                event = WD.Statement(
-                    pywikibot.ItemPage(self.repo, 'Q7497952')
-                    ).addQualifier(
-                        WD.Qualifier(
-                            P=self.TIME_P,
-                            itis=self.dbDate(values[u'decommissioned.date'])))
-                events.append(event)
-            # set all events
-            if events:
-                protoclaims[u'P793'] = events
-
             return protoclaims
 
-        def test(self, hitItem):
-            """
-            is there any way of testing that it is a ship... of some type?
-            Possibly if any of P31 is in wdqList for claim[31:2235308]
+        def test(self, hit_item):
+            """Test if the item is a type of ship/boat.
+
+            Is there any way of testing that it is a ship... of some type?
+            Possibly if any of P31 is in wdqList for claim[31:2235308].
+
+            @parm hit_item: item to check
+            @type hit_item: pywikibot.ItemPage
+            @return: if test passed
+            @rtype: bool
             """
             P = u'P31'
-            if P not in hitItem.claims.keys():
+            if P not in hit_item.claims.keys():
                 return True
             claims = []
-            for claim in hitItem.claims[P]:
+            for claim in hit_item.claims[P]:
                 # add resolved Qno of each claim
                 target = self.wd.bypassRedirect(claim.getTarget())
                 claims.append(int(target.title()[1:]))
@@ -487,7 +379,7 @@ class KulturnavBotSMM(KulturnavBot):
             if any(x in claims for x in self.allShipTypes):
                 return True
             pywikibot.output(u'%s is identified as something other than '
-                             u'a ship/boat type. Check!' % hitItem.title())
+                             u'a ship/boat type. Check!' % hit_item.title())
             return False
 
         # pass settings on to runLayout()
@@ -498,6 +390,7 @@ class KulturnavBotSMM(KulturnavBot):
                        shuffle=False)
 
     def runKlasser(self):
+        """Start a bot for adding info on ship classes."""
         rules = {
             u'entity.name': Rule(  # force to look in top level
                 keys='inDataset',
@@ -524,57 +417,52 @@ class KulturnavBotSMM(KulturnavBot):
         }
 
         def claims(self, values):
+            """Add protoclaims.
+
+            @param values: the values extracted using the rules
+            @type values: dict
+            @return: the protoclaims
+            @rtype: dict PID-WD.Statement pairs
+            """
             # handle altNames together with names
-            values[u'entity.name'] = self.bundleValues(
-                [values[u'entity.name'],
-                 values[u'altLabel']])
+            values[u'entity.name'] = KulturnavBotSMM.prep_names(values)
 
             # bundle type and otherType
-            values[u'navalVessel.type'] = self.bundleValues(
-                [values[u'navalVessel.type'],
-                 values[u'navalVessel.otherType']])
+            values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
             protoclaims = {
-                # operator, SwedishNavy
-                u'P137': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.SWENAVY_Q))
+                # operator = Swedish Navy
+                u'P137': WD.Statement(
+                    self.wd.QtoItemPage(self.SWENAVY_Q))
             }
 
             # P31 - instance of
             # ship class unless a submarine
-            class_Q = u'Q%s' % self.SHIPCLASS_Q
+            class_Q = self.SHIPCLASS_Q
             if values[u'navalVessel.type'] and \
                     any(x.endswith(self.SUBMARINETYPE_K)
                         for x in values[u'navalVessel.type']):
-                class_Q = u'Q%s' % self.SUBMARINECLASS_Q
+                class_Q = self.SUBMARINECLASS_Q
             protoclaims[u'P31'] = WD.Statement(
-                pywikibot.ItemPage(self.repo, class_Q))
+                self.wd.QtoItemPage(class_Q))
 
             # P279 - subgroup
-            if values[u'navalVessel.type']:
-                claims = []
-                for t in values[u'navalVessel.type']:
-                    item = self.kulturnav2Wikidata(t)
-                    if item:
-                        claims.append(WD.Statement(item))
-                if claims:
-                    protoclaims[u'P279'] = claims
+            self.set_subgroup(values, protoclaims)
 
             # P287 - Designer (Constructor)
-            if values[u'constructor']:
-                protoclaims[u'P287'] = self.addStartEndStatement(
-                    self.kulturnav2Wikidata(values[u'constructor']),
-                    values[u'constructor.start'],
-                    values[u'constructor.end'])
+            self.set_constructor(values, protoclaims)
 
             return protoclaims
 
-        def test(self, hitItem):
+        def test(self, hit_item):
+            """Fail if instance claims and none of them are ship class.
+
+            @parm hit_item: item to check
+            @type hit_item: pywikibot.ItemPage
+            @return: if test passed
+            @rtype: bool
             """
-            Fail if has instance claims and none of them are ship class
-            """
-            return self.withClaimTest(hitItem,
+            return self.withClaimTest(hit_item,
                                       self.IS_A_P,
                                       [self.SHIPCLASS_Q,
                                        self.SHIPTYPE_Q,
@@ -589,10 +477,11 @@ class KulturnavBotSMM(KulturnavBot):
                        shuffle=False)
 
     def runFartygstyper(self):
-        '''
+        """Start a bot for adding info on ship types.
+
         @todo: if a boat_type then it should be possible to
                add everything except P31
-        '''
+        """
         rules = {
             u'prefLabel': None,
             u'altLabel': None,
@@ -600,15 +489,18 @@ class KulturnavBotSMM(KulturnavBot):
         }
 
         def claims(self, values):
-            # handle prefLabel together with altLabel
-            values[u'prefLabel'] = KulturnavBotSMM.prepare_labels(values)
+            """Add protoclaims.
 
-            protoclaims = {
-                # instance of
-                u'P31': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.SHIPTYPE_Q))
-            }
+            @param values: the values extracted using the rules
+            @type values: dict
+            @return: the protoclaims
+            @rtype: dict PID-WD.Statement pairs
+            """
+            # handle prefLabel together with altLabel
+            values[u'prefLabel'] = KulturnavBotSMM.prep_labels(values)
+
+            protoclaims = {}
+            self.set_is_instance(self.SHIPTYPE_Q, protoclaims)
 
             # P279 - subgroup self.kulturnav2Wikidata(broader)
             if values[u'broader']:
@@ -617,23 +509,15 @@ class KulturnavBotSMM(KulturnavBot):
                         values[u'broader']))
             return protoclaims
 
-        def test(self, hitItem):
-            """
-            Fail if has instance claims and none of them are ship type
-            """
-            return self.withClaimTest(hitItem,
-                                      self.IS_A_P,
-                                      self.SHIPTYPE_Q,
-                                      u'ship type')
-
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
-                       datasetSanityTest=test,
+                       datasetSanityTest=KulturnavBotSMM.test_shiptype,
                        label=u'prefLabel',
                        shuffle=False)
 
     def runNamngivna(self):
+        """Start a bot for adding info on named ship models."""
         rules = {
             u'prefLabel': None,
             u'altLabel': None,
@@ -642,50 +526,34 @@ class KulturnavBotSMM(KulturnavBot):
         }
 
         def claims(self, values):
+            """Add protoclaims.
+
+            @param values: the values extracted using the rules
+            @type values: dict
+            @return: the protoclaims
+            @rtype: dict PID-WD.Statement pairs
+            """
             # handle prefLabel together with altLabel
-            values[u'prefLabel'] = KulturnavBotSMM.prepare_labels(values)
+            values[u'prefLabel'] = KulturnavBotSMM.prep_labels(values)
 
             # bundle type and otherType
-            values[u'navalVessel.type'] = self.bundleValues(
-                [values[u'navalVessel.type'],
-                 values[u'navalVessel.otherType']])
+            values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
-            protoclaims = {
-                # instance of
-                u'P31': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.SHIPTYPE_Q))
-            }
-
-            # P279 - subgroup
-            if values[u'navalVessel.type']:
-                claims = []
-                for t in values[u'navalVessel.type']:
-                    item = self.kulturnav2Wikidata(t)
-                    if item:
-                        claims.append(WD.Statement(item))
-                if claims:
-                    protoclaims[u'P279'] = claims
+            protoclaims = {}
+            self.set_is_instance(self.SHIPTYPE_Q, protoclaims)
+            self.set_subgroup(values, protoclaims)
 
             return protoclaims
-
-        def test(self, hitItem):
-            """
-            Fail if has instance claims and none of them are ship type
-            """
-            return self.withClaimTest(hitItem,
-                                      self.IS_A_P,
-                                      self.SHIPTYPE_Q,
-                                      u'ship type')
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
-                       datasetSanityTest=test,
+                       datasetSanityTest=KulturnavBotSMM.test_shiptype,
                        label=u'prefLabel',
                        shuffle=False)
 
     def runSerietillverkade(self):
+        """Start a bot for adding info on serially produced ships."""
         rules = {
             u'entity.name': Rule(  # force to look in top level
                 keys='inDataset',
@@ -712,70 +580,307 @@ class KulturnavBotSMM(KulturnavBot):
         }
 
         def claims(self, values):
+            """Add protoclaims.
+
+            @param values: the values extracted using the rules
+            @type values: dict
+            @return: the protoclaims
+            @rtype: dict PID-WD.Statement pairs
+            """
             # handle altNames together with names
-            values[u'entity.name'] = self.bundleValues(
-                [values[u'entity.name'],
-                 values[u'altLabel']])
+            values[u'entity.name'] = KulturnavBotSMM.prep_names(values)
 
             # bundle type and otherType
-            values[u'navalVessel.type'] = self.bundleValues(
-                [values[u'navalVessel.type'],
-                 values[u'navalVessel.otherType']])
+            values[u'navalVessel.type'] = KulturnavBotSMM.prep_types(values)
 
-            protoclaims = {
-                # instance of
-                u'P31': WD.Statement(pywikibot.ItemPage(
-                    self.repo,
-                    u'Q%s' % self.SHIPTYPE_Q))
-            }
-
-            # P279 - subgroup
-            if values[u'navalVessel.type']:
-                claims = []
-                for t in values[u'navalVessel.type']:
-                    item = self.kulturnav2Wikidata(t)
-                    if item:
-                        claims.append(WD.Statement(item))
-                if claims:
-                    protoclaims[u'P279'] = claims
-
-            # P287 - Designer (Constructor)
-            if values[u'constructor']:
-                values[u'constructor'] = self.listify(values[u'constructor'])
-                claims = []
-                for val in values[u'constructor']:
-                    claims.append(self.addStartEndStatement(
-                        self.kulturnav2Wikidata(val),
-                        values[u'constructor.start'],
-                        values[u'constructor.end']))
-                if claims:
-                    protoclaims[u'P287'] = claims
+            protoclaims = {}
+            self.set_is_instance(self.SHIPTYPE_Q, protoclaims)
+            self.set_subgroup(values, protoclaims)
+            self.set_constructor(values, protoclaims)  # Designer (Constructor)
 
             return protoclaims
-
-        def test(self, hitItem):
-            """
-            Fail if has instance claims and none of them are ship type
-            """
-            return self.withClaimTest(hitItem,
-                                      self.IS_A_P,
-                                      self.SHIPTYPE_Q,
-                                      u'ship type')
 
         # pass settings on to runLayout()
         self.runLayout(datasetRules=rules,
                        datasetProtoclaims=claims,
-                       datasetSanityTest=test,
+                       datasetSanityTest=KulturnavBotSMM.test_shiptype,
                        label=u'entity.name',
                        shuffle=False)
 
     @staticmethod
-    def prepare_labels(values):
+    def test_shiptype(bot, hit_item):
+        """Fail if there are instance claims and none of them are ship type.
+
+        @param bot: the instance of the bot calling upon the test
+        @param bot: KulturnavBotSMM
+        @parm hit_item: item to check
+        @type hit_item: pywikibot.ItemPage
+        @return: if test passed
+        @rtype: bool
+        """
+        return bot.withClaimTest(hit_item,
+                                 bot.IS_A_P,
+                                 bot.SHIPTYPE_Q,
+                                 u'ship type')
+
+    def set_shipyard(self, values, protoclaims):
+        """Identify Manufacturer/Shipyard (P176) and add to claims.
+
+        Adds the claim to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        if values[u'built.shipyard'] or values[u'launched.shipyard']:
+            shipyard = helpers.bundle_values(
+                [values[u'built.shipyard'],
+                 values[u'launched.shipyard']])
+            shipyard = list(set(shipyard))
+            if len(shipyard) > 1:
+                pywikibot.output(u'Found multiple shipyards, not sure how'
+                                 u'to proceed: %s' % values[u'identifier'])
+            else:
+                protoclaims[u'P176'] = WD.Statement(
+                    self.kulturnav2Wikidata(
+                        shipyard[0]))
+
+    def set_registration_no(self, values, protoclaims):
+        """Identify registration number (P879) and add to claims.
+
+        Adds the claim to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        if values[u'registration.number']:
+            # there can be multiple values
+            values[u'registration.number'] = helpers.listify(
+                values[u'registration.number'])
+            values[u'registration.type'] = helpers.listify(
+                values[u'registration.type'])
+
+            # only one type is currently mapped
+            claim = []
+            for i, v in enumerate(values[u'registration.number']):
+                if values[u'registration.type'][i] == self.IKNO_K:
+                    claim.append(WD.Statement(v))
+            if claim:
+                protoclaims[u'P879'] = claim
+
+    def set_subgroup(self, values, protoclaims):
+        """Identify subgroup (P279) and add to claims.
+
+        Adds the claim to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        if values[u'navalVessel.type']:
+            claims = []
+            for t in values[u'navalVessel.type']:
+                item = self.kulturnav2Wikidata(t)
+                if item:
+                    claims.append(WD.Statement(item))
+            if claims:
+                protoclaims[u'P279'] = claims
+
+    def set_homeport(self, values, protoclaims):
+        """Identify homePort (P504) and add, with start/end dates, to claims.
+
+        Adds the claim to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        if values[u'homePort']:
+            claim = WD.Statement(
+                self.kulturnav2Wikidata(values[u'homePort']))
+            protoclaims[u'P504'] = helpers.add_start_end_qualifiers(
+                claim,
+                values[u'homePort.start'],
+                values[u'homePort.end'])
+
+    def set_type_and_class(self, values, protoclaims):
+        """Identify type (P31) and class (P289) and add to claims.
+
+        Adds the claim to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        if values[u'navalVessel.type']:
+            ship_class = []
+            ship_type = []
+            for val in values[u'navalVessel.type']:
+                item = self.kulturnav2Wikidata(val)
+                if item:
+                    q = int(item.title()[1:])
+                    if q in self.classList:
+                        ship_class.append(WD.Statement(item))
+                    elif q in self.typeList:
+                        ship_type.append(WD.Statement(item))
+                    else:
+                        pywikibot.output(u'Q%d not matched as either ship'
+                                         u'type or ship class' % q)
+            if ship_class:
+                protoclaims[u'P289'] = ship_class
+            if ship_type:
+                protoclaims[u'P31'] = ship_type
+
+    def set_constructor(self, values, protoclaims):
+        """Identify constructor(s)/designers (P287) and add to claims.
+
+        Adds the claim to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        if values[u'constructor']:
+            values[u'constructor'] = helpers.listify(values[u'constructor'])
+            claims = []
+            for val in values[u'constructor']:
+                claim = WD.Statement(self.kulturnav2Wikidata(val))
+                claims.append(
+                    helpers.add_start_end_qualifiers(
+                        claim,
+                        values[u'constructor.start'],
+                        values[u'constructor.end']))
+            if claims:
+                protoclaims[u'P287'] = claims
+
+    def set_is_instance(self, qid, protoclaims):
+        """Set instance_of (P31) to the given Q no.
+
+        Adds the claim, with the suitable property, to the protoclaims dict.
+
+        @param qid: the Q-no for the claim (with or without "Q")
+        @type qid: str
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        protoclaims[u'P31'] = WD.Statement(
+            self.wd.QtoItemPage(qid))
+
+    def set_location(self, values, protoclaims):
+        """Identify a location and its type then add to claims.
+
+        Adds the claim, with the suitable property, to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        if values[u'location']:
+            location_q = self.location2Wikidata(values[u'location'])
+            prop = self.getLocationProperty(location_q)
+            if prop:
+                protoclaims[prop] = WD.Statement(
+                    self.location2Wikidata(values[u'location']))
+
+    def set_location_qualifier(self, values, key, statement):
+        """Add a location (P279) qualifier to a statement.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param key: the key to which the location is associated
+            e.g. built for built.location
+        @type key: str
+        @param statement: statment to add qualifier to
+        @type statement: WD.Statement
+        @return: if qualifier was found
+        @rtype: bool
+        """
+        location_key = u'%s.location' % key
+        if not values[location_key]:
+            return False
+        statement.addQualifier(
+            WD.Qualifier(
+                P=self.PLACE_P,
+                itis=self.location2Wikidata(values[location_key])))
+        return True
+
+    def set_ship_events(self, values, protoclaims):
+        """Identify any events (P793) for a ship then add to claims.
+
+        Adds the claim(s) to the protoclaims dict.
+        Events are only added IFF they have an associated date.
+        @todo: commissioned: Q14475832
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        events = []
+
+        # built: Q474200
+        event = WD.Statement(self.wd.QtoItemPage('Q474200'))
+        if self.set_date_qualifier(values, 'built', event,
+                                   prop=helpers.END_P):
+            self.set_location_qualifier(values, 'built', event)
+            # u'built.shipyard'
+            events.append(event)
+
+        # launched: Q596643
+        event = WD.Statement(self.wd.QtoItemPage('Q596643'))
+        if self.set_date_qualifier(values, 'launched', event):
+            # u'launched.shipyard'
+            events.append(event)
+
+        # decommissioned: Q7497952
+        event = WD.Statement(self.wd.QtoItemPage('Q7497952'))
+        if self.set_date_qualifier(values, 'decommissioned', event):
+            events.append(event)
+
+        # set all events
+        if events:
+            protoclaims[u'P793'] = events
+
+    def set_date_qualifier(self, values, key, statement, prop=None):
+        """Add a date qualifier to a statement.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param key: the key to which the location is associated
+            e.g. built for built.location
+        @type key: str
+        @param statement: statment to add qualifier to
+        @type statement: WD.Statement
+        @param prop: the property to use, defaults to self.TIME_P/P585
+        @type prop: str
+        @return: if qualifier was found
+        @rtype: bool
+        """
+        prop = prop or self.TIME_P
+        date_key = u'%s.date' % key
+        if not values[date_key]:
+            return False
+        statement.addQualifier(
+            WD.Qualifier(
+                P=prop,
+                itis=helpers.iso_to_WbTime(values[date_key])))
+        return True
+
+    @staticmethod
+    def prep_labels(values):
         """Combine prefLabel with altLabel and trim any comments.
 
         @param values: the values extracted using the rules
         @type values: dict
-        @return: the combined list of scurbbed labels
+        @return: the combined list of scrubbed labels
         @rtype: list
         """
         # handle prefLabel together with altLabel
@@ -790,6 +895,51 @@ class KulturnavBotSMM(KulturnavBot):
                 pref_label[i]['@value'] = val
 
         return pref_label
+
+    @staticmethod
+    def prep_names(values):
+        """Handle altLabel together with entity.name.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @return: the combined list of names
+        @rtype: list
+        """
+        # handle altNames together with names
+        return helpers.bundle_values(
+            [values[u'entity.name'],
+             values[u'altLabel']])
+
+    @staticmethod
+    def prep_types(values):
+        """Handle otherType together with type.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @return: the combined list of types
+        @rtype: list
+        """
+        return helpers.bundle_values(
+            [values[u'navalVessel.type'],
+             values[u'navalVessel.otherType']])
+
+    @staticmethod
+    def verify_entity_code_assumption(values):
+        """Verify assumption made about entity code.
+
+        The assumption is that the entity code and signalLsetters always
+        coincide.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @raise pywikibot.Error
+        """
+        if values[u'navalVessel.signalLetters'] != values[u'entity.code']:
+                raise pywikibot.Error(
+                    u'signalLetters!=code for %s: %s <> %s' %
+                    (values[u'identifier'],
+                     values[u'navalVessel.signalLetters'],
+                     values[u'entity.code']))
 
     @classmethod
     def get_dataset_variables(cls, *args):
@@ -832,6 +982,7 @@ class KulturnavBotSMM(KulturnavBot):
 
     @classmethod
     def main(cls, *args):
+        """Start the bot from the command line."""
         # pick one dataset from DATASETS
         cls.DATASET = cls.get_dataset_variables(*args)
         variables = cls.DATASETS[cls.DATASET]
