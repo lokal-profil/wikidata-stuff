@@ -399,13 +399,6 @@ class KulturnavBot(object):
                              (values['identifier'], values['wikidata']))
         return problemFree
 
-    def addStartEndStatement(self, itis, startVal, endVal):
-        """
-        Deprecated in favour of helpers.add_start_end_qualifiers
-        """
-        print 'call to deprecated KulturnavBot.addStartEndStatement()'
-        return helpers.add_start_end_qualifiers(itis, startVal, endVal)
-
     def sanityTest(self, hitItem):
         """
         A generic sanitytest which should be run independent on dataset
@@ -579,13 +572,6 @@ class KulturnavBot(object):
             qNo = page.properties()[u'wikibase_item']
             return self.wd.QtoItemPage(qNo)
 
-    def dbDate(self, item):
-        """
-        Deprecated in favour of helpers.iso_to_WbTime
-        """
-        print 'call to deprecated KulturnavBot.dbDate()'
-        return helpers.iso_to_WbTime(item)
-
     def dbGender(self, item):
         """
         Simply matches gender values to Q items
@@ -712,38 +698,35 @@ class KulturnavBot(object):
         Given a list of extractGeoSources() return any kulturarvsdata
         geo authorities.
 
-        return string|None
+        @rtype string or None
+        @raises pywikibot.Error
         """
         needle = u'http://kulturarvsdata.se/resurser/aukt/geo/'
         for s in sources:
             if s.get('value') and s.get('value').startswith(needle):
                 s = s.get('value').split('/')[-1]
+                wdq_query = None
                 if s.startswith('municipality#'):
                     code = s.split('#')[-1]
-                    wdqQuery = u'STRING[%s:"%s"]' % (self.SWE_KOMMUNKOD_P,
-                                                     code)
-                    #wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
-                    wdqResult = wdqsLookup.wdq_to_wdqs(wdqQuery)
-                    if wdqResult and len(wdqResult) == 1:
-                        self.ADMIN_UNITS.append(wdqResult[0])
-                        return wdqResult[0]
+                    wdq_query = u'STRING[%s:"%s"]' % (self.SWE_KOMMUNKOD_P,
+                                                      code)
                 elif s.startswith('county#'):
                     code = s.split('#')[-1]
-                    wdqQuery = u'STRING[%s:"%s"]' % (self.SWE_COUNTYKOD_P,
-                                                     code)
-                    #wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
-                    wdqResult = wdqsLookup.wdq_to_wdqs(wdqQuery)
-                    if wdqResult and len(wdqResult) == 1:
-                        self.ADMIN_UNITS.append(wdqResult[0])
-                        return wdqResult[0]
+                    wdq_query = u'STRING[%s:"%s"]' % (self.SWE_COUNTYKOD_P,
+                                                      code)
                 elif s.startswith('country#'):
                     pass  # handle via geonames instead
                 elif s.startswith('parish#'):
                     pass  # no id's in wikidata
                 else:
-                    pywikibot.output(u'Unhandled KulturarvsdataLocation '
-                                     u'prefix: %s' % s)
-                    exit(1)
+                    raise pywikibot.Error(u'Unhandled KulturarvsdataLocation '
+                                          u'prefix: %s' % s)
+
+                # only here if a municipality or county was found
+                wdq_result = wdqsLookup.wdq_to_wdqs(wdq_query)
+                if wdq_result and len(wdq_result) == 1:
+                    self.ADMIN_UNITS.append(wdq_result[0])
+                    return wdq_result[0]
         return None
 
     def getLocationProperty(self, item, strict=True):
@@ -829,14 +812,6 @@ class KulturnavBot(object):
         """
         print 'call to deprecated KulturnavBot.listify()'
         return helpers.listify(value)
-
-    @staticmethod
-    def bundleValues(values):
-        """
-        Deprecated in favour of helpers.bundle_values
-        """
-        print 'call to deprecated KulturnavBot.bundleValues()'
-        return helpers.bundle_values(values)
 
     @staticmethod
     def shuffleNames(nameObj):
