@@ -352,8 +352,10 @@ class KulturnavBotSMM(KulturnavBot):
 
             # P504 - homeport
             if values[u'homePort']:
-                protoclaims[u'P504'] = self.addStartEndStatement(
-                    self.kulturnav2Wikidata(values[u'homePort']),
+                claim = WD.Statement(
+                    self.kulturnav2Wikidata(values[u'homePort']))
+                protoclaims[u'P504'] = helpers.add_start_end_qualifiers(
+                    claim,
                     values[u'homePort.start'],
                     values[u'homePort.end'])
 

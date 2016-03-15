@@ -118,9 +118,10 @@ class WikidataStuff(object):
             self.force = False
 
         def addQualifier(self, qual, force=False):
-            """
-            Add qualifer to the statement if not None,
-            returns self to allow chaining
+            """Add qualifer to the statement if not None.
+
+            Returns self to allow chaining.
+
             param qual: Qualifier|None
             param force: bool whether qualifier should be added even to
                          already sourced items
