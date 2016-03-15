@@ -942,13 +942,13 @@ class KulturnavBot(object):
         @rtype: list of str
         """
         search_url = 'http://kulturnav.org/api/search/' + \
-                     'entityType:' + cls.ENTITY_TYPE + ',' + \
-                     'entity.dataset_r:' + cls.DATASET_ID
+                     'entityType:%s,' % cls.ENTITY_TYPE + \
+                     'entity.dataset_r:%s' % cls.DATASET_ID
         q = None  # the map_tag query
 
         # only filter on MAP_TAG if filtering on wikidata
         if require_wikidata:
-            search_url += ',' + cls.MAP_TAG + ':%s/%d/%d'
+            search_url += ',%s' % cls.MAP_TAG + ':%s/%d/%d'
             q = '*%2F%2Fwww.wikidata.org%2Fentity%2FQ*'
         else:
             search_url += '/%d/%d'
