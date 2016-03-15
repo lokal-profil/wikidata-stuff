@@ -7,7 +7,7 @@ Author: Lokal_Profil
 License: MIT
 
 usage:
-    python kulturnavBotArkDes.py [OPTIONS]
+    python KulturNav/kulturnavBotArkDes.py [OPTIONS]
 
 &params;
 """

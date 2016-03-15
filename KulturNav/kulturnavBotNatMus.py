@@ -7,7 +7,7 @@ Author: Lokal_Profil
 License: MIT
 
 usage:
-    python kulturnavBotNatMus.py [OPTIONS]
+    python KulturNav/kulturnavBotNatMus.py [OPTIONS]
 
 &params;
 """

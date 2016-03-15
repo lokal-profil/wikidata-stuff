@@ -10,7 +10,7 @@ License: MIT
 See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 
 usage:
-    python kulturnavBot.py [OPTIONS]
+    python KulturNav/kulturnavBot.py [OPTIONS]
 
 &params;
 """

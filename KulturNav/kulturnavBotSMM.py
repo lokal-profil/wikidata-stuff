@@ -4,7 +4,7 @@
 Bot to import and source statements about Maritime objects in KulturNav.
 
 usage:
-    python kulturnavSMM.py [OPTIONS]
+    python KulturNav/kulturnavSMM.py [OPTIONS]
 
 Author: Lokal_Profil
 License: MIT
