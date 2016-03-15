@@ -90,9 +90,9 @@ class KulturnavBotSMM(KulturnavBot):
     COMPANY_Q = '783794'
     ORGANISATION_Q = '43229'
     IKNO_K = u'http://kulturnav.org/2c8a7e85-5b0c-4ceb-b56f-a229b6a71d2a'
-    classList = None
-    typeList = None
-    allShipTypes = None  # any item in the ship type tree
+    class_list = None
+    type_list = None
+    all_ship_types = None  # any item in the ship type tree
 
     def run(self):
         """Start the bot."""
@@ -102,18 +102,18 @@ class KulturnavBotSMM(KulturnavBot):
         elif self.DATASET == 'Varv':
             self.runVarv()
         elif self.DATASET == 'Fartyg':
-            self.classList = self.wd.wdqLookup(
+            self.class_list = self.wd.wdqLookup(
                 u'CLAIM[1248]{CLAIM[972:%s]}' %
                 self.DATASETS[u'Klasser']['DATASET_Q'])
-            self.typeList = self.wd.wdqLookup(
+            self.type_list = self.wd.wdqLookup(
                 u'CLAIM[1248]{'
                 u'CLAIM[972:%s] OR CLAIM[972:%s] OR CLAIM[972:%s]}' % (
                     self.DATASETS[u'Fartygstyper']['DATASET_Q'],
                     self.DATASETS[u'Namngivna']['DATASET_Q'],
                     self.DATASETS[u'Serietillverkade']['DATASET_Q']))
-            self.allShipTypes = self.wd.wdqLookup(
+            self.all_ship_types = self.wd.wdqLookup(
                 u'CLAIM[31:%s]' % self.SHIPTYPE_Q)
-            self.allShipTypes += self.wd.wdqLookup(
+            self.all_ship_types += self.wd.wdqLookup(
                 u'CLAIM[31:%s]' % self.BOATTYPE_Q)
             self.runFartyg()
         elif self.DATASET == 'Klasser':
@@ -376,7 +376,7 @@ class KulturnavBotSMM(KulturnavBot):
                 target = self.wd.bypassRedirect(claim.getTarget())
                 claims.append(int(target.title()[1:]))
             # check if any of the claims are recognised shipTypes
-            if any(x in claims for x in self.allShipTypes):
+            if any(x in claims for x in self.all_ship_types):
                 return True
             pywikibot.output(u'%s is identified as something other than '
                              u'a ship/boat type. Check!' % hit_item.title())
@@ -725,9 +725,9 @@ class KulturnavBotSMM(KulturnavBot):
                 item = self.kulturnav2Wikidata(val)
                 if item:
                     q = int(item.title()[1:])
-                    if q in self.classList:
+                    if q in self.class_list:
                         ship_class.append(WD.Statement(item))
-                    elif q in self.typeList:
+                    elif q in self.type_list:
                         ship_type.append(WD.Statement(item))
                     else:
                         pywikibot.output(u'Q%d not matched as either ship'
