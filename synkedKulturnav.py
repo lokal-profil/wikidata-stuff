@@ -9,26 +9,42 @@ import json
 import urllib2
 import wdqsLookup
 import pywikibot.data.wikidataquery as wdquery
+import helpers
+from kulturnavBot import KulturnavBot
 
 
 def get_wdq(dataset=None, data=None):
     """Find all links from Wikidata to Kulturnav using WDQ.
+
+    @todo:
+    To replace with wdqs we need something like:
+    SELECT ?item ?value
+      WHERE {
+          ?item p:P1248 ?data .
+          ?item wdt:P1248 ?value .
+          {?data pq:P972 wd:Q20742915} UNION
+          {?data pq:P972 wd:Q20734454}
+     }
 
     @param dataset: Q-id (or list of Q-ids) corresponding to a dataset.
     @type dataset: str or list of str
     @param data: dictionary to which data should be added
     @type data: dict
     @return: (timestamp, dict {qid: uuid})
-    @rtype: tuple
+    @rtype: tuple (str, dict)
     """
     # initialise if needed
     data = data or {}
+    dataset = helpers.listify(dataset) or []
 
     # make query
     pid = '1248'
     query = u'CLAIM[%s]' % pid
     if dataset:
-        query += u'{CLAIM[972:%s]}' % dataset.lstrip('Q')
+        query += u'{CLAIM['
+        for d in dataset:
+            query += u'972:%s,' % d.lstrip('Q')
+        query = query.rstrip(',') + ']}'
 
     wd_queryset = wdquery.QuerySet(query)
     wd_query = wdquery.WikidataQuery(cacheMaxAge=0)
@@ -51,7 +67,7 @@ def get_wdq(dataset=None, data=None):
 
 
 def get_kulturnav(dataset=None, data=None):
-    """Use wdq to find all links from Wikidata to Kulturnav.
+    """Find all links from Kulturnav to Wikidata.
 
     @param dataset: the uuid corresponding to a dataset
     @type dataset: str
@@ -61,8 +77,7 @@ def get_kulturnav(dataset=None, data=None):
     @rtype: dict
     """
     # initialise if needed
-    if data is None:
-        data = {}
+    data = data or {}
 
     # handle lists
     if isinstance(dataset, list):
@@ -72,34 +87,35 @@ def get_kulturnav(dataset=None, data=None):
 
     # single lookup
     batch_size = 250
+    urlbase = 'http://kulturnav.org/api/search/'
+    if dataset:
+        urlbase += 'entity.dataset_r:%s,' % dataset
+
     needles = (u'http://www.wikidata.org', 'https://www.wikidata.org')
     search_str = u'*%2F%2Fwww.wikidata.org%2Fentity%2FQ*'
     matched_tags = ['entity.sameAs_s', 'concept.exactMatch_s']
-    if dataset is None:
-        dataset = ''
-    else:
-        dataset = 'entity.dataset_r:%s,' % dataset
-    urlbase = u'http://kulturnav.org/api/search/%s' % dataset
 
     for match in matched_tags:
         offset = 0
-        url = urlbase + u'%s:%s/' % (match, search_str)
-        j = json.load(urllib2.urlopen(url + '%d/%d' % (offset, batch_size)))
-        while j:
-            tag = match.split('_')[0]
-            for i in j:
+        search_url = urlbase + match + ':%s/%d/%d'
+        search_data = KulturnavBot.get_single_search_results(
+            search_url, search_str, offset, batch_size)
+        tag = match.split('_')[0]
+
+        while search_data:
+            for entry in search_data:
                 # extract uuid and wikidata qid
-                uuid = i[u'uuid']
-                matches = i[u'properties'][tag]
+                uuid = entry[u'uuid']
+                matches = entry[u'properties'][tag]
                 for m in matches:
                     if m[u'value'].startswith(needles):
                         qid = m[u'value'].split('/')[-1]
                         data[uuid] = qid
 
-            # do next batch of requests
+            # continue
             offset += batch_size
-            batch_url = url + '%d/%d' % (offset, batch_size)
-            j = json.load(urllib2.urlopen(batch_url))
+            search_data = KulturnavBot.get_single_search_results(
+                search_url, search_str, offset, batch_size)
 
     return data
 
@@ -123,8 +139,8 @@ def get_references(owner=None):
     query += "}"
 
     # perform query
-    data = wdqsLookup.make_simple_wdqs_query('mentions', query)
-    return int(data[0])
+    data = wdqsLookup.make_simple_wdqs_query(query)
+    return int(data[0]['mentions'])
 
 
 def compare(k_dataset=None, w_dataset=None):
@@ -139,8 +155,43 @@ def compare(k_dataset=None, w_dataset=None):
     """
     k_data = get_kulturnav(k_dataset)
     time, w_data = get_wdq(w_dataset)
-    k_count = len(k_data)
-    w_count = len(w_data)
+
+    mismatch, k_only, w_only = identify_missing_and_missmatched(k_data, w_data)
+
+    # prepare response
+    status = {
+        'wdq_time': time,
+        'kulturnav_hits': len(k_data),
+        'kulturnav_dataset': k_dataset,
+        'wikidata_hits': len(w_data),
+        'wikidata_dataset': w_dataset,
+        'mismatches': len(mismatch)
+    }
+    response = {
+        '_status': status,
+        'kulturnav_only': k_only,
+        'wikidata_only': w_only,
+        'mismatches': mismatch
+    }
+    return response
+
+
+def identify_missing_and_missmatched(k_data_orig, w_data_orig):
+    """Identify any non-reciprocated links and any missmatches.
+
+    Where missmatches are links where the target is in turn pointing to another
+    object.
+
+    @param k_data_orig: the output of get_kulturnav
+    @type k_data_orig: dict
+    @param w_data_orig: the main (second) output of get_wdq
+    @type w_data_orig: dict
+    @return: (mismatch, k_only, w_only)
+    @rtype: tuple (list, dict, dict)
+    """
+    # prevent originals from being modified
+    k_data = k_data_orig.copy()
+    w_data = w_data_orig.copy()
 
     k_only = {}
     mismatch = []
@@ -157,22 +208,7 @@ def compare(k_dataset=None, w_dataset=None):
             mismatch.append((qid, uuid, k_only[uuid]))
             del k_only[uuid]
 
-    # prepare response
-    status = {
-        'wdq_time': time,
-        'kulturnav_hits': k_count,
-        'kulturnav_dataset': k_dataset,
-        'wikidata_hits': w_count,
-        'wikidata_dataset': w_dataset,
-        'mismatches': len(mismatch)
-    }
-    response = {
-        '_status': status,
-        'kulturnav_only': k_only,
-        'wikidata_only': w_data,
-        'mismatches': mismatch
-    }
-    return response
+    return (mismatch, k_only, w_data)
 
 
 def test_all(out_dir):
