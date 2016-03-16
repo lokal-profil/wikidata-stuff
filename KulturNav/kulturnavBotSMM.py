@@ -226,12 +226,8 @@ class KulturnavBotSMM(KulturnavBot):
 
     def runFartyg(self):
         """Start a bot for adding info on ships."""
-        rules = {
-            u'entity.name': Rule(  # force to look in top level
-                keys='inDataset',
-                values=None,
-                target='entity.name'),
-            u'altLabel': None,
+        rules = KulturnavBotSMM.get_base_ship_rules()
+        rules.update({
             u'navalVessel.signalLetters': None,
             u'entity.code': None,
             u'built.date': Rule(
@@ -269,8 +265,6 @@ class KulturnavBotSMM(KulturnavBot):
                 keys='navalVessel.decommissioned.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='event.time'),
-            u'navalVessel.type': None,
-            u'navalVessel.otherType': None,
             u'homePort': Rule(
                 keys='navalVessel.homePort.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
@@ -297,23 +291,8 @@ class KulturnavBotSMM(KulturnavBot):
                 keys=None,
                 values={},
                 target='navalVessel.registration',
-                viaId='registration.register'),
-            u'constructor': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='navalVessel.constructed.constructedBy'),
-            u'constructor.start': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='startDate'),
-            u'constructor.end': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='endDate')
-            # navalVessel.measurement
-        }
+                viaId='registration.register')
+        })
 
         def claims(self, values):
             """Add protoclaims.
@@ -391,30 +370,7 @@ class KulturnavBotSMM(KulturnavBot):
 
     def runKlasser(self):
         """Start a bot for adding info on ship classes."""
-        rules = {
-            u'entity.name': Rule(  # force to look in top level
-                keys='inDataset',
-                values=None,
-                target='entity.name'),
-            u'navalVessel.type': None,  # a type or another class
-            u'navalVessel.otherType': None,
-            u'altLabel': None,
-            u'constructor': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='navalVessel.constructed.constructedBy'),
-            u'constructor.start': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='startDate'),
-            u'constructor.end': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='endDate')
-            # navalVessle.measurement
-        }
+        rules = KulturnavBotSMM.get_base_ship_rules()
 
         def claims(self, values):
             """Add protoclaims.
@@ -554,30 +510,7 @@ class KulturnavBotSMM(KulturnavBot):
 
     def runSerietillverkade(self):
         """Start a bot for adding info on serially produced ships."""
-        rules = {
-            u'entity.name': Rule(  # force to look in top level
-                keys='inDataset',
-                values=None,
-                target='entity.name'),
-            u'altLabel': None,
-            u'navalVessel.type': None,
-            u'navalVessel.otherType': None,
-            u'constructor': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='navalVessel.constructed.constructedBy'),
-            u'constructor.start': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='startDate'),
-            u'constructor.end': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='endDate')
-            # navalVessel.measurement
-        }
+        rules = KulturnavBotSMM.get_base_ship_rules()
 
         def claims(self, values):
             """Add protoclaims.
@@ -606,6 +539,38 @@ class KulturnavBotSMM(KulturnavBot):
                        datasetSanityTest=KulturnavBotSMM.test_shiptype,
                        label=u'entity.name',
                        shuffle=False)
+
+    @staticmethod
+    def get_base_ship_rules():
+        """Construct the basic rules for shiplike objects.
+
+        @return: The rules
+        @rtype: dict
+        """
+        return {
+            u'entity.name': Rule(  # force to look in top level
+                keys='inDataset',
+                values=None,
+                target='entity.name'),
+            u'altLabel': None,
+            u'navalVessel.type': None,  # a type or another class
+            u'navalVessel.otherType': None,
+            u'constructor': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='navalVessel.constructed.constructedBy'),
+            u'constructor.start': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.timespan',
+                viaId='startDate'),
+            u'constructor.end': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.timespan',
+                viaId='endDate')
+            # navalVessle.measurement
+        }
 
     @staticmethod
     def test_shiptype(bot, hit_item):
