@@ -78,8 +78,8 @@ class Person(object):
         protoclaims[u'P19'] = Person.get_birth_place(bot, values)
 
         if values.get(u'gender'):
-            # dbGender returns a WD.Statement
-            protoclaims[u'P21'] = bot.dbGender(values[u'gender'])
+            # db_gender returns a WD.Statement
+            protoclaims[u'P21'] = bot.db_gender(values[u'gender'])
 
         if values.get(u'firstName'):
             protoclaims[u'P735'] = WD.Statement(

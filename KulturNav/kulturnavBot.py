@@ -456,13 +456,13 @@ class KulturnavBot(object):
                 force=True)
 
         # authority control protoclaims
-        if values[u'libris-id']:
+        if values.get(u'libris-id'):
             protoclaims[u'P906'] = WD.Statement(values[u'libris-id'])
-        if values[u'viaf-id']:
+        if values.get(u'viaf-id'):
             protoclaims[u'P214'] = WD.Statement(values[u'viaf-id'])
-        if values[u'getty_aat']:
+        if values.get(u'getty_aat'):
             protoclaims[u'P1014'] = WD.Statement(values[u'getty_aat'])
-        if values[u'ulan']:
+        if values.get(u'ulan'):
             protoclaims[u'P245'] = WD.Statement(values[u'ulan'])
 
     def wikidataMatch(self, values):
@@ -577,32 +577,34 @@ class KulturnavBot(object):
         # any site will work, this is just an example
         site = pywikibot.Site(item[u'@language'], 'wikipedia')
         page = pywikibot.Page(site, item[u'@value'])
-        if u'wikibase_item' in page.properties() and \
-                page.properties()[u'wikibase_item']:
+        if page.properties().get(u'wikibase_item'):
             qNo = page.properties()[u'wikibase_item']
             return self.wd.QtoItemPage(qNo)
 
-    def dbGender(self, item):
-        """
-        Simply matches gender values to Q items
+    def db_gender(self, value):
+        """Match gender values to items.
+
         Note that this returns a Statment unlike most other functions
-        param item: string
-        return WD.Statement|None
+
+        @param value: The gender value
+        @type value: str
+        @return: The gender item as a statement
+        @rtype: WD.Statement or None
         """
         known = {u'male': u'Q6581097',
                  u'female': u'Q6581072',
                  u'unknown': u'somevalue'}  # a special case
-        if item not in known.keys():
-            pywikibot.output(u'invalid gender entry: %s' % item)
+        if value not in known.keys():
+            pywikibot.output(u'invalid gender entry: %s' % value)
             return
 
-        if known[item] in (u'somevalue', u'novalue'):
+        if known[value] in (u'somevalue', u'novalue'):
             return WD.Statement(
-                known[item],
+                known[value],
                 special=True)
         else:
             return WD.Statement(
-                self.wd.QtoItemPage(known[item]))
+                self.wd.QtoItemPage(known[value]))
 
     def db_name(self, name_obj, typ, limit=75):
         """Check if there is an item matching the name.
@@ -647,15 +649,15 @@ class KulturnavBot(object):
                 return self.wd.QtoItemPage(qNo)
 
         # retrieve various sources
-        geoSources = self.getGeoSources(uuid)
-        kulturarvsdata = self.extractKulturarvsdataLocation(geoSources)
+        geo_sources = self.get_geo_sources(uuid)
+        kulturarvsdata = self.extract_kulturarvsdata_location(geo_sources)
         if kulturarvsdata:
             self.locations[uuid] = kulturarvsdata
             qNo = u'Q%d' % self.locations[uuid]
             return self.wd.QtoItemPage(qNo)
 
         # retrieve hit through geonames-lookup
-        geonames = self.extractGeonames(geoSources)
+        geonames = self.extract_geonames(geo_sources)
         if geonames:
             # store as a resolved hit, in case wdq yields nothing
             self.locations[uuid] = None
@@ -673,35 +675,41 @@ class KulturnavBot(object):
         # no (clean) hits
         return None
 
-    def getGeoSources(self, uuid):
-        """
+    def get_geo_sources(self, uuid):
+        """Extract any geosources from a kulturNav uuid.
+
         Given a kulturNav uuid return the corresponding properties of
         that target which are likely to contain geosources.
 
-        return list
+        @param uuid: uuid to check
+        @type uuid: str
+        @return: the matching properties
+        @rtyp: list of dicts
         """
         # debugging
         if not self.is_uuid(uuid):
             return []
 
-        queryurl = 'http://kulturnav.org/api/%s'
-        jsonData = json.load(urllib2.urlopen(queryurl % uuid))
+        query_url = 'http://kulturnav.org/api/%s'
+        json_data = json.load(urllib2.urlopen(query_url % uuid))
         sources = []
-        if jsonData.get(u'properties'):
-            sameAs = jsonData.get('properties').get('entity.sameAs')
-            if sameAs:
-                sources += sameAs
-            sourceUri = jsonData.get('properties') \
-                                .get('superconcept.sourceUri')
-            if sourceUri:
-                sources += sourceUri
+        if json_data.get(u'properties'):
+            same_as = json_data.get('properties').get('entity.sameAs')
+            if same_as:
+                sources += same_as
+            source_uri = json_data.get('properties') \
+                                  .get('superconcept.sourceUri')
+            if source_uri:
+                sources += source_uri
         return sources
 
-    def extractGeonames(self, sources):
-        """
-        Given a list of extractGeoSources() return any geonames ID.
+    def extract_geonames(self, sources):
+        """Return any geonames ID given a list of get_geo_sources().
 
-        return string|None
+        @param sources: output of get_geo_sources()
+        @type sources: list of dicts
+        @return: geonames id
+        @rtype: str or None
         """
         needle = 'http://sws.geonames.org/'
         for s in sources:
@@ -709,12 +717,13 @@ class KulturnavBot(object):
                 return s.get('value').split('/')[-1]
         return None
 
-    def extractKulturarvsdataLocation(self, sources):
-        """
-        Given a list of extractGeoSources() return any kulturarvsdata
-        geo authorities.
+    def extract_kulturarvsdata_location(self, sources):
+        """Return any qids matching kulturarvsdata geo authorities.
 
-        @rtype string or None
+        @param sources: output of get_geo_sources()
+        @type sources: list of dicts
+        @return: the matching qid (without Q-prefix)
+        @rtype: str or None
         @raises pywikibot.Error
         """
         needle = u'http://kulturarvsdata.se/resurser/aukt/geo/'

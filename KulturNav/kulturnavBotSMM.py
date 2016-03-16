@@ -186,13 +186,13 @@ class KulturnavBotSMM(KulturnavBot):
             self.set_location(values, protoclaims)
 
             # handle values
-            if values[u'establishment.date']:
+            if values.get(u'establishment.date'):
                 protoclaims[u'P571'] = WD.Statement(
                     helpers.iso_to_WbTime(values[u'establishment.date']))
-            if values[u'termination.date']:
+            if values.get(u'termination.date'):
                 protoclaims[u'P576'] = WD.Statement(
                     helpers.iso_to_WbTime(values[u'termination.date']))
-            if values[u'agent.ownership.owner']:
+            if values.get(u'agent.ownership.owner'):
                 protoclaims[u'P127'] = WD.Statement(
                     self.kulturnav2Wikidata(
                         values[u'agent.ownership.owner']))
@@ -329,7 +329,7 @@ class KulturnavBotSMM(KulturnavBot):
             self.set_ship_events(values, protoclaims)
 
             # P2317 - call sign
-            if values[u'navalVessel.signalLetters']:
+            if values.get(u'navalVessel.signalLetters'):
                 protoclaims[u'P2317'] = WD.Statement(
                     values[u'navalVessel.signalLetters'])
 
@@ -459,7 +459,7 @@ class KulturnavBotSMM(KulturnavBot):
             self.set_is_instance(self.SHIPTYPE_Q, protoclaims)
 
             # P279 - subgroup self.kulturnav2Wikidata(broader)
-            if values[u'broader']:
+            if values.get(u'broader'):
                 protoclaims[u'P279'] = WD.Statement(
                     self.kulturnav2Wikidata(
                         values[u'broader']))
@@ -646,7 +646,7 @@ class KulturnavBotSMM(KulturnavBot):
         @param protoclaims: the dict of claims to add
         @type protoclaims: dict
         """
-        if values[u'navalVessel.type']:
+        if values.get(u'navalVessel.type'):
             claims = []
             for t in values[u'navalVessel.type']:
                 item = self.kulturnav2Wikidata(t)
@@ -683,7 +683,7 @@ class KulturnavBotSMM(KulturnavBot):
         @param protoclaims: the dict of claims to add
         @type protoclaims: dict
         """
-        if values[u'navalVessel.type']:
+        if values.get(u'navalVessel.type'):
             ship_class = []
             ship_type = []
             for val in values[u'navalVessel.type']:
@@ -748,7 +748,7 @@ class KulturnavBotSMM(KulturnavBot):
         @param protoclaims: the dict of claims to add
         @type protoclaims: dict
         """
-        if values[u'location']:
+        if values.get(u'location'):
             location_q = self.location2Wikidata(values[u'location'])
             prop = self.getLocationProperty(location_q)
             if prop:
