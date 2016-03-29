@@ -657,7 +657,7 @@ class KulturnavBot(object):
             return self.wd.QtoItemPage(qNo)
 
         # retrieve hit through geonames-lookup
-        geonames = self.extract_geonames(geo_sources)
+        geonames = KulturnavBot.extract_geonames(geo_sources)
         if geonames:
             # store as a resolved hit, in case wdq yields nothing
             self.locations[uuid] = None
@@ -703,7 +703,8 @@ class KulturnavBot(object):
                 sources += source_uri
         return sources
 
-    def extract_geonames(self, sources):
+    @staticmethod
+    def extract_geonames(sources):
         """Return any geonames ID given a list of get_geo_sources().
 
         @param sources: output of get_geo_sources()
