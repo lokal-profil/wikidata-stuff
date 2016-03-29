@@ -3,15 +3,23 @@
 	"prefix_map": {
 		"NM": {
 			"subcol": null,
-			"place": "Q842858"
+			"place": "Q842858",
+			"@meta": "Oljemåleri"
 		},
 		"NMB": {
 			"subcol": null,
-			"place": "Q842858"
+			"place": "Q842858",
+			"@meta": "Bihang, Måleri övriga tekniker"
 		},
 		"NMI": {
 			"subcol": "Q18573057",
-			"place": "Q842858"
+			"place": "Q842858",
+			"@meta": "Ikoner"
+		},
+		"KM": {
+			"subcol": null,
+			"place": "Q842858",
+			"@meta": "Kongl. museum (ingår i myndighetsarkivet NM/CK)"
 		},
 		"NMDrh": {
 			"subcol": "Q18572999",
