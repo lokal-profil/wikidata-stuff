@@ -474,7 +474,9 @@ class PaintingsBot:
             artist_entry = dump_entry.iteritems().next()
             self.add_singel_natmus_creator(painting_item, artist_entry, uri)
         elif len(dump_entry) == 2:
-            self.add_double_natmus_creator(painting_item, dump_entry, uri)
+            #self.add_double_natmus_creator(painting_item, dump_entry, uri)
+            # skipping until duplication issue has been solved
+            pass
         else:
             # for now avoid any entries with more creators
             return
