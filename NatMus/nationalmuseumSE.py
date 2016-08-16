@@ -82,6 +82,9 @@ class PaintingsBot:
                 collections.add(k['subcol'].strip('Q'))
         self.collections = list(collections)
 
+        # Set log file
+        self.log = codecs.open(u'nationalmuseumSE.log', 'a', 'utf-8')
+
         # Load creator dump file
         self.creator_dump = helpers.load_json_file('Oku_NM_arbetskopia.json',
                                                    force_path=__file__)
@@ -465,8 +468,7 @@ class PaintingsBot:
         # which must all be on wikidata
         for artist_id in self.creator_dump[obj_id].keys():
             if artist_id not in self.artist_ids.keys():
-                pywikibot.output('Artist %s could not be found on wikidata'
-                                 % artist_id)
+                self.logger('Artist not found on wikidata: %s' % artist_id)
                 return
 
         dump_entry = self.creator_dump[obj_id]
@@ -784,6 +786,15 @@ class PaintingsBot:
         for k, v in creator_dict.iteritems():
             f.write(u'%d|%s\n' % (v, k))
         f.close()
+
+    def logger(self, text):
+        """Append text to logfile.
+
+        @param text: text to output
+        @type text: str
+        """
+        self.log.write(u'%s\n' % text)
+        self.log.flush()  # because shit tends to crash
 
 
 def make_descriptions(painting):
