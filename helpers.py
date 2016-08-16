@@ -63,7 +63,7 @@ def fill_cache(pid, queryoverride=None, cache_max_age=0):
     @return: Dictionary of IDno to Qno
     @rtype: dict
     """
-    pid = pid.lstrip('P')  # standardise indput
+    pid = pid.lstrip('P')  # standardise input
     result = {}
     if queryoverride:
         query = queryoverride
@@ -92,10 +92,7 @@ def fill_cache(pid, queryoverride=None, cache_max_age=0):
 
 
 def today_as_WbTime():
-    """Get todays data as a WbTime object.
-
-    Given an ISO date object (1922-09-17Z or 2014-07-11T08:14:46Z)
-    this returns the equivalent WbTime object
+    """Get todays date as a WbTime object.
 
     @return: Todays date correctly formated
     @rtype: pywikibot.WbTime

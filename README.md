@@ -5,11 +5,9 @@ Random scripts used for Wikidata. These require [pywikibot](https://github.com/w
 
 * WikidataStuff.py: A set of generally useful functions for interacting
 with Wikidata using pywikibot.
-
 * WikidataStringSearch.py: A database hookup (to be run from labs) for
 doing text string searches (SQL LIKE style) in labels, aliases and
 descriptions of items.
-
 * wdqsLookup.py: A module for doing [WDQS](http://query.wikidata.org/) look-ups
 and for converting (some) [WDQ](http://wdq.wmflabs.org/) queries to WDQS
 queries.

@@ -46,6 +46,7 @@ INSTITUTION_Q = u'842858'
 INVNO_P = u'217'
 PAINTING_Q = u'3305213'
 ICON_Q = u'132137'
+ANON_Q = '4233718'
 MINIATURE_URL = u'http://partage.vocnet.org/part00814'
 MAX_ROWS = 100  # max number of rows per request in Europeana API
 
@@ -81,9 +82,15 @@ class PaintingsBot:
                 collections.add(k['subcol'].strip('Q'))
         self.collections = list(collections)
 
+        # Set log file
+        self.log = codecs.open(u'nationalmuseumSE.log', 'a', 'utf-8')
+
         # Load creator dump file
         self.creator_dump = helpers.load_json_file('Oku_NM_arbetskopia.json',
                                                    force_path=__file__)
+
+        # hard-coded anons e.g. "unknown swedish 17th century"
+        anons = helpers.load_json_file('anons.json', force_path=__file__)
 
         # prepare WDQ painting query
         query = u'CLAIM[195:%s] AND CLAIM[%s]' % \
@@ -95,6 +102,9 @@ class PaintingsBot:
         # prepare WDQ artist query (nat_mus_id - Q_id pairs)
         self.artist_ids = helpers.fill_cache('P2538',
                                              cache_max_age=cache_max_age)
+        # add anons
+        for a in anons:
+            self.artist_ids[a] = ANON_Q
 
         self.painting_id_prop = 'P%s' % painting_id_prop
 
@@ -245,10 +255,10 @@ class PaintingsBot:
             return
 
         if creator_id:
-            self.set_known_creator(
+            self.set_creator(
                 painting_item,
-                creator_id,
-                self.make_europeana_reference(painting))
+                self.make_europeana_reference(painting),
+                creator_q=creator_id)
 
     def add_image_claim(self, painting_item, uri):
         """Add a image/P18 claim if exactly one image is found on Commons.
@@ -454,35 +464,40 @@ class PaintingsBot:
         if obj_id not in self.creator_dump.keys():
             return
 
-        # for now avoid any entries with mulitple creators
-        if len(self.creator_dump[obj_id]) != 1:
+        # each artwork may have multiple artists,
+        # which must all be on wikidata
+        for artist_id in self.creator_dump[obj_id].keys():
+            if artist_id not in self.artist_ids.keys():
+                self.logger('Artist not found on wikidata: %s' % artist_id)
+                return
+
+        dump_entry = self.creator_dump[obj_id]
+        if len(dump_entry) == 1:
+            artist_entry = dump_entry.iteritems().next()
+            self.add_singel_natmus_creator(painting_item, artist_entry, uri)
+        elif len(dump_entry) == 2:
+            #self.add_double_natmus_creator(painting_item, dump_entry, uri)
+            # skipping until duplication issue has been solved
+            pass
+        else:
+            # for now avoid any entries with more creators
             return
 
-        # each artwork may have multiple artists,
-        # which may or may not be on wikidata
-        for artist_id, artist_info in self.creator_dump[obj_id].iteritems():
-            if artist_id in self.artist_ids.keys():
-                self.add_natmus_creator(painting_item,
-                                        self.artist_ids[artist_id],
-                                        artist_info, uri)
+    def add_singel_natmus_creator(self, painting_item, artist, uri):
+        u"""Add a simple creator/P170 claim based on the database dump info.
 
-    def add_natmus_creator(self, painting_item, artist_Q, artist_info, uri):
-        u"""Add a creator/P170 claim based on the database dump info.
-
-        For now only handles the following cases:
-        * OkuFunktionS = Konstnär and no other details
-        * OkuFunktionS = Konstnär and a few anonymous cases
+        Handles cases with only a single identified creator. Either
+        * Known creator
+        * Unknown/uncertain creator somehow related to a known person
+        where creator is someone whose function is in artist_labels.
 
         For Forgery/After work by the bot needs to be aware of both parties,
-        and both must exsist on WIkidata
+        and both must exist on Wikidata
 
         @param painting_item: item to which claim is added
         @type painting_item: pywikibot.ItemPage
-        @param artist_Q: the Q-id of the artist
-        @type artist_Q: str
-        @param artist_info: detailed info for how artist and artwork are
-            related
-        @type artist_info: dict
+        @param artist: the dump entry for the artist
+        @type artist: tuple (artist_id, artist_info)
         @param uri: reference url on nationalmuseum.se
         @type uri: str
         """
@@ -495,6 +510,10 @@ class PaintingsBot:
             u'Hennes art': 'P1777',
             u'Hans art': 'P1777',
         }
+        artist_labels = (u'Konstnär', u'Mästare', u'Utförd av')
+
+        artist_id, artist_info = artist
+        artist_q = self.artist_ids[artist_id]
 
         if artist_info.get('OkuBeschreibungS') or \
                 artist_info.get('OkuValidierungS'):
@@ -503,45 +522,111 @@ class PaintingsBot:
             return
 
         if artist_info.get('OkuFunktionS') and \
-                artist_info.get('OkuFunktionS') == u'Konstnär':
+                artist_info.get('OkuFunktionS') in artist_labels:
             if len(artist_info.keys()) == 1:  # i.e. all other are empty
-                self.set_known_creator(
+                self.set_creator(
                     painting_item,
-                    artist_Q,
-                    self.make_url_reference(uri))
+                    self.make_url_reference(uri),
+                    creator_q=artist_q)
             elif artist_info.get('OkuArtS') in anonymous_combos.keys() and \
                     len(artist_info.keys()) == 2:
                 # anonymous but attributed to the artist
                 related_info = {
                     'P': anonymous_combos[artist_info.get('OkuArtS')],
-                    'itis': self.wd.QtoItemPage(artist_Q)}
-                self.set_anonymous_creator(
+                    'itis': self.wd.QtoItemPage(artist_q)}
+                self.set_creator(
                     painting_item,
-                    related_info,
+                    self.make_url_reference(uri),
+                    related_info=related_info)
+        elif not artist_info.get('OkuFunktionS') and artist_id == '1':
+                # this is the special case of a completly unknown creator
+                self.set_creator(
+                    painting_item,
                     self.make_url_reference(uri))
 
-    def set_anonymous_creator(self, target_item, related_info, reference):
-        """Set a creator/P170 claim for an unknown creator.
+    def add_double_natmus_creator(self, painting_item, artists, uri):
+        u"""Add a comlex creator/P170 claim based on the database dump info.
 
-        Allows for simple anonymous claims as well as more complex
+        Handles cases with two identified creators in a relation along the
+        lines of "Painting/Forgery by X after a work by Y"
+
+        The logic is:
+        OkuFunktionS in derived_combos -> OkuKueID = creator of original
+        OkuFunktionS in artist_labels -> OkuKueID = creator of derivative
+        @param artists: the dump entries for the artists
+        @type artists: dict of {artist_id: artist_info}
+        @param painting_item: item to which claim is added
+        @type painting_item: pywikibot.ItemPage
+        @param uri: reference url on nationalmuseum.se
+        @type uri: str
+        """
+        derived_combos = {
+            u'Kopia efter': 'P1877',
+            u'Efter': 'P1877',
+            u'Förfalskning efter': 'P1778',
+        }
+        artist_labels = (u'Konstnär', u'Utförd av')
+
+        # set up targets
+        original = None
+        derivative = None
+        relation = None
+
+        for artist in artists.iteritems():
+            artist_id, artist_info = artist
+            if artist_info.get('OkuBeschreibungS') or \
+                    artist_info.get('OkuValidierungS'):
+                # this indicates some special case which we cannot handle
+                # for now
+                return
+
+            if artist_info.get('OkuFunktionS') and \
+                    len(artist_info.keys()) == 1:
+                # cannot deal with OkuArtS
+                if artist_info.get('OkuFunktionS') in artist_labels:
+                    derivative = artist
+                elif artist_info.get('OkuFunktionS') in derived_combos.keys():
+                    original = artist
+                    relation = derived_combos[artist_info.get('OkuFunktionS')]
+
+        # verify that both roles were filled
+        if any(creator is None for creator in (original, derivative)):
+            return
+
+        # construct info and set
+        original_q = self.artist_ids[original[0]]
+        derivative_q = self.artist_ids[derivative[0]]
+        related_info = {
+            'P': relation,
+            'itis': self.wd.QtoItemPage(original_q)}
+        self.set_creator(
+            painting_item,
+            self.make_url_reference(uri),
+            creator_q=derivative_q,
+            related_info=related_info)
+
+    def set_creator(self, target_item, reference,
+                    creator_q=None, related_info=None):
+        """Set a creator/P170 claim for a creator or creator combo.
+
+        Allows for simple claims as well as more complex
         "in the manner of" etc.
-
-        @todo: Consider merging with set_known_creator so that it can be used
-            also for more complicated cases.
 
         @param target_item: item to which claim is added
         @type target_item: pywikibot.ItemPage
+        @param reference: the reference for the statment
+        @type reference: WD.Reference
         @param related_info: related info as a dict with P/itis pairs
         @type related_info: dict
-        @param reference: the reference for the statment
-        @type uri: WD.Reference
+        @param creator_q: the Q-id of the creator
+        @type creator_q: str
         """
-        anonymous_q = 'Q4233718'
-        anon_statement = WD.Statement(self.wd.QtoItemPage(anonymous_q))
+        creator_q = creator_q or ANON_Q
+        creator_statement = WD.Statement(self.wd.QtoItemPage(creator_q))
 
         # set any related qualifiers
         if related_info:
-            anon_statement.addQualifier(
+            creator_statement.addQualifier(
                 WD.Qualifier(
                     P=related_info['P'],
                     itis=related_info['itis']))
@@ -549,24 +634,7 @@ class PaintingsBot:
         # set claim
         self.wd.addNewClaim(
             u'P170',
-            anon_statement,
-            target_item,
-            reference)
-
-    def set_known_creator(self, target_item, creator_Q, reference):
-        """Set a creator/P170 claim for a known creator.
-
-        @param target_item: item to which claim is added
-        @type target_item: pywikibot.ItemPage
-        @param creator_Q: the Q-id of the creator
-        @type creator_Q: str
-        @param reference: the reference for the statment
-        @type uri: WD.Reference
-        """
-        creator_item = self.wd.QtoItemPage(creator_Q)
-        self.wd.addNewClaim(
-            u'P170',
-            WD.Statement(creator_item),
+            creator_statement,
             target_item,
             reference)
 
@@ -718,6 +786,15 @@ class PaintingsBot:
         for k, v in creator_dict.iteritems():
             f.write(u'%d|%s\n' % (v, k))
         f.close()
+
+    def logger(self, text):
+        """Append text to logfile.
+
+        @param text: text to output
+        @type text: str
+        """
+        self.log.write(u'%s\n' % text)
+        self.log.flush()  # because shit tends to crash
 
 
 def make_descriptions(painting):

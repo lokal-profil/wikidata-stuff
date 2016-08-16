@@ -90,9 +90,9 @@ class KulturnavBotSMM(KulturnavBot):
     COMPANY_Q = '783794'
     ORGANISATION_Q = '43229'
     IKNO_K = u'http://kulturnav.org/2c8a7e85-5b0c-4ceb-b56f-a229b6a71d2a'
-    classList = None
-    typeList = None
-    allShipTypes = None  # any item in the ship type tree
+    class_list = None
+    type_list = None
+    all_ship_types = None  # any item in the ship type tree
 
     def run(self):
         """Start the bot."""
@@ -102,18 +102,18 @@ class KulturnavBotSMM(KulturnavBot):
         elif self.DATASET == 'Varv':
             self.runVarv()
         elif self.DATASET == 'Fartyg':
-            self.classList = self.wd.wdqLookup(
+            self.class_list = self.wd.wdqLookup(
                 u'CLAIM[1248]{CLAIM[972:%s]}' %
                 self.DATASETS[u'Klasser']['DATASET_Q'])
-            self.typeList = self.wd.wdqLookup(
+            self.type_list = self.wd.wdqLookup(
                 u'CLAIM[1248]{'
                 u'CLAIM[972:%s] OR CLAIM[972:%s] OR CLAIM[972:%s]}' % (
                     self.DATASETS[u'Fartygstyper']['DATASET_Q'],
                     self.DATASETS[u'Namngivna']['DATASET_Q'],
                     self.DATASETS[u'Serietillverkade']['DATASET_Q']))
-            self.allShipTypes = self.wd.wdqLookup(
+            self.all_ship_types = self.wd.wdqLookup(
                 u'CLAIM[31:%s]' % self.SHIPTYPE_Q)
-            self.allShipTypes += self.wd.wdqLookup(
+            self.all_ship_types += self.wd.wdqLookup(
                 u'CLAIM[31:%s]' % self.BOATTYPE_Q)
             self.runFartyg()
         elif self.DATASET == 'Klasser':
@@ -186,13 +186,13 @@ class KulturnavBotSMM(KulturnavBot):
             self.set_location(values, protoclaims)
 
             # handle values
-            if values[u'establishment.date']:
+            if values.get(u'establishment.date'):
                 protoclaims[u'P571'] = WD.Statement(
                     helpers.iso_to_WbTime(values[u'establishment.date']))
-            if values[u'termination.date']:
+            if values.get(u'termination.date'):
                 protoclaims[u'P576'] = WD.Statement(
                     helpers.iso_to_WbTime(values[u'termination.date']))
-            if values[u'agent.ownership.owner']:
+            if values.get(u'agent.ownership.owner'):
                 protoclaims[u'P127'] = WD.Statement(
                     self.kulturnav2Wikidata(
                         values[u'agent.ownership.owner']))
@@ -226,12 +226,8 @@ class KulturnavBotSMM(KulturnavBot):
 
     def runFartyg(self):
         """Start a bot for adding info on ships."""
-        rules = {
-            u'entity.name': Rule(  # force to look in top level
-                keys='inDataset',
-                values=None,
-                target='entity.name'),
-            u'altLabel': None,
+        rules = KulturnavBotSMM.get_base_ship_rules()
+        rules.update({
             u'navalVessel.signalLetters': None,
             u'entity.code': None,
             u'built.date': Rule(
@@ -269,8 +265,6 @@ class KulturnavBotSMM(KulturnavBot):
                 keys='navalVessel.decommissioned.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
                 target='event.time'),
-            u'navalVessel.type': None,
-            u'navalVessel.otherType': None,
             u'homePort': Rule(
                 keys='navalVessel.homePort.navalVessel',
                 values={'@type': 'dbpedia-owl:Event'},
@@ -297,23 +291,8 @@ class KulturnavBotSMM(KulturnavBot):
                 keys=None,
                 values={},
                 target='navalVessel.registration',
-                viaId='registration.register'),
-            u'constructor': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='navalVessel.constructed.constructedBy'),
-            u'constructor.start': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='startDate'),
-            u'constructor.end': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='endDate')
-            # navalVessel.measurement
-        }
+                viaId='registration.register')
+        })
 
         def claims(self, values):
             """Add protoclaims.
@@ -350,7 +329,7 @@ class KulturnavBotSMM(KulturnavBot):
             self.set_ship_events(values, protoclaims)
 
             # P2317 - call sign
-            if values[u'navalVessel.signalLetters']:
+            if values.get(u'navalVessel.signalLetters'):
                 protoclaims[u'P2317'] = WD.Statement(
                     values[u'navalVessel.signalLetters'])
 
@@ -376,7 +355,7 @@ class KulturnavBotSMM(KulturnavBot):
                 target = self.wd.bypassRedirect(claim.getTarget())
                 claims.append(int(target.title()[1:]))
             # check if any of the claims are recognised shipTypes
-            if any(x in claims for x in self.allShipTypes):
+            if any(x in claims for x in self.all_ship_types):
                 return True
             pywikibot.output(u'%s is identified as something other than '
                              u'a ship/boat type. Check!' % hit_item.title())
@@ -391,30 +370,7 @@ class KulturnavBotSMM(KulturnavBot):
 
     def runKlasser(self):
         """Start a bot for adding info on ship classes."""
-        rules = {
-            u'entity.name': Rule(  # force to look in top level
-                keys='inDataset',
-                values=None,
-                target='entity.name'),
-            u'navalVessel.type': None,  # a type or another class
-            u'navalVessel.otherType': None,
-            u'altLabel': None,
-            u'constructor': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='navalVessel.constructed.constructedBy'),
-            u'constructor.start': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='startDate'),
-            u'constructor.end': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='endDate')
-            # navalVessle.measurement
-        }
+        rules = KulturnavBotSMM.get_base_ship_rules()
 
         def claims(self, values):
             """Add protoclaims.
@@ -503,7 +459,7 @@ class KulturnavBotSMM(KulturnavBot):
             self.set_is_instance(self.SHIPTYPE_Q, protoclaims)
 
             # P279 - subgroup self.kulturnav2Wikidata(broader)
-            if values[u'broader']:
+            if values.get(u'broader'):
                 protoclaims[u'P279'] = WD.Statement(
                     self.kulturnav2Wikidata(
                         values[u'broader']))
@@ -554,30 +510,7 @@ class KulturnavBotSMM(KulturnavBot):
 
     def runSerietillverkade(self):
         """Start a bot for adding info on serially produced ships."""
-        rules = {
-            u'entity.name': Rule(  # force to look in top level
-                keys='inDataset',
-                values=None,
-                target='entity.name'),
-            u'altLabel': None,
-            u'navalVessel.type': None,
-            u'navalVessel.otherType': None,
-            u'constructor': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='navalVessel.constructed.constructedBy'),
-            u'constructor.start': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='startDate'),
-            u'constructor.end': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='endDate')
-            # navalVessel.measurement
-        }
+        rules = KulturnavBotSMM.get_base_ship_rules()
 
         def claims(self, values):
             """Add protoclaims.
@@ -606,6 +539,38 @@ class KulturnavBotSMM(KulturnavBot):
                        datasetSanityTest=KulturnavBotSMM.test_shiptype,
                        label=u'entity.name',
                        shuffle=False)
+
+    @staticmethod
+    def get_base_ship_rules():
+        """Construct the basic rules for shiplike objects.
+
+        @return: The rules
+        @rtype: dict
+        """
+        return {
+            u'entity.name': Rule(  # force to look in top level
+                keys='inDataset',
+                values=None,
+                target='entity.name'),
+            u'altLabel': None,
+            u'navalVessel.type': None,  # a type or another class
+            u'navalVessel.otherType': None,
+            u'constructor': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='navalVessel.constructed.constructedBy'),
+            u'constructor.start': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.timespan',
+                viaId='startDate'),
+            u'constructor.end': Rule(
+                keys='navalVessel.constructed.navalVessel',
+                values={'@type': 'dbpedia-owl:Event'},
+                target='event.timespan',
+                viaId='endDate')
+            # navalVessle.measurement
+        }
 
     @staticmethod
     def test_shiptype(bot, hit_item):
@@ -681,7 +646,7 @@ class KulturnavBotSMM(KulturnavBot):
         @param protoclaims: the dict of claims to add
         @type protoclaims: dict
         """
-        if values[u'navalVessel.type']:
+        if values.get(u'navalVessel.type'):
             claims = []
             for t in values[u'navalVessel.type']:
                 item = self.kulturnav2Wikidata(t)
@@ -718,16 +683,16 @@ class KulturnavBotSMM(KulturnavBot):
         @param protoclaims: the dict of claims to add
         @type protoclaims: dict
         """
-        if values[u'navalVessel.type']:
+        if values.get(u'navalVessel.type'):
             ship_class = []
             ship_type = []
             for val in values[u'navalVessel.type']:
                 item = self.kulturnav2Wikidata(val)
                 if item:
                     q = int(item.title()[1:])
-                    if q in self.classList:
+                    if q in self.class_list:
                         ship_class.append(WD.Statement(item))
-                    elif q in self.typeList:
+                    elif q in self.type_list:
                         ship_type.append(WD.Statement(item))
                     else:
                         pywikibot.output(u'Q%d not matched as either ship'
@@ -783,7 +748,7 @@ class KulturnavBotSMM(KulturnavBot):
         @param protoclaims: the dict of claims to add
         @type protoclaims: dict
         """
-        if values[u'location']:
+        if values.get(u'location'):
             location_q = self.location2Wikidata(values[u'location'])
             prop = self.getLocationProperty(location_q)
             if prop:

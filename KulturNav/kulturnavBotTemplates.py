@@ -78,16 +78,16 @@ class Person(object):
         protoclaims[u'P19'] = Person.get_birth_place(bot, values)
 
         if values.get(u'gender'):
-            # dbGender returns a WD.Statement
-            protoclaims[u'P21'] = bot.dbGender(values[u'gender'])
+            # db_gender returns a WD.Statement
+            protoclaims[u'P21'] = bot.db_gender(values[u'gender'])
 
         if values.get(u'firstName'):
             protoclaims[u'P735'] = WD.Statement(
-                bot.dbName(values[u'firstName'], u'firstName'))
+                bot.db_name(values[u'firstName'], u'firstName'))
 
         if values.get(u'lastName'):
             protoclaims[u'P734'] = WD.Statement(
-                bot.dbName(values[u'lastName'], u'lastName'))
+                bot.db_name(values[u'lastName'], u'lastName'))
 
         protoclaims[u'P27'] = Person.get_nationality(bot, values)
 

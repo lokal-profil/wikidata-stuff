@@ -116,10 +116,6 @@ class KulturnavBot(object):
         self.wd = WD(self.repo)
 
         # load lists
-        #self.COUNTRIES = self.wd.wdqLookup(u'TREE[6256][][31]',
-        #                                   cache_max_age)
-        #self.ADMIN_UNITS = self.wd.wdqLookup(u'TREE[15284][][31]',
-        #                                     cache_max_age)
         self.COUNTRIES = wdqsLookup.wdq_to_wdqs(u'TREE[6256][][31]')
         self.ADMIN_UNITS = wdqsLookup.wdq_to_wdqs(u'TREE[15284][][31]')
 
@@ -152,7 +148,7 @@ class KulturnavBot(object):
         """
         Starts the robot
         """
-        raise NotImplementedError("Please Implement this method")
+        raise NotImplementedError("run() is not implemented in the base bot.")
 
     def runLayout(self, datasetRules, datasetProtoclaims,
                   datasetSanityTest, label, shuffle):
@@ -204,27 +200,11 @@ class KulturnavBot(object):
             # find the matching wikidata item
             hitItem = self.wikidataMatch(values)
             self.current_uuid = values['identifier']
+            #@todo: self.current_protoclaims  # allows these to be accessed more easily
 
             # convert values to potential claims
             protoclaims = datasetProtoclaims(self, values)
-
-            # kulturnav protoclaim incl. qualifier
-            protoclaims[u'P%s' % self.KULTURNAV_ID_P] = \
-                WD.Statement(values[u'identifier']).addQualifier(
-                    WD.Qualifier(
-                        P=self.CATALOG_P,
-                        itis=self.wd.QtoItemPage(self.DATASET_Q)),
-                    force=True)
-
-            # authority control protoclaims
-            if values[u'libris-id']:
-                protoclaims[u'P906'] = WD.Statement(values[u'libris-id'])
-            if values[u'viaf-id']:
-                protoclaims[u'P214'] = WD.Statement(values[u'viaf-id'])
-            if values[u'getty_aat']:
-                protoclaims[u'P1014'] = WD.Statement(values[u'getty_aat'])
-            if values[u'ulan']:
-                protoclaims[u'P245'] = WD.Statement(values[u'ulan'])
+            self.make_base_protoclaims(values, protoclaims)
 
             # output info for testing
             if self.verbose:
@@ -263,6 +243,8 @@ class KulturnavBot(object):
         """
         given a list of values and a kulturnav hit, populate the values
         and check if result is problem free
+
+        @todo: raise Error instead of using problemFree solution
 
         param values: dict with keys and every value as None
         param rules: a dict with keys and values either:
@@ -348,45 +330,17 @@ class KulturnavBot(object):
 
         # the minimum which must have been identified
         if values[u'identifier'] is None:
-            pywikibot.output(u'Could not isolate the identifier from the '
-                             u'KulturNav object! JSON layout must have '
-                             u'changed. Crashing!')
-            exit(1)
-
-        # merge sameAs and exactMatch
-        match = []
-        # each can be None, a list or a str/unicode
-        if values[u'sameAs'] is not None:
-            if isinstance(values[u'sameAs'], (str, unicode)):
-                values[u'sameAs'] = [values[u'sameAs'], ]
-            match += values[u'sameAs']
-        if values[u'exactMatch'] is not None:
-            if isinstance(values[u'exactMatch'], (str, unicode)):
-                values[u'exactMatch'] = [values[u'exactMatch'], ]
-            match += values[u'exactMatch']
+            raise pywikibot.Error(u'Could not isolate the identifier from the '
+                                  u'KulturNav object! JSON layout must have '
+                                  u'changed. Crashing!')
 
         # dig into sameAs/exactMatch and seeAlso
-        for sa in match:
-            if u'wikidata' in sa:
-                values[u'wikidata'] = sa.split('/')[-1]
-            elif u'libris-id' in values.keys() and \
-                    u'libris.kb.se/auth/' in sa:
-                values[u'libris-id'] = sa.split('/')[-1]
-            elif u'viaf-id' in values.keys() and \
-                    u'viaf.org/viaf/' in sa:
-                values[u'viaf-id'] = sa.split('/')[-1]
-            elif u'getty_aat' in values.keys() and \
-                    u'vocab.getty.edu/aat/' in sa:
-                values[u'getty_aat'] = sa.split('/')[-1]
-            elif u'ulan' in values.keys() and \
-                    u'vocab.getty.edu/ulan/' in sa:
-                values[u'ulan'] = sa.split('/')[-1]
+        KulturnavBot.set_sameas_values(values)
 
         # only look at seeAlso if we found no Wikidata link and require one
         if self.require_wikidata and \
                 (not values[u'wikidata'] and values[u'seeAlso']):
-            if isinstance(values[u'seeAlso'], (str, unicode)):
-                values[u'seeAlso'] = [values[u'seeAlso'], ]
+            values[u'seeAlso'] = helpers.listify(values[u'seeAlso'])
             for sa in values[u'seeAlso']:
                 if u'wikipedia' in sa:
                     pywikibot.output(u'Found a Wikipedia link but no '
@@ -455,6 +409,62 @@ class KulturnavBot(object):
         elif orNone:  # no P claim
             return True
 
+    @staticmethod
+    def set_sameas_values(values):
+        """Isolate external identifiers through sameAs and exactMatch.
+
+        @param values: All extracted values
+        @type values: dict
+        """
+        # merge sameAs and exactMatch
+        match = helpers.bundle_values(
+            [values[u'sameAs'], values[u'exactMatch']]) or []
+
+        # dig into sameAs/exactMatch and seeAlso
+        for sa in match:
+            if u'wikidata' in sa:
+                values[u'wikidata'] = sa.split('/')[-1]
+            elif u'libris-id' in values.keys() and \
+                    u'libris.kb.se/auth/' in sa:
+                values[u'libris-id'] = sa.split('/')[-1]
+            elif u'viaf-id' in values.keys() and \
+                    u'viaf.org/viaf/' in sa:
+                values[u'viaf-id'] = sa.split('/')[-1]
+            elif u'getty_aat' in values.keys() and \
+                    u'vocab.getty.edu/aat/' in sa:
+                values[u'getty_aat'] = sa.split('/')[-1]
+            elif u'ulan' in values.keys() and \
+                    u'vocab.getty.edu/ulan/' in sa:
+                values[u'ulan'] = sa.split('/')[-1]
+
+    def make_base_protoclaims(self, values, protoclaims):
+        """Construct the protoclaims common for all KulturnavBots.
+
+        Adds the claim to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        # kulturnav protoclaim incl. qualifier
+        protoclaims[u'P%s' % self.KULTURNAV_ID_P] = \
+            WD.Statement(values[u'identifier']).addQualifier(
+                WD.Qualifier(
+                    P=self.CATALOG_P,
+                    itis=self.wd.QtoItemPage(self.DATASET_Q)),
+                force=True)
+
+        # authority control protoclaims
+        if values.get(u'libris-id'):
+            protoclaims[u'P906'] = WD.Statement(values[u'libris-id'])
+        if values.get(u'viaf-id'):
+            protoclaims[u'P214'] = WD.Statement(values[u'viaf-id'])
+        if values.get(u'getty_aat'):
+            protoclaims[u'P1014'] = WD.Statement(values[u'getty_aat'])
+        if values.get(u'ulan'):
+            protoclaims[u'P245'] = WD.Statement(values[u'ulan'])
+
     def wikidataMatch(self, values):
         """
         Finds the matching wikidata item
@@ -501,7 +511,7 @@ class KulturnavBot(object):
     def addNames(self, names, hitItem, shuffle=False):
         """
         Given a nameObj or a list of such this prepares them for
-        addLabelOrAlias()
+        add_label_or_alias()
 
         param shuffle: bool if name order is last, first then this
                        creates a local rearranged copy
@@ -510,21 +520,21 @@ class KulturnavBot(object):
             if shuffle:
                 namelist = []
                 if isinstance(names, dict):
-                    s = KulturnavBot.shuffleNames(names)
+                    s = KulturnavBot.shuffle_names(names)
                     if s is not None:
                         namelist.append(s)
                 elif isinstance(names, list):
                     for n in names:
-                        s = KulturnavBot.shuffleNames(n)
+                        s = KulturnavBot.shuffle_names(n)
                         if s is not None:
                             namelist.append(s)
                 else:
                     pywikibot.output(u'unexpectedly formatted name'
                                      u'object: %s' % names)
                 if namelist:
-                    self.addLabelOrAlias(namelist, hitItem)
+                    self.add_label_or_alias(namelist, hitItem)
             else:
-                self.addLabelOrAlias(names, hitItem)
+                self.add_label_or_alias(names, hitItem)
 
     def addProperties(self, protoclaims, hitItem, ref):
         """
@@ -567,44 +577,53 @@ class KulturnavBot(object):
         # any site will work, this is just an example
         site = pywikibot.Site(item[u'@language'], 'wikipedia')
         page = pywikibot.Page(site, item[u'@value'])
-        if u'wikibase_item' in page.properties() and \
-                page.properties()[u'wikibase_item']:
+        if page.properties().get(u'wikibase_item'):
             qNo = page.properties()[u'wikibase_item']
             return self.wd.QtoItemPage(qNo)
 
-    def dbGender(self, item):
-        """
-        Simply matches gender values to Q items
+    def db_gender(self, value):
+        """Match gender values to items.
+
         Note that this returns a Statment unlike most other functions
-        param item: string
-        return WD.Statement|None
+
+        @param value: The gender value
+        @type value: str
+        @return: The gender item as a statement
+        @rtype: WD.Statement or None
         """
         known = {u'male': u'Q6581097',
                  u'female': u'Q6581072',
                  u'unknown': u'somevalue'}  # a special case
-        if item not in known.keys():
-            pywikibot.output(u'invalid gender entry: %s' % item)
+        if value not in known.keys():
+            pywikibot.output(u'invalid gender entry: %s' % value)
             return
 
-        if known[item] in (u'somevalue', u'novalue'):
+        if known[value] in (u'somevalue', u'novalue'):
             return WD.Statement(
-                known[item],
+                known[value],
                 special=True)
         else:
             return WD.Statement(
-                self.wd.QtoItemPage(known[item]))
+                self.wd.QtoItemPage(known[value]))
 
-    def dbName(self, nameObj, typ, limit=75):
-        """
+    def db_name(self, name_obj, typ, limit=75):
+        """Check if there is an item matching the name.
+
         A wrapper for helpers.match_name() to send it the relevant part of a
-        nameObj
+        nameObj.
 
-        param nameObj = {'@language': 'xx', '@value': 'xxx'}
-        param typ string: lastName/firstName
-        param limit int: number of hits before skipping (if not on labs)
-        return pywikibot.ItemPage|None
+        @param nameObj: {'@language': 'xx', '@value': 'xxx'}
+        @type nameObj: dict
+        @param typ: The name type (either 'lastName' or 'firstName')
+        @type typ: str
+        @param limit: Number of hits before skipping (defaults to 75,
+            ignored if onLabs)
+        @type limit: int
+        @return: A matching item, if any
+        @rtype: pywikibot.ItemPage, or None
         """
-        return helpers.match_name(nameObj['@value'], typ, self.wd, limit=limit)
+        return helpers.match_name(
+            name_obj['@value'], typ, self.wd, limit=limit)
 
     def location2Wikidata(self, uuid):
         """
@@ -616,7 +635,7 @@ class KulturnavBot(object):
         return pywikibot.ItemPage|None
         """
         # Check if uuid
-        if not self.isUuid(uuid):
+        if not self.is_uuid(uuid):
             return None
         # Convert url to uuid
         if uuid.startswith(u'http://kulturnav.org'):
@@ -630,20 +649,28 @@ class KulturnavBot(object):
                 return self.wd.QtoItemPage(qNo)
 
         # retrieve various sources
-        geoSources = self.getGeoSources(uuid)
-        kulturarvsdata = self.extractKulturarvsdataLocation(geoSources)
+        #@todo: this can be more streamlined by including wdq query for geonames
+        #       in that method. Possibly sharing the same "look-up and filter"
+        #       mechanism for both.
+        #       and then using self.locations[uuid] = self.extract... (which
+        #       returns qid or None) then (after both have been processed)
+        #       checking self.locations.get(uuid) before
+        #       making an ItemPage
+        #
+        #@todo: change self.locations and self.ADMIN_UNITS to include Q prefix (and thus have the methods return that)
+        geo_sources = self.get_geo_sources(uuid)
+        kulturarvsdata = self.extract_kulturarvsdata_location(geo_sources)
         if kulturarvsdata:
             self.locations[uuid] = kulturarvsdata
             qNo = u'Q%d' % self.locations[uuid]
             return self.wd.QtoItemPage(qNo)
 
         # retrieve hit through geonames-lookup
-        geonames = self.extractGeonames(geoSources)
+        geonames = KulturnavBot.extract_geonames(geo_sources)
         if geonames:
             # store as a resolved hit, in case wdq yields nothing
             self.locations[uuid] = None
             wdqQuery = u'STRING[%s:"%s"]' % (self.GEONAMES_ID_P, geonames)
-            #wdqResult = self.wd.wdqLookup(wdqQuery, self.cache_max_age)
             wdqResult = wdqsLookup.wdq_to_wdqs(wdqQuery)
             if wdqResult and len(wdqResult) == 1:
                 self.locations[uuid] = wdqResult[0]
@@ -657,35 +684,42 @@ class KulturnavBot(object):
         # no (clean) hits
         return None
 
-    def getGeoSources(self, uuid):
-        """
+    def get_geo_sources(self, uuid):
+        """Extract any geosources from a kulturNav uuid.
+
         Given a kulturNav uuid return the corresponding properties of
         that target which are likely to contain geosources.
 
-        return list
+        @param uuid: uuid to check
+        @type uuid: str
+        @return: the matching properties
+        @rtyp: list of dicts
         """
         # debugging
-        if not self.isUuid(uuid):
+        if not self.is_uuid(uuid):
             return []
 
-        queryurl = 'http://kulturnav.org/api/%s'
-        jsonData = json.load(urllib2.urlopen(queryurl % uuid))
+        query_url = 'http://kulturnav.org/api/%s'
+        json_data = json.load(urllib2.urlopen(query_url % uuid))
         sources = []
-        if jsonData.get(u'properties'):
-            sameAs = jsonData.get('properties').get('entity.sameAs')
-            if sameAs:
-                sources += sameAs
-            sourceUri = jsonData.get('properties') \
-                                .get('superconcept.sourceUri')
-            if sourceUri:
-                sources += sourceUri
+        if json_data.get(u'properties'):
+            same_as = json_data.get('properties').get('entity.sameAs')
+            if same_as:
+                sources += same_as
+            source_uri = json_data.get('properties') \
+                                  .get('superconcept.sourceUri')
+            if source_uri:
+                sources += source_uri
         return sources
 
-    def extractGeonames(self, sources):
-        """
-        Given a list of extractGeoSources() return any geonames ID.
+    @staticmethod
+    def extract_geonames(sources):
+        """Return any geonames ID given a list of get_geo_sources().
 
-        return string|None
+        @param sources: output of get_geo_sources()
+        @type sources: list of dicts
+        @return: geonames id
+        @rtype: str or None
         """
         needle = 'http://sws.geonames.org/'
         for s in sources:
@@ -693,12 +727,13 @@ class KulturnavBot(object):
                 return s.get('value').split('/')[-1]
         return None
 
-    def extractKulturarvsdataLocation(self, sources):
-        """
-        Given a list of extractGeoSources() return any kulturarvsdata
-        geo authorities.
+    def extract_kulturarvsdata_location(self, sources):
+        """Return any qids matching kulturarvsdata geo authorities.
 
-        @rtype string or None
+        @param sources: output of get_geo_sources()
+        @type sources: list of dicts
+        @return: the matching qid (without Q-prefix)
+        @rtype: str or None
         @raises pywikibot.Error
         """
         needle = u'http://kulturarvsdata.se/resurser/aukt/geo/'
@@ -769,7 +804,7 @@ class KulturnavBot(object):
         @rtype: pywikibot.ItemPage or None
         """
         # debugging
-        if not self.isUuid(uuid):
+        if not self.is_uuid(uuid):
             return None
 
         # Convert url to uuid
@@ -782,52 +817,46 @@ class KulturnavBot(object):
         else:
             return None
 
-    def isUuid(self, uuid):
-        """
-        tests if a string really is a uuid
+    def is_uuid(self, uuid):
+        """Test if a string really is a uuid.
+
+        @param uuid: uuid to test
+        @type uuid: str
+        @return: whether the test passed
+        @rtype: bool
         """
         if not isinstance(uuid, (str, unicode)):
             print u'Not an uuid in %s: %s' % (self.current_uuid, uuid)
             return False
+
         uuid = uuid.split('/')[-1]  # in case of url
-        pattern = r'[0-9a-f]{8}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{4}\-[0-9a-f]{12}'
+        pattern = r'[0-9a-f]{8}\-[0-9a-f]{4}\-[0-9a-f]{4}' \
+                  r'\-[0-9a-f]{4}\-[0-9a-f]{12}'
         m = re.search(pattern, uuid)
         if not m or m.group(0) != uuid:
             print u'Not an uuid in %s: %s' % (self.current_uuid, uuid)
             return False
+
         return True
 
     @staticmethod
-    def is_int(s):
-        """
-        Deprecated in favour of helpers.listify
-        """
-        print 'call to deprecated KulturnavBot.is_int()'
-        return helpers.is_int(s)
+    def shuffle_names(name_obj):
+        """Detect a "Last, First" string and return as "First Last".
 
-    @staticmethod
-    def listify(value):
-        """
-        Deprecated in favour of helpers.listify
-        """
-        print 'call to deprecated KulturnavBot.listify()'
-        return helpers.listify(value)
-
-    @staticmethod
-    def shuffleNames(nameObj):
-        """
         A wrapper for helpers.reorder_names() to send it the relevant part of a
-        nameObj
+        name_obj.
 
-        param nameObj = {'@language': 'xx', '@value': 'xxx'}
-        return nameObj|None
+        @param name_obj: {'@language': 'xx', '@value': 'xxx'}
+        @type name_obj: dict
+        @return: the reordered name_obj or None if reorder_names failed
+        @rtype: dict or None
         """
-        name = helpers.reorder_names(nameObj['@value'])
+        name = helpers.reorder_names(name_obj['@value'])
         if name is None:
             return None
-        nameObj = nameObj.copy()
-        nameObj['@value'] = name
-        return nameObj
+        name_obj = name_obj.copy()
+        name_obj['@value'] = name
+        return name_obj
 
     def make_ref(self, date):
         """Make a correctly formatted ref object for claims.
@@ -865,27 +894,32 @@ class KulturnavBot(object):
                     helpers.today_as_WbTime())])
         return ref
 
-    def addLabelOrAlias(self, nameObj, item, caseSensitive=False):
-        """
-        Adds a name as either a label (if none) or an alias.
-        Essentially a filter for the more generic method in WikidatStuff
+    def add_label_or_alias(self, name_obj, item, case_sensitive=False):
+        """Add a name as either a label (if none already) or an alias.
 
-        param nameObj = {'@language': 'xx', '@value': 'xxx'}
+        Essentially a filter for the more generic method in WikidatStuff.
+
+        @param name_obj: {'@language': 'xx', '@value': 'xxx'}
                         or a list of such
+        @type name_obj: dict or list of dict
+        @param item: the item to which the label/alias should be added
+        @type item: pywikibot.ItemPage
+        @param caseSensitive: whether the comparison is case sensitive
+        @type caseSensitive: bool
         """
         # for a list of entries
-        if isinstance(nameObj, list):
-            for n in nameObj:
-                self.addLabelOrAlias(n, item)
+        if isinstance(name_obj, list):
+            for n in name_obj:
+                self.add_label_or_alias(n, item, case_sensitive=case_sensitive)
                 # reload item so that next call is aware of any changes
                 item = self.wd.QtoItemPage(item.title())
                 item.exists()
             return
 
         # for a single entry
-        self.wd.addLabelOrAlias(nameObj['@language'], nameObj['@value'],
+        self.wd.addLabelOrAlias(name_obj['@language'], name_obj['@value'],
                                 item, prefix=self.EDIT_SUMMARY,
-                                caseSensitive=caseSensitive)
+                                caseSensitive=case_sensitive)
 
     @staticmethod
     def get_kulturnav_generator(uuids, delay=0):
