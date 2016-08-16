@@ -649,6 +649,15 @@ class KulturnavBot(object):
                 return self.wd.QtoItemPage(qNo)
 
         # retrieve various sources
+        #@todo: this can be more streamlined by including wdq query for geonames
+        #       in that method. Possibly sharing the same "look-up and filter"
+        #       mechanism for both.
+        #       and then using self.locations[uuid] = self.extract... (which
+        #       returns qid or None) then (after both have been processed)
+        #       checking self.locations.get(uuid) before
+        #       making an ItemPage
+        #
+        #@todo: change self.locations and self.ADMIN_UNITS to include Q prefix (and thus have the methods return that)
         geo_sources = self.get_geo_sources(uuid)
         kulturarvsdata = self.extract_kulturarvsdata_location(geo_sources)
         if kulturarvsdata:
@@ -657,7 +666,7 @@ class KulturnavBot(object):
             return self.wd.QtoItemPage(qNo)
 
         # retrieve hit through geonames-lookup
-        geonames = self.extract_geonames(geo_sources)
+        geonames = KulturnavBot.extract_geonames(geo_sources)
         if geonames:
             # store as a resolved hit, in case wdq yields nothing
             self.locations[uuid] = None
@@ -703,7 +712,8 @@ class KulturnavBot(object):
                 sources += source_uri
         return sources
 
-    def extract_geonames(self, sources):
+    @staticmethod
+    def extract_geonames(sources):
         """Return any geonames ID given a list of get_geo_sources().
 
         @param sources: output of get_geo_sources()
