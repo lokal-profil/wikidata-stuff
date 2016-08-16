@@ -341,6 +341,10 @@ class WikidataStuff(object):
     def hasClaim(self, prop, itis, item):
         """
         Checks if the claim already exists, if so returns that claim
+        @question: does this correctly handle when the claim has qualifiers,
+                   https://www.wikidata.org/w/index.php?title=Q18575190&type=revision&diff=316829153&oldid=306752022
+                   indicates it does not
+
         """
         if prop in item.claims.keys():
             for claim in item.claims[prop]:
@@ -448,6 +452,7 @@ class WikidataStuff(object):
         """Compare if two WbTime claims are the same (regarding precision).
 
         thereby handling T107870
+        @todo implement as __cmp__ in __init__ T131453
 
         param target: any Claim
         param itis: a WbTime
@@ -519,7 +524,7 @@ class WikidataStuff(object):
         @type summary: str
         @rtype: pywikibot.ItemPage
         """
-        identification = {}  # @todo: what does this do?
+        identification = {}  # If empty this defaults to creating an entity
         result = self.repo.editEntity(identification, data, summary=summary)
         pywikibot.output(summary)  # afterwards in case an error is raised
 
