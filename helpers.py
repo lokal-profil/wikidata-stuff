@@ -47,8 +47,8 @@ def load_json_file(filename, force_path=None):
     if force_path:
         path = os.path.dirname(os.path.abspath(force_path))
         filename = os.path.join(path, filename)
-    f = codecs.open(filename, 'r', 'utf-8')
-    return json.load(f)
+    with codecs.open(filename, 'r', 'utf-8') as f:
+        return json.load(f)
 
 
 def fill_cache(pid, queryoverride=None, cache_max_age=0):
