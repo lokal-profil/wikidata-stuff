@@ -1,0 +1,28 @@
+{
+    "countryCode": {
+        "FI": {
+            "qId": "Q33",
+            "en": "Finland",
+            "sv": "Finland"
+        },
+        "SE": {
+            "qId": "Q34",
+            "en": "Sweden",
+            "sv": "Sverige"
+        }
+    },
+    "languageCode": {
+        "fin": "fi"
+    },
+    "CompetentAuthority": {
+        "SE1": "Q25386488",
+        "SE2": "Q26236748",
+        "SE3": "Q26236749",
+        "SE4": "Q26236750",
+        "SE5": "Q26236752"
+    },
+    "descriptions": {
+        "en": "river basin district in %s",
+        "sv": "vattendistrikt i %s"
+    }
+}
