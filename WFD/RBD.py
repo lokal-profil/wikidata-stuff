@@ -365,7 +365,9 @@ class RBD():
         import xmltodict
         import datetime
         r = requests.get(url)
-        data = xmltodict.parse(r.text).get('RBDSUCA')
+        data = xmltodict.parse(
+            r.text.encode(r.encoding),
+            encoding='utf-8').get('RBDSUCA')
         data['source_url'] = url
         data['retrieval_date'] = datetime.date.today().isoformat()
         return data
