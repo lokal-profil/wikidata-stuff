@@ -12,17 +12,30 @@
         }
     },
     "languageCode": {
-        "fin": "fi"
+        "fin": "fi",
+        "swe": "sv"
     },
     "CompetentAuthority": {
         "SE1": "Q25386488",
         "SE2": "Q26236748",
         "SE3": "Q26236749",
         "SE4": "Q26236750",
-        "SE5": "Q26236752"
+        "SE5": "Q26236752",
+        "FIESA": "Q11858922",
+        "FIUUD": "Q5397811",
+        "FIEPO": "Q5411876",
+        "FIPOP": "Q18691367",
+        "FILAP": "Q11874605",
+        "FIAHV": "Q2625260"
     },
     "descriptions": {
-        "en": "river basin district in %s",
-        "sv": "vattendistrikt i %s"
+        "national": {
+            "en": "river basin district in %s",
+            "sv": "vattendistrikt i %s"
+        },
+        "international": {
+            "en": "international river basin district in %s",
+            "sv": "internationellt vattendistrikt i %s"
+        }
     }
 }

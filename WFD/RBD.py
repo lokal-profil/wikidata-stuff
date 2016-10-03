@@ -21,10 +21,11 @@ import helpers
 
 parameter_help = u"""\
 RBDbot options (may be omitted):
--new               if present new items are created on wikidata, otherwise
+-new               if present new items are created on Wikidata, otherwise
                    only updates are processed.
 -in_file           path to the data file
 -mappings          path to the mappings file (if not "mappings.json")
+-cutoff            number items to process before stopping (if not then all)
 
 Can also handle any pywikibot options. Most importantly:
 -simulate          don't write to database
@@ -38,17 +39,19 @@ EDIT_SUMMARY = u'RBD_Importer'
 class RBD():
     """Bot to enrich/create info on Wikidata for RBD objects."""
 
-    def __init__(self, mappings, new=False):
+    def __init__(self, mappings, new=False, cutoff=None):
         self.repo = pywikibot.Site().data_repository()
         self.wd = WD(self.repo)
         self.new = new
+        self.cutoff = cutoff
 
+        self.dataset_q = 'Q27074294'
         self.rbd_q = 'Q132017'
         self.eu_rbd_p = 'P2965'
         self.area_unit = 'http://www.wikidata.org/entity/Q712226'
         self.area_error = 1  # until I figure something better out
 
-        self.langs = ('en', )  # languages for which we require translations
+        self.langs = ('en', 'sv')  # languages for which we require translations
         self.countries = mappings['countryCode']
         self.competent_authorities = mappings['CompetentAuthority']
         self.descriptions = mappings['descriptions']
@@ -75,7 +78,12 @@ class RBD():
 
     def check_all_descriptions(self):
         """Check that the description are available for all langauges."""
-        diff = set(self.langs) - set(self.descriptions.keys())
+        diff_national = set(self.langs) - \
+            set(self.descriptions.get('national').keys())
+        diff_international = set(self.langs) - \
+            set(self.descriptions.get('international').keys())
+        diff = diff_national.union(diff_international)
+
         if diff:
             raise pywikibot.Error(
                 "The following languages need a description: %s" %
@@ -88,8 +96,8 @@ class RBD():
         :param country: name of the country
         """
         found_ca = []
-        for k, v in data.iteritems():
-            found_ca.append(v['primeCompetentAuthority'])
+        for d in data:
+            found_ca.append(d['primeCompetentAuthority'])
 
         diff = set(found_ca)-set(self.competent_authorities.keys())
         if diff:
@@ -129,7 +137,11 @@ class RBD():
         self.check_all_competent_authorities(data, country)
 
         # identify euRBDCode and check if it is in self.rbd_id_items
-        for rbd_code, entry_data in data.iteritems():
+        count = 0
+        for entry_data in data:
+            if self.cutoff and count >= self.cutoff:
+                break
+            rbd_code = entry_data.get('euRBDCode')
             item = None
             if rbd_code in self.rbd_id_items.keys():
                 item = self.wd.QtoItemPage(self.rbd_id_items[rbd_code])
@@ -140,11 +152,14 @@ class RBD():
                 continue
             item.exists()
 
-            labels = self.make_labels(entry_data)
+            labels = self.make_labels(entry_data, with_alias=True)
             protoclaims = self.make_protoclaims(
                 entry_data, self.countries.get(country).get('qId'))
             self.commit_labels(labels, item)
             self.commit_claims(protoclaims, item, reference)
+
+            # increment counter
+            count += 1
 
     def create_new_rbd_item(self, entry_data, country):
         """Make a new rbd item.
@@ -157,7 +172,7 @@ class RBD():
             'descriptions': {}}
 
         data['labels'] = self.make_labels(entry_data)
-        data['descriptions'] = self.make_descriptions(country)
+        data['descriptions'] = self.make_descriptions(entry_data, country)
 
         # print data
         # create new empty item and request Q-number
@@ -196,21 +211,22 @@ class RBD():
                                      entry_data.get('euRBDCode')]
         return labels
 
-    def make_descriptions(self, country):
+    def make_descriptions(self, entry_data, country):
         """Make a description object from the available info.
 
         @todo lookup country name through country mappings.
               but store so that only one lookup (per language) is needed
-        @todo: consider using internationalRBD to add if it is international or not.
+        :param entry_data: dict with the data for the rbd
         :param country: country code
         """
+        description_type = self.descriptions.get('national')
+        if entry_data.get('internationalRBD') == 'Yes':
+            description_type = self.descriptions.get('international')
+
         descriptions = {}
         for lang in self.langs:
-            desc = self.descriptions.get(lang) % self.countries.get(country).get(lang)
+            desc = description_type.get(lang) % self.countries.get(country).get(lang)
             descriptions[lang] = {'language': lang, 'value': desc}
-        # descriptions['en'] = {
-        #    'language': u'en',
-        #    'value': u'river basin district in %s'}
         return descriptions
 
     def make_protoclaims(self, entry_data, country_q):
@@ -222,6 +238,7 @@ class RBD():
             "internationalRBD": "Yes",
             "internationalRBDName": "5. Skagerrak and Kattegat (International drainage basin Glomma - Sweden)",
             "primeCompetentAuthority": "SE5",
+            "otherCompetentAuthority": "SEHAV",
             "rbdArea": "990",
             "rbdAreaExclCW": "Data is missing",
             "rbdName": "5. Skagerrak and Kattegat (International drainage basin Glomma - Sweden)",
@@ -291,19 +308,65 @@ class RBD():
     def process_all_rbd(self, data):
         """Handle every single RBD in a datafile.
 
-        @todo: Handle refs.
         @todo: Adapt to multi country data
         """
         # Check that all descriptions are present
         self.check_all_descriptions()
 
         # Make a Reference (or possibly one per country)
+        ref = self.make_ref(data)
 
         # Find the country code in mappings (skip if not found)
         country = data.get('countryCode')
+        #language = data.get('@language') # per schema "Code of the language of the file" but it isn't
 
         # Send rbd data for the country onwards
-        self.process_country_rbd(country, data.get('RBD'))
+        self.process_country_rbd(
+            country, helpers.listify(data.get('RBD')), ref)
+
+    def make_ref(self, data):
+        """Make a Reference object for the dataset.
+
+        Contains 4 parts:
+        * P248: Stated in <the WFD2016 dataset>
+        * P577: Publication date <from creation date of the document>
+        * P854: Reference url <using the input url>
+        * P813: Retrieval date <current date>
+        """
+        creation_date = helpers.iso_to_WbTime(data['@creationDate'])
+        ref = WD.Reference(
+            source_test=[
+                self.wd.make_simple_claim(
+                    'P248',
+                    self.wd.QtoItemPage(self.dataset_q)),
+                self.wd.make_simple_claim(
+                    'P854',
+                    data['source_url'])],
+            source_notest=[
+                self.wd.make_simple_claim(
+                    'P577',
+                    creation_date),
+                self.wd.make_simple_claim(
+                    'P813',
+                    helpers.today_as_WbTime())
+            ]
+        )
+        return ref
+
+    @staticmethod
+    def load_xml_url_data(url):
+        """Load the data from an url to an xml file.
+
+        @todo: dump to a local json file (if wanted)
+        """
+        import requests
+        import xmltodict
+        import datetime
+        r = requests.get(url)
+        data = xmltodict.parse(r.text).get('RBDSUCA')
+        data['source_url'] = url
+        data['retrieval_date'] = datetime.date.today().isoformat()
+        return data
 
     @staticmethod
     def load_data(in_file):
@@ -311,14 +374,18 @@ class RBD():
 
         Needs to be adapted if the fileformat changes
         """
+        if in_file.partition('://')[0] in ('http', 'https'):
+            return RBD.load_xml_url_data(in_file)
         return helpers.load_json_file(in_file)
 
     @staticmethod
     def main(*args):
         """Command line entry point."""
         mappings = 'mappings.json'
+        force_path = __file__
         in_file = None
         new = False
+        cutoff = None
 
         # Load pywikibot args and handle local args
         for arg in pywikibot.handle_args(args):
@@ -327,17 +394,20 @@ class RBD():
                 in_file = value
             elif option == '-mappings':
                 mappings = value
+                force_path = None
             elif option == '-new':
                 new = True
+            elif option == '-cutoff':
+                cutoff = int(value)
 
         # require in_file
         if not in_file:
             raise pywikibot.Error('An in_file must be specified')
 
         # load mappings and initialise RBD object
-        mappings = helpers.load_json_file(mappings)
+        mappings = helpers.load_json_file(mappings, force_path)
         data = RBD.load_data(in_file)
-        rbd = RBD(mappings, new=new)
+        rbd = RBD(mappings, new=new, cutoff=cutoff)
 
         rbd.process_all_rbd(data)
 

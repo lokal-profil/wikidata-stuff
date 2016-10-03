@@ -43,7 +43,10 @@ def make_simple_wdqs_query(query, verbose=False):
         for binding in j['results']['bindings']:
             entry = {}
             for hook in hooks:
-                entry[hook] = binding[hook]['value']
+                if binding.get(hook):
+                    entry[hook] = binding[hook]['value']
+                else:
+                    entry[hook] = None
             data.append(entry.copy())
     except:
         raise pywikibot.Error('Shit went wronq with the wdqs query:\n'
@@ -142,30 +145,40 @@ def list_of_dict_to_list(data, key):
     return results
 
 
-def list_of_dict_to_dict(data, key_key, value_key):
+def list_of_dict_to_dict(data, key_key, value_key=None):
     """Given a list of dicts make a dict where the given key is used to get keys.
 
     Crashes badly if the key is not present in each dict entry.
 
     @param data: the list of dicts
-    @type data: lsit of dict
+    @type data: list of dict
     @param key_key: the key corresponding to the value to use as key for
         the new dict
     @type key_key: str
     @param value_key: the key corresponding to the value to use as value for
-        the new dict
+        the new dict. If not present the new dict is simply a dict of all keys
+        other than key_key.
     @type value_key: str
     @return: the dict of new key-value pairs
     @rtype: dict
     """
     results = {}
     for entry in data:
-        if entry[key_key] in results.keys() and \
-                entry[value_key] != results[entry[key_key]]:
+        key = entry[key_key]
+        value = None
+        if value_key:
+            value = entry[value_key]
+        else:
+            value = entry.copy()
+            del value[key_key]
+
+        if key in results.keys() and \
+                value != results[key]:
             # two hits corresponding to different values
             raise pywikibot.Error('Double ids in Wikidata: %s, %s' %
-                                  (entry[value_key], results[entry[key_key]]))
-        results[entry[key_key]] = entry[value_key]
+                                  (entry[value_key], results[key]))
+
+        results[key] = value
     return results
 
 
@@ -252,34 +265,72 @@ def make_tree_wdqs_search(item_1, prop_2, prop_3):
         list_of_dict_to_list(data, 'item'))
 
 
-def make_claim_wdqs_search(prop, get_values=False):
+def make_claim_wdqs_search(prop, get_values=False, q_value=None,
+                           optional_props=None):
     """Make a simple search for items with a certain property.
 
-    A replacement for the WDQ CLAIM[prop] with get_values corresponding to the
-    props addon (but limited to the same prop as queried).
+    A replacement for the WDQ CLAIM[prop] and CLAIM[prop:qid] with get_values
+    corresponding to the props addon (more props are specified using
+    optional_props).
 
     @param prop: Property id, with or without P
     @type prop: str or int
     @param get_values: whether to also return the values
     @type get_values: bool
+    @param q_value: sets the expected value of the prop; CLAIM[prop:q_value]
+    @type q_value: a Q item
+    @param optional_props: list of other properties to optionally request
+    @type optional_props: list
     @return: the resulting Q-ids, with Q prefix and values if requested
     @rtype: list of str or dict
     """
-    prop = 'P%s' % str(prop).lstrip('P')
-    query = ""
-    if get_values:
-        query += "SELECT ?item ?value WHERE { "
+    prop = 'P%s' % str(prop).lstrip('P')  # standardise input
+
+    # handle q_value
+    if q_value and get_values:
+        raise pywikibot.Error('Cannot combine q_value and get_value')
+    elif q_value:
+        q_value = 'wd:Q%s' % str(q_value).lstrip('Q')  # standardise input
     else:
-        query += "SELECT ?item WHERE { "
+        q_value = '?value'
+
+    # optional_props
+    if optional_props:
+        # standardise input
+        for k, v in enumerate(optional_props):
+            optional_props[k] = 'P%s' % str(v).lstrip('P')
+
+    # values to select for
+    selects = ['item']
+    if get_values:
+        selects.append('value')
+    if optional_props:
+        selects += optional_props
+
+    query = ""
+    query += "SELECT ?%s WHERE { " % ' ?'.join(selects)
     query += ""\
-        "?item wdt:%s ?value " \
-        "}"
+        "?item wdt:%%s %s . " % q_value
+
+    # add OPTIONALs
+    if optional_props:
+        for opt_prop in optional_props:
+            query += "" \
+                "OPTIONAL { " \
+                "?item wdt:%s ?%s . " \
+                "} " % (opt_prop, opt_prop)
+
+    # close query
+    query += "}"
 
     # make the query
     data = make_simple_wdqs_query(query % (prop))
-    if not get_values:
+    if not get_values and not optional_props:
         return sanitize_wdqs_result(
             list_of_dict_to_list(data, 'item'))
-    else:
+    elif get_values and not optional_props:
         return sanitize_wdqs_result(
             list_of_dict_to_dict(data, 'item', 'value'))
+    else:
+        return sanitize_wdqs_result(
+            list_of_dict_to_dict(data, 'item'))
