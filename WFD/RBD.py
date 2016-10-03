@@ -33,7 +33,7 @@ Can also handle any pywikibot options. Most importantly:
 -help              output all available options
 """
 docuReplacements = {'&params;': parameter_help}
-EDIT_SUMMARY = u'RBD_Importer'
+EDIT_SUMMARY = u'import using #WFDdata'
 
 
 class RBD():
@@ -176,7 +176,7 @@ class RBD():
 
         # print data
         # create new empty item and request Q-number
-        summary = u'%s: Creating new rbd item with data from WFD' \
+        summary = u'Creating new RBD item with data from WFD, %s' \
                   % EDIT_SUMMARY
         item = None
         try:
@@ -278,7 +278,7 @@ class RBD():
             values = helpers.listify(data['value'])
             for value in values:
                 self.wd.addLabelOrAlias(lang, value, item,
-                                        prefix=EDIT_SUMMARY,
+                                        suffix=EDIT_SUMMARY,
                                         caseSensitive=False)
 
     def commit_claims(self, protoclaims, item, ref):
@@ -298,12 +298,14 @@ class RBD():
                     for val in pc_value:
                         # check if None or a Statement(None)
                         if (val is not None) and (not val.isNone()):
-                            self.wd.addNewClaim(pc_prop, val, item, ref)
+                            self.wd.addNewClaim(
+                                pc_prop, val, item, ref, summary=EDIT_SUMMARY)
                             # reload item so that next call is aware of changes
                             item = self.wd.QtoItemPage(item.title())
                             item.exists()
                 elif not pc_value.isNone():
-                    self.wd.addNewClaim(pc_prop, pc_value, item, ref)
+                    self.wd.addNewClaim(
+                        pc_prop, pc_value, item, ref, summary=EDIT_SUMMARY)
 
     def process_all_rbd(self, data):
         """Handle every single RBD in a datafile.
