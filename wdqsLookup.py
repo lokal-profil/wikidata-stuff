@@ -145,7 +145,7 @@ def list_of_dict_to_list(data, key):
     return results
 
 
-def list_of_dict_to_dict(data, key_key, value_key=None):
+def list_of_dict_to_dict(data, key_key, value_key=None, allow_multiple=False):
     """Given a list of dicts make a dict where the given key is used to get keys.
 
     Crashes badly if the key is not present in each dict entry.
@@ -159,6 +159,9 @@ def list_of_dict_to_dict(data, key_key, value_key=None):
         the new dict. If not present the new dict is simply a dict of all keys
         other than key_key.
     @type value_key: str
+    @param allow_multiple: if multiple values are allowed.
+        If true 'value' is always a set.
+    @type allow_multiple: bool
     @return: the dict of new key-value pairs
     @rtype: dict
     """
@@ -172,13 +175,17 @@ def list_of_dict_to_dict(data, key_key, value_key=None):
             value = entry.copy()
             del value[key_key]
 
-        if key in results.keys() and \
-                value != results[key]:
+        if allow_multiple:
+            if key not in results.keys():
+                results[key] = set()
+            results[key].add(value)
+        elif key in results.keys() and value != results[key]:
             # two hits corresponding to different values
-            raise pywikibot.Error('Double ids in Wikidata: %s, %s' %
-                                  (entry[value_key], results[key]))
-
-        results[key] = value
+            raise pywikibot.Error(
+                'Double ids in Wikidata (%s): %s, %s' %
+                (key, entry[value_key], results[key]))
+        else:
+            results[key] = value
     return results
 
 
@@ -266,7 +273,7 @@ def make_tree_wdqs_search(item_1, prop_2, prop_3):
 
 
 def make_claim_wdqs_search(prop, get_values=False, q_value=None,
-                           optional_props=None):
+                           optional_props=None, allow_multiple=False):
     """Make a simple search for items with a certain property.
 
     A replacement for the WDQ CLAIM[prop] and CLAIM[prop:qid] with get_values
@@ -281,6 +288,9 @@ def make_claim_wdqs_search(prop, get_values=False, q_value=None,
     @type q_value: a Q item
     @param optional_props: list of other properties to optionally request
     @type optional_props: list
+    @param allow_multiple: if multiple values are allowed for each item.
+        If True then each entry is a set of values.
+    @type allow_multiple: bool
     @return: the resulting Q-ids, with Q prefix and values if requested
     @rtype: list of str or dict
     """
@@ -330,7 +340,7 @@ def make_claim_wdqs_search(prop, get_values=False, q_value=None,
             list_of_dict_to_list(data, 'item'))
     elif get_values and not optional_props:
         return sanitize_wdqs_result(
-            list_of_dict_to_dict(data, 'item', 'value'))
+            list_of_dict_to_dict(data, 'item', 'value', allow_multiple))
     else:
         return sanitize_wdqs_result(
-            list_of_dict_to_dict(data, 'item'))
+            list_of_dict_to_dict(data, 'item', allow_multiple=allow_multiple))
