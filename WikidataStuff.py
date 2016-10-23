@@ -153,6 +153,8 @@ class WikidataStuff(object):
 
     def __init__(self, repo):
         """
+        Initialise the WikidataStuff object with a data repository.
+
         param repo: a pywikibot.Site().data_repository()
         """
         self.repo = repo
@@ -171,8 +173,9 @@ class WikidataStuff(object):
 
     def wdqLookup(self, query, cache_max_age=0):
         """
-        Do a simple WDQ lookup returning the items ( less advanced than
-        fillCache() in KulturnavBot )
+        Do a simple WDQ lookup returning the items.
+
+        This is less advanced than fillCache() in KulturnavBot.
 
         param query: a correctly formated wdq query
         param cache_max_age: age of local cache, 0 = disabled
@@ -187,14 +190,14 @@ class WikidataStuff(object):
         return None
 
     def searchGenerator(self, text, language):
+        """A generator for WikidataStringSearch."""
         for q in self.wdss.search(text, language=language):
             yield self.QtoItemPage(q)
 
     def addLabelOrAlias(self, lang, name, item, prefix=None,
                         suffix=None, caseSensitive=False):
         """
-        Add a name as either a label (if none) or an alias
-        in the given language
+        Add a name as either label (if none) or alias in the given language.
 
         param lang: the language code
         param name: the value to be added
@@ -285,7 +288,8 @@ class WikidataStuff(object):
 
     def hasAllQualifiers(self, quals, claim):
         """
-        Checks if all qualifier are already present
+        Check if all qualifiers are already present.
+
         param quals: list of Qualifier
         param claim: Claim
         """
@@ -296,7 +300,8 @@ class WikidataStuff(object):
 
     def hasQualifier(self, qual, claim):
         """
-        Checks if qualifier is already present
+        Check if qualifier is already present.
+
         param qual: Qualifier
         param claim: Claim
         """
@@ -311,11 +316,10 @@ class WikidataStuff(object):
 
     def addQualifier(self, item, claim, qual, summary=None):
         """
-        Check if a qualifier is present at the given claim,
-        otherwise add it
+        Check if a qualifier is present at the given claim, otherwise add it.
 
         Known issue: This will qualify an already referenced claim
-            this must therefore be tested before
+            this must therefore be tested for before.
 
         param item: itemPage to check
         param claim: Claim to check
@@ -346,11 +350,11 @@ class WikidataStuff(object):
 
     def hasClaim(self, prop, itis, item):
         """
-        Checks if the claim already exists, if so returns that claim
-        @question: does this correctly handle when the claim has qualifiers,
-                   https://www.wikidata.org/w/index.php?title=Q18575190&type=revision&diff=316829153&oldid=306752022
-                   indicates it does not
+        Check if the claim already exists, if so returns that claim.
 
+        @todo: does this correctly handle when the claim has qualifiers,
+            https://www.wikidata.org/w/index.php?title=Q18575190&type=revision&diff=316829153&oldid=306752022
+            indicates it does not
         """
         if prop in item.claims.keys():
             for claim in item.claims[prop]:
@@ -363,9 +367,7 @@ class WikidataStuff(object):
         return None
 
     def hasSpecialClaim(self, prop, snaktype, item):
-        """
-        hasClaim() in the special case of 'somevalue' and 'novalue'
-        """
+        """hasClaim() in the special case of 'somevalue' and 'novalue'."""
         if prop in item.claims.keys():
             for claim in item.claims[prop]:
                 if claim.getSnakType() == snaktype:
@@ -374,8 +376,7 @@ class WikidataStuff(object):
 
     def addNewClaim(self, prop, statement, item, ref, summary=None):
         """
-        Given an item, a property and a claim (in the itis format) this
-        either adds the sourced claim, or sources it if already existing
+        Add a claim or source it if already existing.
 
         Known issues:
         * Only allows one qualifier to be added
@@ -436,9 +437,10 @@ class WikidataStuff(object):
 
     def bypassRedirect(self, item):
         """
-        Checks if an item is a Redirect, and if so returns the
-        target item instead of the original.
-        This is needed for itis comparisons
+        Check if an item is a Redirect, and if so returns the target item.
+
+        This is needed for itis comparisons. Return the original item if not a
+        redirect.
 
         Not that this should either be called before an
         item.exists()/item.get() call or a new one must be made afterwards
