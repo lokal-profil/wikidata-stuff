@@ -30,7 +30,7 @@ class KulturnavBotSMM(KulturnavBot):
     """Bot to enrich/create info on Wikidata for SMM naval objects."""
 
     # KulturNav based
-    EDIT_SUMMARY = 'KulturnavBot(SMM)'
+    EDIT_SUMMARY = 'import using #Kulturnav #SMM data'
     DATASETS = {
         u'Fartyg': {
             'id': 0,

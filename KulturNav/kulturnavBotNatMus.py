@@ -31,7 +31,7 @@ class KulturnavBotNatMus(KulturnavBot):
     """Bot to enrich/create info on Wikidata for Nationalmuseum artists."""
 
     # KulturNav based
-    EDIT_SUMMARY = 'KulturnavBot(NatMus)'
+    EDIT_SUMMARY = 'import using #Kulturnav #NatMus data'
     DATASET_ID = 'c6efd155-8433-4c58-adc9-72db80c6ce50'
     ENTITY_TYPE = 'Person'
     MAP_TAG = 'entity.sameAs_s'

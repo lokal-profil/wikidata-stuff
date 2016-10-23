@@ -24,7 +24,7 @@ class KulturnavBotArkDes(KulturnavBot):
     """Bot to enrich/create info on Wikidata for ArkDes architects."""
 
     # KulturNav based
-    EDIT_SUMMARY = 'KulturnavBot(ArkDes)'
+    EDIT_SUMMARY = 'import using #Kulturnav #ArkDes data'
     DATASET_ID = '2b7670e1-b44e-4064-817d-27834b03067c'
     ENTITY_TYPE = 'Person'
     MAP_TAG = 'entity.sameAs_s'

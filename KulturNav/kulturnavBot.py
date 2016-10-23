@@ -77,7 +77,7 @@ class KulturnavBot(object):
     """
     A bot to enrich and create information on Wikidata based on KulturNav info
     """
-    EDIT_SUMMARY = 'KulturnavBot'
+    EDIT_SUMMARY = 'import using #Kulturnav data'
     KULTURNAV_ID_P = '1248'
     GEONAMES_ID_P = '1566'
     SWE_KOMMUNKOD_P = '525'
