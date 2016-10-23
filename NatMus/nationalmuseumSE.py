@@ -32,7 +32,7 @@ Usage:            python NatMus/nationalmuseumSE.py [OPTIONS]
 
 -rows:INT         Number of entries to process (default: All)
 
--add_new:bool     Whether new objects should be created (default: True)
+-new:bool     Whether new objects should be created (default: True)
 
 -cursor:str       The Europeana pagination cursor at which to start the search
 
