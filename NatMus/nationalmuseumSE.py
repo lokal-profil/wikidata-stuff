@@ -1022,7 +1022,7 @@ def main(*args):
             if value.lower() in ('t', 'true'):
                 add_new = True
             elif value.lower() in ('f', 'false'):
-                add_new = True
+                add_new = False
             else:
                 raise pywikibot.Error(usage)
         elif option == '-cursor':
