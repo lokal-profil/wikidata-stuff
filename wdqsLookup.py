@@ -5,8 +5,7 @@ Meant as a quick replacement for WDQ searches (which always time out) to be
 used until there is a proper pywikibot module.
 """
 import json
-import urllib
-import urllib2
+import requests
 import pywikibot
 
 BASE_URL = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql?' \
@@ -35,7 +34,10 @@ def make_simple_wdqs_query(query, verbose=False):
     # perform query
     if verbose:
         pywikibot.output(prefix + query)
-    j = json.load(urllib2.urlopen(BASE_URL + urllib.quote(prefix + query)))
+
+    r = requests.get(BASE_URL + requests.utils.quote(prefix + query))
+    r.raise_for_status()
+    j = json.loads(r.content)
 
     try:
         data = []

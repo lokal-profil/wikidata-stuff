@@ -10,8 +10,7 @@ Methods comonly shared by Wikidata-stuff bots which are:
 import os
 import json
 import codecs
-import urllib  # for dbpedia_2_wikidata
-import urllib2  # for dbpedia_2_wikidata
+import requests  # for dbpedia_2_wikidata
 import time  # for dbpedia_2_wikidata
 from datetime import datetime  # for today_as_WbTime
 import pywikibot
@@ -414,25 +413,25 @@ def dbpedia_2_wikidata(dbpedia):
     """
     url = u'http://dbpedia.org/sparql?' + \
           u'default-graph-uri=http%3A%2F%2Fdbpedia.org&query=DESCRIBE+%3C' + \
-          urllib.quote(dbpedia.encode('utf-8')) + \
+          requests.utils.quote(dbpedia.encode('utf-8')) + \
           u'%3E&output=application%2Fld%2Bjson'
 
     try:
-        db_page = urllib2.urlopen(url)
-    except IOError:
+        r = requests.get(url)
+        r.raise_for_status()
+    except:
         pywikibot.output(u'dbpedia is complaining so sleeping for 10s')
         time.sleep(10)
         try:
-            db_page = urllib2.urlopen(url)
-        except IOError:
+            r = requests.get(url)
+            r.raise_for_status()
+        except:
             pywikibot.output(u'dbpedia is still complaining about %s, '
                              u'skipping' % dbpedia)
-            return None
+            raise  # raise for now to see what sort of issue are manageable
 
     try:
-        db_data = db_page.read()
-        json_data = json.loads(db_data)
-        db_page.close()
+        json_data = json.loads(r.text)
     except ValueError, e:
         pywikibot.output(u'dbpedia-skip: %s, %s' % (dbpedia, e))
         return None
