@@ -11,3 +11,9 @@ apicache/
 logs/
 *.ctrl
 *.lwp
+
+# various
+*.log
+.tox/
+.coverage
+
