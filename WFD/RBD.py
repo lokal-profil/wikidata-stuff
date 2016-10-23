@@ -41,7 +41,7 @@ class RBD():
 
     def __init__(self, mappings, new=False, cutoff=None):
         self.repo = pywikibot.Site().data_repository()
-        self.wd = WD(self.repo)
+        self.wd = WD(self.repo, EDIT_SUMMARY)
         self.new = new
         self.cutoff = cutoff
 
@@ -176,8 +176,7 @@ class RBD():
 
         # print data
         # create new empty item and request Q-number
-        summary = u'Creating new RBD item with data from WFD, %s' \
-                  % EDIT_SUMMARY
+        summary = u'Creating new RBD item with #WFDdata'
         item = None
         try:
             item = self.wd.make_new_item(data, summary)
@@ -278,7 +277,6 @@ class RBD():
             values = helpers.listify(data['value'])
             for value in values:
                 self.wd.addLabelOrAlias(lang, value, item,
-                                        suffix=EDIT_SUMMARY,
                                         caseSensitive=False)
 
     def commit_claims(self, protoclaims, item, ref):
@@ -299,13 +297,13 @@ class RBD():
                         # check if None or a Statement(None)
                         if (val is not None) and (not val.isNone()):
                             self.wd.addNewClaim(
-                                pc_prop, val, item, ref, summary=EDIT_SUMMARY)
+                                pc_prop, val, item, ref)
                             # reload item so that next call is aware of changes
                             item = self.wd.QtoItemPage(item.title())
                             item.exists()
                 elif not pc_value.isNone():
                     self.wd.addNewClaim(
-                        pc_prop, pc_value, item, ref, summary=EDIT_SUMMARY)
+                        pc_prop, pc_value, item, ref)
 
     def process_all_rbd(self, data):
         """Handle every single RBD in a datafile.

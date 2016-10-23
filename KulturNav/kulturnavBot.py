@@ -113,7 +113,7 @@ class KulturnavBot(object):
                                           cache_max_age=cache_max_age)
 
         # set up WikidataStuff instance
-        self.wd = WD(self.repo)
+        self.wd = WD(self.repo, self.EDIT_SUMMARY)
 
         # load lists
         self.COUNTRIES = wdqsLookup.wdq_to_wdqs(u'TREE[6256][][31]')
@@ -918,8 +918,7 @@ class KulturnavBot(object):
 
         # for a single entry
         self.wd.addLabelOrAlias(name_obj['@language'], name_obj['@value'],
-                                item, prefix=self.EDIT_SUMMARY,
-                                caseSensitive=case_sensitive)
+                                item, caseSensitive=case_sensitive)
 
     @staticmethod
     def get_kulturnav_generator(uuids, delay=0):
