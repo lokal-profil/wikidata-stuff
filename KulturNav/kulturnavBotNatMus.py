@@ -19,9 +19,9 @@ usage:
 
 from kulturnavBot import parameter_help
 from kulturnavBot import KulturnavBot
-from WikidataStuff import WikidataStuff as WD
 from kulturnavBotTemplates import Person
-import helpers
+import wikidataStuff.helpers as helpers
+from wikidataStuff.WikidataStuff import WikidataStuff as WD
 docuReplacements = {
     '&params;': parameter_help
 }

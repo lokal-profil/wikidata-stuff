@@ -12,7 +12,7 @@ import pywikibot.data.wikidataquery as wdquery
 
 # Needed only for WikidataStringSearch
 import os.path
-from WikidataStringSearch import WikidataStringSearch
+from wikidataStuff.WikidataStringSearch import WikidataStringSearch
 
 
 class WikidataStuff(object):

@@ -25,8 +25,8 @@ See https://github.com/lokal-profil/wikidata-stuff/issues for TODOs
 """
 # import json
 import pywikibot
-from WikidataStuff import WikidataStuff as WD
-import helpers
+import wikidataStuff.helpers as helpers
+from wikidataStuff.WikidataStuff import WikidataStuff as WD
 
 STATED_IN_P = 'P248'
 RIKSDAG_ID_P = 'P1214'

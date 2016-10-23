@@ -18,9 +18,9 @@ import pywikibot
 from kulturnavBot import parameter_help
 from kulturnavBot import KulturnavBot
 from kulturnavBot import Rule
-from WikidataStuff import WikidataStuff as WD
+import wikidataStuff.helpers as helpers
+from wikidataStuff.WikidataStuff import WikidataStuff as WD
 from kulturnavBotTemplates import Person
-import helpers
 docuReplacements = {
     '&params;': parameter_help
 }

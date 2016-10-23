@@ -18,9 +18,9 @@ import json
 import time
 import pywikibot
 import urllib2
-from WikidataStuff import WikidataStuff as WD
-import wdqsLookup
-import helpers
+import wikidataStuff.helpers as helpers
+import wikidataStuff.wdqsLookup as wdqsLookup
+from wikidataStuff.WikidataStuff import WikidataStuff as WD
 import re
 
 FOO_BAR = u'A multilingual result (or one with multiple options) was ' \

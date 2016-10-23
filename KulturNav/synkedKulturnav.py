@@ -7,9 +7,9 @@ Quick bot for checking reciprocity of Wikidata-Kulturnav links.
 """
 import json
 import urllib2
-import wdqsLookup
+import wikidataStuff.wdqsLookup as wdqsLookup
 import pywikibot.data.wikidataquery as wdquery
-import helpers
+import wikidataStuff.helpers as helpers
 from kulturnavBot import KulturnavBot
 
 

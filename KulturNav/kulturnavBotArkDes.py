@@ -13,7 +13,7 @@ usage:
 """
 from kulturnavBot import parameter_help
 from kulturnavBot import KulturnavBot
-from WikidataStuff import WikidataStuff as WD
+from wikidataStuff.WikidataStuff import WikidataStuff as WD
 from kulturnavBotTemplates import Person
 docuReplacements = {
     '&params;': parameter_help

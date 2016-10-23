@@ -20,8 +20,8 @@ import pywikibot
 from pywikibot import pagegenerators
 import pywikibot.data.wikidataquery as wdquery
 import config as config
-import helpers
-from WikidataStuff import WikidataStuff as WD
+import wikidataStuff.helpers as helpers
+from wikidataStuff.WikidataStuff import WikidataStuff as WD
 import json
 import codecs
 import urllib2

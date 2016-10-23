@@ -14,10 +14,10 @@ usage:
 
 &params;
 """
-from WikidataStuff import WikidataStuff as WD
+import wikidataStuff.helpers as helpers
+import wikidataStuff.wdqsLookup as wdqsLookup
+from wikidataStuff.WikidataStuff import WikidataStuff as WD
 import pywikibot
-import wdqsLookup
-import helpers
 
 parameter_help = u"""\
 RBDbot options (may be omitted):
@@ -99,7 +99,7 @@ class RBD():
         for d in data:
             found_ca.append(d['primeCompetentAuthority'])
 
-        diff = set(found_ca)-set(self.competent_authorities.keys())
+        diff = set(found_ca) - set(self.competent_authorities.keys())
         if diff:
             country_en = self.countries.get(country).get('en')
             raise pywikibot.Error("The following competent authroities should "
@@ -119,7 +119,7 @@ class RBD():
             raise pywikibot.Error("The country code \"%s\" was not mapped "
                                   "to Wikidata." % country)
 
-        diff = set(self.langs)-set(country_data.keys())
+        diff = set(self.langs) - set(country_data.keys())
         if diff:
             raise pywikibot.Error("The following languages should be mapped "
                                   "for country %s before continuing: %s"

@@ -16,8 +16,8 @@ from datetime import datetime  # for today_as_WbTime
 import pywikibot
 from pywikibot import pagegenerators
 import pywikibot.data.wikidataquery as wdquery
-import WikidataStuff
-from WikidataStuff import WikidataStuff as WD
+import wikidataStuff.WikidataStuff as WikidataStuff
+from wikidataStuff.WikidataStuff import WikidataStuff as WD
 START_P = 'P580'  # start date
 END_P = 'P582'  # end date
 INSTANCE_OF_P = 'P31'

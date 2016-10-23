@@ -7,9 +7,9 @@ Author: Lokal_Profil
 License: MIT
 
 """
-import helpers
+import wikidataStuff.helpers as helpers
+from wikidataStuff.WikidataStuff import WikidataStuff as WD
 from kulturnavBot import Rule
-from WikidataStuff import WikidataStuff as WD
 
 
 class Person(object):
