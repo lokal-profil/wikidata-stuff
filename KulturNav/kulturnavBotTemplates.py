@@ -22,18 +22,17 @@ class Person(object):
         @return: the rules
         @rtype: dict of Rule/None
         """
-        # Removed years due to 1970 bug
         # Removed nationality due to discussiona at
         # https://www.wikidata.org/wiki/User_talk:Andr%C3%A9_Costa_%28WMSE%29#AndreCostaWMSE-bot_adding_nationality
         rules = {
-            # u'deathDate': None,
+            u'deathDate': None,
             u'deathPlace': None,
             u'deathPlace_P7': Rule(
                 keys='deathDate',
                 values={'@type': 'cidoc-crm:E69_Death'},
                 target='P7_took_place_at',
                 viaId='location'),
-            # u'birthDate': None,
+            u'birthDate': None,
             u'birthPlace': None,
             u'birthPlace_P7': Rule(
                 keys='birthDate',
@@ -65,13 +64,13 @@ class Person(object):
         protoclaims[u'P31'] = WD.Statement(
             bot.wd.QtoItemPage(u'Q5'))
 
-        if values.get(u'deathDate'):
+        if values.get(u'deathDate') and values.get(u'deathDate') != 'unknown':
             protoclaims[u'P570'] = WD.Statement(
                 helpers.iso_to_WbTime(values[u'deathDate']))
 
         protoclaims[u'P20'] = Person.get_death_place(bot, values)
 
-        if values.get(u'birthDate'):
+        if values.get(u'birthDate') and values.get(u'birthDate') != 'unknown':
             protoclaims[u'P569'] = WD.Statement(
                 helpers.iso_to_WbTime(values[u'birthDate']))
 
