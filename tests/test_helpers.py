@@ -6,6 +6,7 @@ from wikidataStuff.helpers import (
     is_int,
     is_pos_int,
     listify,
+    sig_fig_error
 )
 
 
@@ -98,3 +99,38 @@ class TestListify(unittest.TestCase):
         input_value = 'a string'
         expected = ['a string']
         self.assertEquals(listify(input_value), expected)
+
+
+class TestSigFigError(unittest.TestCase):
+
+    """Test sig_fig_error()."""
+
+    def test_sig_fig_error_zero(self):
+        self.assertEquals(sig_fig_error("0"), 0.5)
+
+    def test_sig_fig_error_one(self):
+        self.assertEquals(sig_fig_error("1"), 0.5)
+
+    def test_sig_fig_error_big_int(self):
+        self.assertEquals(sig_fig_error("200"), 50.0)
+
+    def test_sig_fig_error_exact_int(self):
+        self.assertEquals(sig_fig_error("1010"), 5.0)
+
+    def test_sig_fig_error_negative_int(self):
+        self.assertEquals(sig_fig_error("-220"), 5.0)
+
+    def test_sig_fig_error_zero_padded_int(self):
+        self.assertEquals(sig_fig_error("03300"), 50.0)
+
+    def test_sig_fig_error_decimal_zero(self):
+        self.assertEquals(sig_fig_error("0.0"), 0.05)
+
+    def test_sig_fig_error_with_decimal(self):
+        self.assertEquals(sig_fig_error("11.0"), 0.05)
+
+    def test_sig_fig_error_with_only_decimal(self):
+        self.assertEquals(sig_fig_error("0.1"), 0.05)
+
+    def test_sig_fig_error_negative_with_decimal(self):
+        self.assertEquals(sig_fig_error("-0.1234"), 0.00005)
