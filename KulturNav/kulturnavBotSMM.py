@@ -4,7 +4,7 @@
 Bot to import and source statements about Maritime objects in KulturNav.
 
 usage:
-    python KulturNav/kulturnavSMM.py [OPTIONS]
+    python KulturNav/kulturnavBotSMM.py [OPTIONS]
 
 Author: Lokal_Profil
 License: MIT
@@ -892,19 +892,20 @@ class KulturnavBotSMM(KulturnavBot):
     def verify_entity_code_assumption(values):
         """Verify assumption made about entity code.
 
-        The assumption is that the entity code and signalLsetters always
+        The assumption is that the entity code and signalLetters always
         coincide.
 
         @param values: the values extracted using the rules
         @type values: dict
         @raise pywikibot.Error
         """
-        if values[u'navalVessel.signalLetters'] != values[u'entity.code']:
-                raise pywikibot.Error(
-                    u'signalLetters!=code for %s: %s <> %s' %
-                    (values[u'identifier'],
-                     values[u'navalVessel.signalLetters'],
-                     values[u'entity.code']))
+        if values[u'navalVessel.signalLetters'] and values[u'entity.code'] and \
+                values[u'navalVessel.signalLetters'] != values[u'entity.code']:
+            raise pywikibot.Error(
+                u'signalLetters!=code for %s: %s <> %s' %
+                (values[u'identifier'],
+                 values[u'navalVessel.signalLetters'],
+                 values[u'entity.code']))
 
     @classmethod
     def get_dataset_variables(cls, *args):
@@ -961,6 +962,21 @@ class KulturnavBotSMM(KulturnavBot):
         )
         super(KulturnavBotSMM, cls).main(*args)
 
+    @classmethod
+    def run_from_list(cls, uuids, *args):
+        """Start the bot with a list of uuids."""
+        # pick one dataset from DATASETS
+        cls.DATASET = cls.get_dataset_variables(*args)
+        variables = cls.DATASETS[cls.DATASET]
+
+        # override variables and start bot
+        cls.set_variables(
+            dataset_q=variables.get('DATASET_Q'),
+            dataset_id=variables.get('DATASET_ID'),
+            entity_type=variables.get('ENTITY_TYPE'),
+            map_tag=variables.get('MAP_TAG')
+        )
+        super(KulturnavBotSMM, cls).run_from_list(uuids, *args)
 
 if __name__ == "__main__":
     KulturnavBotSMM.main()
