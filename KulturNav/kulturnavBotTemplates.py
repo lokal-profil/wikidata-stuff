@@ -29,14 +29,14 @@ class Person(object):
             u'deathPlace': None,
             u'deathPlace_P7': Rule(
                 keys='deathDate',
-                values={'@type': 'cidoc-crm:E69_Death'},
+                values={},
                 target='P7_took_place_at',
                 viaId='location'),
             u'birthDate': None,
             u'birthPlace': None,
             u'birthPlace_P7': Rule(
                 keys='birthDate',
-                values={'@type': 'cidoc-crm:E67_Birth'},
+                values={},
                 target='P7_took_place_at',
                 viaId='location'),
             u'firstName': None,

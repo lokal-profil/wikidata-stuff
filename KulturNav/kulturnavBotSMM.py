@@ -159,16 +159,18 @@ class KulturnavBotSMM(KulturnavBot):
             u'name': None,
             u'agent.ownership.owner': None,
             u'establishment.date': Rule(
-                keys='association.establishment.association',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.time'),
+                keys=None,
+                values={},
+                target='association.establishment',
+                viaId='event.time'),
             u'termination.date': Rule(
-                keys='association.termination.association',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.time'),
+                keys=None,
+                values={},
+                target='association.termination',
+                viaId='event.time'),
             u'location': Rule(
                 keys='agent.activity.activity',
-                values={'@type': 'dbpedia-owl:Event'},
+                values={},
                 target='P7_took_place_at',
                 viaId='location')
         }
@@ -231,55 +233,60 @@ class KulturnavBotSMM(KulturnavBot):
             u'navalVessel.signalLetters': None,
             u'entity.code': None,
             u'built.date': Rule(
-                keys='navalVessel.built.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='startDate'),
+                keys=None,
+                values={},
+                target='navalVessel.built',
+                viaId=('event.timespan', 'startDate')),
             u'built.location': Rule(
-                keys='navalVessel.built.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='P7_took_place_at',
-                viaId='location'),
+                keys=None,
+                values={},
+                target='navalVessel.built',
+                viaId=('P7_took_place_at', 'location')),
             u'built.shipyard': Rule(
-                keys='navalVessel.built.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='navalVessel.built.shipyard'),
+                keys=None,
+                values={},
+                target='navalVessel.built',
+                viaId='navalVessel.built.shipyard'),
             u'launched.date': Rule(
-                keys='navalVessel.launched.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.time'),
+                keys=None,
+                values={},
+                target='navalVessel.launched',
+                viaId='event.time'),
             u'launched.location': Rule(
-                keys='navalVessel.launched.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='P7_took_place_at',
-                viaId='location'),
+                keys=None,
+                values={},
+                target='navalVessel.launched',
+                viaId=('P7_took_place_at', 'location')),
             u'launched.shipyard': Rule(
-                keys='navalVessel.launched.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='navalVessel.launched.shipyard'),
+                keys=None,
+                values={},
+                target='navalVessel.launched',
+                viaId='navalVessel.launched.shipyard'),
             u'delivered.date': Rule(
-                keys='navalVessel.delivered.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.time'),
+                keys=None,
+                values={},
+                target='navalVessel.delivered',
+                viaId='event.time'),
             u'decommissioned.date': Rule(
-                keys='navalVessel.decommissioned.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.time'),
+                keys=None,
+                values={},
+                target='navalVessel.decommissioned',
+                viaId='event.time'),
             u'homePort': Rule(
-                keys='navalVessel.homePort.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='P7_took_place_at',
-                viaId='location'),
+                keys=None,
+                values={},
+                target='navalVessel.homePort',
+                viaId=('P7_took_place_at', 'location')),
             u'homePort.start': Rule(
-                keys='navalVessel.homePort.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='startDate'),
+                keys=None,
+                values={},
+                target='navalVessel.homePort',
+                viaId=('event.timespan', 'startDate')),
             u'homePort.end': Rule(
-                keys='navalVessel.homePort.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='endDate'),
+                keys=None,
+                values={},
+                target='navalVessel.homePort',
+                viaId=('event.timespan', 'endDate')),
             u'navalVessel.isSubRecord': None,
             u'navalVessel.hasSubRecord': None,
             u'registration.number': Rule(
@@ -556,20 +563,21 @@ class KulturnavBotSMM(KulturnavBot):
             u'navalVessel.type': None,  # a type or another class
             u'navalVessel.otherType': None,
             u'constructor': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='navalVessel.constructed.constructedBy'),
+                keys=None,
+                values={},
+                target='navalVessel.constructed',
+                viaId='navalVessel.constructed.constructedBy'),
             u'constructor.start': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='startDate'),
+                keys=None,
+                values={},
+                target='navalVessel.constructed',
+                viaId=('event.timespan', 'startDate')),
             u'constructor.end': Rule(
-                keys='navalVessel.constructed.navalVessel',
-                values={'@type': 'dbpedia-owl:Event'},
-                target='event.timespan',
-                viaId='endDate')
-            # navalVessle.measurement
+                keys=None,
+                values={},
+                target='navalVessel.constructed',
+                viaId=('event.timespan', 'endDate'))
+            # navalVessel.measurement
         }
 
     @staticmethod
@@ -899,7 +907,7 @@ class KulturnavBotSMM(KulturnavBot):
         @type values: dict
         @raise pywikibot.Error
         """
-        if values[u'navalVessel.signalLetters'] and values[u'entity.code'] and \
+        if values[u'entity.code'] and \
                 values[u'navalVessel.signalLetters'] != values[u'entity.code']:
             raise pywikibot.Error(
                 u'signalLetters!=code for %s: %s <> %s' %
