@@ -27,7 +27,7 @@ FOO_BAR = u'A multilingual result (or one with multiple options) was ' \
           u'encountered but I have yet to support that functionality'
 
 parameter_help = u"""\
-Basic KulturNavBot options (may be omitted):
+Basic KulturnavBot options (may be omitted):
 -cutoff:INT        number of entries to process before terminating
 -max_hits:INT      number of items to request at a time from Kulturnav
                     (default 250)
@@ -45,36 +45,44 @@ docuReplacements = {'&params;': parameter_help}
 
 
 class Rule(object):
-    """A class for encoding rules used by runLayout()."""
+    """A class for encoding rules used to isolate data in a Kulturnav entry."""
 
-    def __init__(self, keys, values, target, viaId=None):
+    def __init__(self, target, keys=None, viaId=None):
         """
         Initialize the rule.
 
-        :param keys: list|string|None of keys which must be present
-            (in addition to value/target)
-        :param values: dict|None key-value pairs which must be present
+        Keys gives the resolver the environment in which the target
+        is expected.
+        Target is the first-pass value to be extracted from the data. The
+        result can be a list of values.
+        ViaId gives the path through which a second-pass value can be extracted
+        from Target.
+
+        For data which must remain connected (such as the start and end dates
+        of a particular claim) a dict can be supplied to ViaId. Each entry is
+        looked for under the same Target value but follows a different ViaId
+        path.
+
         :param target: string key for which the value is wanted
-        :param viaId: string|tuple|None if the value of "target" should be
+        :param keys: list|string|None of keys which must be present
+            (in addition to target). If none is supplied it defaults to a key
+            in the top node of the graph.
+        :param viaId: string|tuple|dict|None if the value of "target" should be
             matched to an @id entry where this key then gives the wanted value.
             If a tuple is supplied then each intermediate entry is matched to
             an @id entry.
+            If a dict is supplied then the each value is treated as its own
+            viaId and the returned value is a dict where each entry has been
+            resolved.
         """
+        self.target = target
+        self.viaId = viaId
+
         self.keys = []
+        keys = keys or 'inDataset'  # default to the top node in the graph
         if keys is not None:
             self.keys += helpers.listify(keys)
-
-        self.values = values
-        if values is not None:
-            self.keys += values.keys()
-
-        self.target = target
         self.keys.append(target)
-
-        self.viaId = viaId
-        # convert plain viaId to tuples
-        if isinstance(self.viaId, basestring):
-            self.viaId = (self.viaId, )
 
     def __repr__(self):
         """Return a more complete string representation."""
@@ -96,20 +104,28 @@ class Rule(object):
         return True
 
     @staticmethod
-    def hasValues(needles, haystack):
+    def resolve_via_id(via_id, value, ids):
         """
-        Check if all the provided values are present.
+        Resolve a viaId rule to return the resulting value.
 
-        :param needles: None or a dict of key-value pairs
-        :param haystack: a dict
-        :return: bool
+        :param via_id: string|tuple of strings, viaId chains
+        :param value: string the entry matching "target" of the rule.
+        :param ids: a dict of all @id values
+        :return: the matching value
         """
-        if needles is None:
-            return True
-        for n, v in needles.iteritems():
-            if not haystack[n] == v:
-                return False
-        return True
+        # allow strings as input but handle them like tuples
+        if isinstance(via_id, basestring):
+            via_id = (via_id, )
+
+        i = 0
+        while len(via_id) > i:
+            id_entry = via_id[i]
+            if value in ids.keys() and id_entry in ids[value].keys():
+                value = ids[value][id_entry]
+                i += 1
+            else:
+                return None
+        return value
 
     def resolve(self, entries, ids):
         """
@@ -120,8 +136,7 @@ class Rule(object):
         :return: the matching value
         """
         value = None
-        if Rule.hasKeys(self.keys, entries) and \
-                Rule.hasValues(self.values, entries):
+        if Rule.hasKeys(self.keys, entries):
             value = entries[self.target]
 
         # break here if no hit
@@ -134,16 +149,21 @@ class Rule(object):
             values = helpers.listify(value)
             results = []
             for val in values:
-                i = 0
-                while len(self.viaId) > i:
-                    id_entry = self.viaId[i]
-                    if val in ids.keys() and id_entry in ids[val].keys():
-                        val = ids[val][id_entry]
-                        i += 1
-                    else:
+                if isinstance(self.viaId, dict):
+                    result = {}
+                    for key, via_id in self.viaId.iteritems():
+                        result[key] = Rule.resolve_via_id(via_id, val, ids)
+                    if set(result.values()) == set([None]):
+                        # if all entries are None
                         # @todo: should log these to spot schema changes
                         return None
-                results.append(val)
+                    results.append(result)
+                else:  # self.viaId is either string or tuple
+                    result = Rule.resolve_via_id(self.viaId, val, ids)
+                    if not result:
+                        # @todo: should log these to spot schema changes
+                        return None
+                    results.append(result)
 
             # reformat for output
             if len(results) == 1:
