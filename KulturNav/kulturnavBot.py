@@ -44,27 +44,37 @@ Can also handle any pywikibot options. Most importantly:
 docuReplacements = {'&params;': parameter_help}
 
 
-class Rule():
+class Rule(object):
     """A class for encoding rules used by runLayout()."""
 
     def __init__(self, keys, values, target, viaId=None):
         """
+        Initialize the rule.
+
         :param keys: list|string|None of keys which must be present
             (in addition to value/target)
-        :param values: a dict|None of key-value pairs which must be present
-        :param target: the key for which the value is wanted
-        :param viaId: if not None then the value of target should be matched to
-            an @id entry where this key should be used
+        :param values: dict|None key-value pairs which must be present
+        :param target: string key for which the value is wanted
+        :param viaId: string|tuple|None if the value of "target" should be
+            matched to an @id entry where this key then gives the wanted value.
+            If a tuple is supplied then each intermediate entry is matched to
+            an @id entry.
         """
         self.keys = []
         if keys is not None:
             self.keys += helpers.listify(keys)
+
         self.values = values
         if values is not None:
             self.keys += values.keys()
+
         self.target = target
         self.keys.append(target)
+
         self.viaId = viaId
+        # convert plain viaId to tuples
+        if isinstance(self.viaId, basestring):
+            self.viaId = (self.viaId, )
 
     def __repr__(self):
         """Return a more complete string representation."""
@@ -124,15 +134,19 @@ class Rule():
             values = helpers.listify(value)
             results = []
             for val in values:
-                if val in ids.keys() and self.viaId in ids[val].keys():
-                    results.append(ids[val][self.viaId])
-                else:
-                    results.append(None)
+                i = 0
+                while len(self.viaId) > i:
+                    id_entry = self.viaId[i]
+                    if val in ids.keys() and id_entry in ids[val].keys():
+                        val = ids[val][id_entry]
+                        i += 1
+                    else:
+                        # @todo: should log these to spot schema changes
+                        return None
+                results.append(val)
 
             # reformat for output
-            if None in results:
-                return None  # fail if any failed
-            elif len(results) == 1:
+            if len(results) == 1:
                 value = results[0]  # undo listify
             else:
                 value = results
