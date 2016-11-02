@@ -791,11 +791,12 @@ class KulturnavBot(object):
                     raise pywikibot.Error(u'Unhandled KulturarvsdataLocation '
                                           u'prefix: %s' % s)
 
-                # only here if a municipality or county was found
-                wdq_result = wdqsLookup.wdq_to_wdqs(wdq_query)
-                if wdq_result and len(wdq_result) == 1:
-                    self.ADMIN_UNITS.append(wdq_result[0])
-                    return wdq_result[0]
+                if wdq_query:
+                    # only here if a municipality or county was found
+                    wdq_result = wdqsLookup.wdq_to_wdqs(wdq_query)
+                    if wdq_result and len(wdq_result) == 1:
+                        self.ADMIN_UNITS.append(wdq_result[0])
+                        return wdq_result[0]
         return None
 
     def getLocationProperty(self, item, strict=True):
