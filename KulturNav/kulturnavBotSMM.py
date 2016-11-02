@@ -157,22 +157,22 @@ class KulturnavBotSMM(KulturnavBot):
         """Start a bot for adding info on shipyards."""
         rules = {
             u'name': None,
-            u'agent.ownership.owner': None,
+            u'agent.ownership': Rule(
+                target='agent.ownedBy',
+                viaId={
+                    'owner': 'agent.ownership.owner',
+                    'start': ('event.timespan', 'startDate'),
+                    'end': ('event.timespan', 'endDate')
+                }),
             u'establishment.date': Rule(
-                keys=None,
-                values={},
                 target='association.establishment',
                 viaId='event.time'),
             u'termination.date': Rule(
-                keys=None,
-                values={},
                 target='association.termination',
                 viaId='event.time'),
             u'location': Rule(
-                keys='agent.activity.activity',
-                values={},
-                target='P7_took_place_at',
-                viaId='location')
+                target='E7_Activity',
+                viaId=('P7_took_place_at', 'location'))
         }
 
         def claims(self, values):
@@ -186,6 +186,7 @@ class KulturnavBotSMM(KulturnavBot):
             protoclaims = {}
             self.set_is_instance(self.SHIPYARD_Q, protoclaims)
             self.set_location(values, protoclaims)
+            self.set_owner(values, protoclaims)
 
             # handle values
             if values.get(u'establishment.date'):
@@ -194,10 +195,6 @@ class KulturnavBotSMM(KulturnavBot):
             if values.get(u'termination.date'):
                 protoclaims[u'P576'] = WD.Statement(
                     helpers.iso_to_WbTime(values[u'termination.date']))
-            if values.get(u'agent.ownership.owner'):
-                protoclaims[u'P127'] = WD.Statement(
-                    self.kulturnav2Wikidata(
-                        values[u'agent.ownership.owner']))
 
             return protoclaims
 
@@ -233,72 +230,44 @@ class KulturnavBotSMM(KulturnavBot):
             u'navalVessel.signalLetters': None,
             u'entity.code': None,
             u'built.date': Rule(
-                keys=None,
-                values={},
                 target='navalVessel.built',
                 viaId=('event.timespan', 'startDate')),
             u'built.location': Rule(
-                keys=None,
-                values={},
                 target='navalVessel.built',
                 viaId=('P7_took_place_at', 'location')),
             u'built.shipyard': Rule(
-                keys=None,
-                values={},
                 target='navalVessel.built',
                 viaId='navalVessel.built.shipyard'),
             u'launched.date': Rule(
-                keys=None,
-                values={},
                 target='navalVessel.launched',
                 viaId='event.time'),
             u'launched.location': Rule(
-                keys=None,
-                values={},
                 target='navalVessel.launched',
                 viaId=('P7_took_place_at', 'location')),
             u'launched.shipyard': Rule(
-                keys=None,
-                values={},
                 target='navalVessel.launched',
                 viaId='navalVessel.launched.shipyard'),
             u'delivered.date': Rule(
-                keys=None,
-                values={},
                 target='navalVessel.delivered',
                 viaId='event.time'),
             u'decommissioned.date': Rule(
-                keys=None,
-                values={},
                 target='navalVessel.decommissioned',
                 viaId='event.time'),
             u'homePort': Rule(
-                keys=None,
-                values={},
                 target='navalVessel.homePort',
-                viaId=('P7_took_place_at', 'location')),
-            u'homePort.start': Rule(
-                keys=None,
-                values={},
-                target='navalVessel.homePort',
-                viaId=('event.timespan', 'startDate')),
-            u'homePort.end': Rule(
-                keys=None,
-                values={},
-                target='navalVessel.homePort',
-                viaId=('event.timespan', 'endDate')),
+                viaId={
+                    'location': ('P7_took_place_at', 'location'),
+                    'start': ('event.timespan', 'startDate'),
+                    'end': ('event.timespan', 'endDate')
+                }),
             u'navalVessel.isSubRecord': None,
             u'navalVessel.hasSubRecord': None,
-            u'registration.number': Rule(
-                keys=None,
-                values={},
+            u'navalVessel.registration': Rule(
                 target='navalVessel.registration',
-                viaId='registration.number'),
-            u'registration.type': Rule(
-                keys=None,
-                values={},
-                target='navalVessel.registration',
-                viaId='registration.register')
+                viaId={
+                    'number': 'registration.number',
+                    'type': 'registration.register'
+                })
         })
 
         def claims(self, values):
@@ -555,28 +524,18 @@ class KulturnavBotSMM(KulturnavBot):
         @rtype: dict
         """
         return {
-            u'entity.name': Rule(  # force to look in top level
-                keys='inDataset',
-                values=None,
+            u'entity.name': Rule(
                 target='entity.name'),
             u'altLabel': None,
             u'navalVessel.type': None,  # a type or another class
             u'navalVessel.otherType': None,
             u'constructor': Rule(
-                keys=None,
-                values={},
                 target='navalVessel.constructed',
-                viaId='navalVessel.constructed.constructedBy'),
-            u'constructor.start': Rule(
-                keys=None,
-                values={},
-                target='navalVessel.constructed',
-                viaId=('event.timespan', 'startDate')),
-            u'constructor.end': Rule(
-                keys=None,
-                values={},
-                target='navalVessel.constructed',
-                viaId=('event.timespan', 'endDate'))
+                viaId={
+                    'constructedBy': 'navalVessel.constructed.constructedBy',
+                    'start': ('event.timespan', 'startDate'),
+                    'end': ('event.timespan', 'endDate')
+                })
             # navalVessel.measurement
         }
 
@@ -629,20 +588,17 @@ class KulturnavBotSMM(KulturnavBot):
         @param protoclaims: the dict of claims to add
         @type protoclaims: dict
         """
-        if values[u'registration.number']:
-            # there can be multiple values
-            values[u'registration.number'] = helpers.listify(
-                values[u'registration.number'])
-            values[u'registration.type'] = helpers.listify(
-                values[u'registration.type'])
+        values_target = values['navalVessel.registration']
 
-            # only one type is currently mapped
-            claim = []
-            for i, v in enumerate(values[u'registration.number']):
-                if values[u'registration.type'][i] == self.IKNO_K:
-                    claim.append(WD.Statement(v))
-            if claim:
-                protoclaims[u'P879'] = claim
+        if values_target:
+            values_target = helpers.listify(values_target)
+            claims = []
+            for val in values_target:
+                if val['type'] == self.IKNO_K:
+                    # only one type is currently mapped
+                    claims.append(WD.Statement(val['number']))
+            if claims:
+                protoclaims[u'P879'] = claims
 
     def set_subgroup(self, values, protoclaims):
         """Identify subgroup (P279) and add to claims.
@@ -673,13 +629,23 @@ class KulturnavBotSMM(KulturnavBot):
         @param protoclaims: the dict of claims to add
         @type protoclaims: dict
         """
-        if values[u'homePort']:
-            claim = WD.Statement(
-                self.kulturnav2Wikidata(values[u'homePort']))
-            protoclaims[u'P504'] = helpers.add_start_end_qualifiers(
-                claim,
-                values[u'homePort.start'],
-                values[u'homePort.end'])
+        prop = u'P504'
+        target_values = values[u'homePort']
+        main_key = 'location'
+
+        if target_values:
+            target_values = helpers.listify(target_values)
+            claims = []
+            for val in target_values:
+                claim = WD.Statement(
+                    self.location2Wikidata(val[main_key]))
+                claims.append(
+                    helpers.add_start_end_qualifiers(
+                        claim,
+                        val[u'start'],
+                        val[u'end']))
+            if claims:
+                protoclaims[prop] = claims
 
     def set_type_and_class(self, values, protoclaims):
         """Identify type (P31) and class (P289) and add to claims.
@@ -710,6 +676,22 @@ class KulturnavBotSMM(KulturnavBot):
             if ship_type:
                 protoclaims[u'P31'] = ship_type
 
+    def set_owner(self, values, protoclaims):
+        """Identify owner (P127) and add, with start/end dates, to claims.
+
+        Adds the claim to the protoclaims dict.
+
+        @param values: the values extracted using the rules
+        @type values: dict
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        prop = u'P127'
+        target_values = values[u'agent.ownership']
+        main_key = 'owner'
+        self.set_claim_with_start_and_end(
+            prop, target_values, main_key, protoclaims)
+
     def set_constructor(self, values, protoclaims):
         """Identify constructor(s)/designers (P287) and add to claims.
 
@@ -720,18 +702,11 @@ class KulturnavBotSMM(KulturnavBot):
         @param protoclaims: the dict of claims to add
         @type protoclaims: dict
         """
-        if values[u'constructor']:
-            values[u'constructor'] = helpers.listify(values[u'constructor'])
-            claims = []
-            for val in values[u'constructor']:
-                claim = WD.Statement(self.kulturnav2Wikidata(val))
-                claims.append(
-                    helpers.add_start_end_qualifiers(
-                        claim,
-                        values[u'constructor.start'],
-                        values[u'constructor.end']))
-            if claims:
-                protoclaims[u'P287'] = claims
+        prop = u'P287'
+        target_values = values[u'constructor']
+        main_key = 'constructedBy'
+        self.set_claim_with_start_and_end(
+            prop, target_values, main_key, protoclaims)
 
     def set_is_instance(self, qid, protoclaims):
         """Set instance_of (P31) to the given Q no.
@@ -757,6 +732,10 @@ class KulturnavBotSMM(KulturnavBot):
         @type protoclaims: dict
         """
         if values.get(u'location'):
+            if isinstance(values[u'location'], list):
+                pywikibot.output('No support for multiple locations yet')
+                return
+
             location_q = self.location2Wikidata(values[u'location'])
             prop = self.getLocationProperty(location_q)
             if prop:
@@ -846,6 +825,36 @@ class KulturnavBotSMM(KulturnavBot):
                 P=prop,
                 itis=helpers.iso_to_WbTime(values[date_key])))
         return True
+
+    def set_claim_with_start_and_end(self, prop, target_values, main_key,
+                                     protoclaims):
+        """
+        Adds a claim with start and end date qualifiers to protoclaims.
+
+        Requires the value to be resolvable using kulturnav2Wikidata.
+
+        @param prop: the property of the claim
+        @type prop: str
+        @param target_values: the values for the claim
+        @type target_values: dict|list (of dict)|None
+        @param main_key: the key for the main entry of the target_values dict
+        @type main_key: str
+        @param protoclaims: the dict of claims to add
+        @type protoclaims: dict
+        """
+        if target_values:
+            target_values = helpers.listify(target_values)
+            claims = []
+            for val in target_values:
+                claim = WD.Statement(
+                    self.kulturnav2Wikidata(val[main_key]))
+                claims.append(
+                    helpers.add_start_end_qualifiers(
+                        claim,
+                        val[u'start'],
+                        val[u'end']))
+            if claims:
+                protoclaims[prop] = claims
 
     @staticmethod
     def prep_labels(values):
