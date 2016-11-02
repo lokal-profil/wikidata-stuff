@@ -45,17 +45,16 @@ docuReplacements = {'&params;': parameter_help}
 
 
 class Rule():
-    """
-    A class for encoding rules used by runLayout()
-    """
+    """A class for encoding rules used by runLayout()."""
+
     def __init__(self, keys, values, target, viaId=None):
         """
-        keys: list|string|None of keys which must be present
-              (in addition to value/target)
-        values: a dict|None of key-value pairs which must be present
-        target: the key for which the value is wanted
-        viaId: if not None then the value of target should be matched to
-               an @id entry where this key should be used
+        :param keys: list|string|None of keys which must be present
+            (in addition to value/target)
+        :param values: a dict|None of key-value pairs which must be present
+        :param target: the key for which the value is wanted
+        :param viaId: if not None then the value of target should be matched to
+            an @id entry where this key should be used
         """
         self.keys = []
         if keys is not None:
@@ -71,6 +70,74 @@ class Rule():
         """Return a more complete string representation."""
         return u'Rule(%s, %s, %s, %s)' % (
             self.keys, self.values, self.target, self.viaId)
+
+    @staticmethod
+    def hasKeys(needles, haystack):
+        """
+        Checks if all the provided keys are present.
+
+        :param needles: a list of strings
+        :param haystack: a dict
+        :return: bool
+        """
+        for n in needles:
+            if n not in haystack.keys():
+                return False
+        return True
+
+    @staticmethod
+    def hasValues(needles, haystack):
+        """
+        Check if all the provided values are present.
+
+        :param needles: None or a dict of key-value pairs
+        :param haystack: a dict
+        :return: bool
+        """
+        if needles is None:
+            return True
+        for n, v in needles.iteritems():
+            if not haystack[n] == v:
+                return False
+        return True
+
+    def resolve(self, entries, ids):
+        """
+        Resolve a rule to return the resulting value.
+
+        :param entries: all the data under @graph
+        :param ids: a dict of all @id values
+        :return: the matching value
+        """
+        value = None
+        if Rule.hasKeys(self.keys, entries) and \
+                Rule.hasValues(self.values, entries):
+            value = entries[self.target]
+
+        # break here if no hit
+        if not value:
+            return None
+
+        # convert values for viaId rules
+        if self.viaId:
+            # value can be either a single entry or a list
+            values = helpers.listify(value)
+            results = []
+            for val in values:
+                if val in ids.keys() and self.viaId in ids[val].keys():
+                    results.append(ids[val][self.viaId])
+                else:
+                    results.append(None)
+
+            # reformat for output
+            if None in results:
+                return None  # fail if any failed
+            elif len(results) == 1:
+                value = results[0]  # undo listify
+            else:
+                value = results
+
+        return value
 
 
 class KulturnavBot(object):
@@ -253,32 +320,6 @@ class KulturnavBot(object):
         param hit: a kulturnav entry
         return bool problemFree
         """
-        def hasKeys(needles, haystack):
-            """
-            checks if all the provided keys are present
-            param needles: a list of strings
-            param haystack: a dict
-            return bool
-            """
-            for n in needles:
-                if n not in haystack.keys():
-                    return False
-            return True
-
-        def hasValues(needles, haystack):
-            """
-            checks if all the provided keys are present
-            param needles: None or a dict of key-value pairs
-            param haystack: a dict
-            return bool
-            """
-            if needles is None:
-                return True
-            for n, v in needles.iteritems():
-                if not haystack[n] == v:
-                    return False
-            return True
-
         ids = {}
         problemFree = True
         for entries in hit[u'@graph']:
@@ -288,15 +329,16 @@ class KulturnavBot(object):
                     pywikibot.output('Non-unique viaID key: \n%s\n%s' %
                                      (entries, ids[entries['@id']]))
                 ids[entries['@id']] = entries
+
+        for entries in hit[u'@graph']:
             # handle rules
             for key, rule in rules.iteritems():
                 val = None
                 if rule is None:
                     if key in entries.keys():
                         val = entries[key]
-                elif hasKeys(rule.keys, entries):
-                    if hasValues(rule.values, entries):
-                        val = entries[rule.target]
+                elif isinstance(rule, Rule):
+                    val = rule.resolve(entries, ids)
 
                 # test and register found value
                 if val is not None:
@@ -305,28 +347,6 @@ class KulturnavBot(object):
                     else:
                         pywikibot.output(u'duplicate entries for %s' % key)
                         problemFree = False
-
-        # convert values for viaId rules
-        for key, rule in rules.iteritems():
-            if rule is not None and rule.viaId is not None:
-                if values[key] is not None and values[key] in ids.keys():
-                    if rule.viaId in ids[values[key]].keys():
-                        values[key] = ids[values[key]][rule.viaId]
-                    else:
-                        values[key] = None
-        for key, rule in rules.iteritems():
-            if rule is not None and \
-                    rule.viaId is not None and \
-                    values[key] is not None:
-                if isinstance(values[key], list):
-                    # for list deal with each at a time and return a list
-                    results = []
-                    for val in values[key]:
-                        if val in ids.keys():
-                            results.append(ids[val][rule.viaId])
-                    values[key] = results
-                elif values[key] in ids.keys():
-                    values[key] = ids[values[key]][rule.viaId]
 
         # the minimum which must have been identified
         if values[u'identifier'] is None:
