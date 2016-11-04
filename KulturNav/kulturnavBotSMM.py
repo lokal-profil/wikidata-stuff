@@ -225,6 +225,7 @@ class KulturnavBotSMM(KulturnavBot):
 
     def runFartyg(self):
         """Start a bot for adding info on ships."""
+        #add navalVessel.wrecked (see 42329089-247c-4045-aa22-967d3fb06dfe)
         rules = KulturnavBotSMM.get_base_ship_rules()
         rules.update({
             u'navalVessel.signalLetters': None,
@@ -571,7 +572,7 @@ class KulturnavBotSMM(KulturnavBot):
                  values[u'launched.shipyard']])
             shipyard = list(set(shipyard))
             if len(shipyard) > 1:
-                pywikibot.output(u'Found multiple shipyards, not sure how'
+                pywikibot.output(u'Found multiple shipyards, not sure how '
                                  u'to proceed: %s' % values[u'identifier'])
             else:
                 protoclaims[u'P176'] = WD.Statement(
