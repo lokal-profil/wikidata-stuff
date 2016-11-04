@@ -97,14 +97,12 @@ class WikidataStuff(object):
             return u'WD.Qualifier(%s, %s)' % (self.prop, self.itis)
 
     class Statement(object):
-        """A class for encoding the contents of a statement.
-
-        Meaning a value and optional qualifiers
-        @todo: itis test
-        """
+        """A class for the contents of a statement (value + qualifiers)."""
 
         def __init__(self, itis, special=False):
             """Make a correctly formatted statement object for claims.
+
+            @todo: itis test
 
             param itis: a valid claim target e.g. pywikibot.ItemPage
             param special: bool if itis is actaually a snackvalue
@@ -359,7 +357,10 @@ class WikidataStuff(object):
 
         @todo: does this correctly handle when the claim has qualifiers,
             https://www.wikidata.org/w/index.php?title=Q18575190&type=revision&diff=316829153&oldid=306752022
-            indicates it does not
+            indicates it does not.
+            It returns the first matching claim (independent of qualifiers), as
+            a result if the first has the wrong qualifiers it does not find a
+            later claim with the correct qualifiers.
         """
         if prop in item.claims.keys():
             for claim in item.claims[prop]:
