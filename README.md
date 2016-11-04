@@ -33,9 +33,8 @@ KulturNav-Wikidata connections.
 bot for importing paintings from Nationalmuseum Sweden to Wikidata
 (via Europeana).
 
-###Riksdagsdata/
-* riksdagsBot.py: An unfinished bot for importing data on members of Sweden's
-Riksdag from the [Riksdag data hub](http://data.riksdagen.se/).
+## Usage example:
+For usage examples see [lokal-profil/wikidata_batches](https://github.com/lokal-profil/wikidata_batches).
 
 ## Running as a different user:
 
