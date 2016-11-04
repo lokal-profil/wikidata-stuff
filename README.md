@@ -28,11 +28,6 @@ artists based on data curated by the Nationalmuseum Sweden
 * synkedKulturnav.py: A small script for generating statistics on
 KulturNav-Wikidata connections.
 
-###NatMus/
-* nationalmuseumSE.py: A [sum of all paintings](http://www.wikidata.org/wiki/Wikidata:WikiProject_sum_of_all_paintings)
-bot for importing paintings from Nationalmuseum Sweden to Wikidata
-(via Europeana).
-
 ## Usage example:
 For usage examples see [lokal-profil/wikidata_batches](https://github.com/lokal-profil/wikidata_batches).
 
