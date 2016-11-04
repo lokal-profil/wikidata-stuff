@@ -30,6 +30,10 @@ class TestAddLabelOrAlias(BaseTest):
 
     def setUp(self):
         super(TestAddLabelOrAlias, self).setUp()
+        # override loaded labels and aliases
+        self.wd_page.labels = {u'en': u'en_label', u'sv': u'sv_label'}
+        self.wd_page.aliases = {u'en': [u'en_alias_1', ]}
+
         alias_patcher = mock.patch(
             'wikidataStuff.WikidataStuff.pywikibot.ItemPage.editAliases')
         label_patcher = mock.patch(
