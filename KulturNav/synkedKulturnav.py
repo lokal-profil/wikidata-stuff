@@ -5,6 +5,7 @@ Quick bot for checking reciprocity of Wikidata-Kulturnav links.
 
 @todo: Add some type of simple html output (e.g. bootstrap from json)
 """
+import os
 import json
 import urllib2
 import wikidataStuff.wdqsLookup as wdqsLookup
@@ -232,7 +233,7 @@ def test_all(out_dir):
         dataset_id=None,
         dataset_q=None,
         owner_q=None,
-        outfile='%ssynk-All.json' % out_dir
+        outfile=os.path.join(out_dir, 'synk-All.json')
     )
 
 
@@ -242,7 +243,7 @@ def test_ArkDes(out_dir):
         dataset_id='2b7670e1-b44e-4064-817d-27834b03067c',
         dataset_q='Q17373699',
         owner_q='Q4356728',
-        outfile='%ssynk-Arkdes.json' % out_dir
+        outfile=os.path.join(out_dir, 'synk-Arkdes.json')
     )
 
 
@@ -266,7 +267,7 @@ def test_SMM(out_dir):
         dataset_id=dataset_id,
         dataset_q=dataset_q,
         owner_q='Q10677695',
-        outfile='%ssynk-SMM.json' % out_dir
+        outfile=os.path.join(out_dir, 'synk-SMM.json')
     )
 
 
@@ -276,7 +277,7 @@ def test_NatMus(out_dir):
         dataset_id='c6efd155-8433-4c58-adc9-72db80c6ce50',
         dataset_q='Q22681075',
         owner_q='Q842858',
-        outfile='%ssynk-Natmus.json' % out_dir
+        outfile=os.path.join(out_dir, 'synk-Natmus.json')
     )
 
 
@@ -302,11 +303,17 @@ if __name__ == "__main__":
     import sys
     usage = "Usage: python synkedKulturnav.py outdir\n" \
             "\toutdir(optional): dir in which to stick output. " \
-            "Defaults to current."
+            "Defaults to the 'synk_data' sub-directory."
     argv = sys.argv[1:]
-    out_dir = './'
+    out_dir = os.path.join(os.path.split(__file__)[0], u'synk_data')
     if len(argv) == 1:
         out_dir = argv[0]
+
+    # create out_dir if needed
+    if out_dir and not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+
+    # run tests
     test_all(out_dir)
     test_ArkDes(out_dir)
     test_SMM(out_dir)
