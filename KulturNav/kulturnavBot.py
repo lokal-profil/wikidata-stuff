@@ -153,11 +153,15 @@ class Rule(object):
                     result = {}
                     for key, via_id in self.viaId.iteritems():
                         result[key] = Rule.resolve_via_id(via_id, val, ids)
-                    if set(result.values()) == set([None]):
-                        # if all entries are None
-                        # @todo: should log these to spot schema changes
+                    try:
+                        if set(result.values()) == set([None]):
+                            # if all entries are None
+                            # @todo: should log these to spot schema changes
+                            return None
+                        results.append(result)
+                    except TypeError:
+                        pywikibot.output("Could not handle: %s" % result)
                         return None
-                    results.append(result)
                 else:  # self.viaId is either string or tuple
                     result = Rule.resolve_via_id(self.viaId, val, ids)
                     if not result:
