@@ -15,7 +15,7 @@ Here follows the mappings used between Kulturnav and Wikidata
 | firstName                  | [P735](https://www.wikidata.org/wiki/Property:P735)         ||
 | gender                     | [P21](https://www.wikidata.org/wiki/Property:P21)           ||
 | lastName                   | [P734](https://www.wikidata.org/wiki/Property:P734)         ||
-| person.nationality         | [P27](https://www.wikidata.org/wiki/Property:P27)           ||
+| person.nationality         | [P27](https://www.wikidata.org/wiki/Property:P27)           | &nbsp;&nbsp; *Not in use*<br>(due to discussions [here](https://www.wikidata.org/wiki/User_talk:Andr%C3%A9_Costa_%28WMSE%29#AndreCostaWMSE-bot_adding_nationality))|
 | fieldOfActivityOfThePerson | [P106](https://www.wikidata.org/wiki/Property:P106)         | &nbsp;&nbsp; *not dynamic* |
 
 ## Shipyards
@@ -26,7 +26,7 @@ Here follows the mappings used between Kulturnav and Wikidata
 | agent.ownership.owner      | [P127](https://www.wikidata.org/wiki/Property:P127)          |
 | association.establishment:event.time       | [P571](https://www.wikidata.org/wiki/Property:P571) |
 | association.termination:event.time         | [P576](https://www.wikidata.org/wiki/Property:P576) |
-| agent.activity:location    | [P17](https://www.wikidata.org/wiki/Property:P17)/[P131](https://www.wikidata.org/wiki/Property:P131)/[P276](https://www.wikidata.org/wiki/Property:P276) | &nbsp;&nbsp; Depending on what type of location is given.<br>[P276](https://www.wikidata.org/wiki/Property:P276) *not in use*
+| agent.activity:P7_took_place_at:location   | [P17](https://www.wikidata.org/wiki/Property:P17)/[P131](https://www.wikidata.org/wiki/Property:P131)/[P276](https://www.wikidata.org/wiki/Property:P276) | &nbsp;&nbsp; Depending on what type of location is given.<br>[P276](https://www.wikidata.org/wiki/Property:P276) *not in use*
 
 ## Ship classes
 | Kulturnav                  | Wikidata | note |
@@ -49,7 +49,7 @@ Here follows the mappings used between Kulturnav and Wikidata
 | Kulturnav                  | Wikidata | note |
 | :------                    | -----------:  |--------:|
 |                            | [P31](https://www.wikidata.org/wiki/Property:P31): [Q2235308](https://www.wikidata.org/wiki/Q2235308)  |
-| entity.name                | *label/alias* |
+| prefLabel / altLabel       | *label/alias* |
 | navalVessel.type / navalVessel.otherType | [P279](https://www.wikidata.org/wiki/Property:P279) |
 
 ## Serially produced ship types
@@ -59,7 +59,7 @@ Here follows the mappings used between Kulturnav and Wikidata
 | entity.name / altLabel     | *label/alias* |
 | navalVessel.type / navalVessel.otherType | [P279](https://www.wikidata.org/wiki/Property:P279) |
 | navalVessel.constructed.constructedBy     | [P287](https://www.wikidata.org/wiki/Property:P287) | &nbsp;&nbsp; with start/end qualifers
-| navalVessle.measurement    | | &nbsp;&nbsp; not used
+| navalVessle.measurement    | | &nbsp;&nbsp; *not used*
 
 ## Ships
 | Kulturnav                  | Wikidata | note |
@@ -70,10 +70,10 @@ Here follows the mappings used between Kulturnav and Wikidata
 | navalVessel.built.shipyard / navalVessel.launched.shipyard | [P176](https://www.wikidata.org/wiki/Property:P176) |
 | navalVessel.built          | [P793](https://www.wikidata.org/wiki/Property:P793):[Q474200](https://www.wikidata.org/wiki/Q474200) | with end/location qualifers
 | navalVessel.launched       | [P793](https://www.wikidata.org/wiki/Property:P793):[Q596643](https://www.wikidata.org/wiki/Q596643) | with time/location qualifers
-| navalVessel.delivered      | | &nbsp;&nbsp; not used
+| navalVessel.delivered      | | &nbsp;&nbsp; *not used*
 | navalVessel.decommissioned | [P793](https://www.wikidata.org/wiki/Property:P793):[Q7497952](https://www.wikidata.org/wiki/Q7497952) | with time qualifer
 | navalVessel.type / navalVessel.otherType | [P31](https://www.wikidata.org/wiki/Property:P31)/[P289](https://www.wikidata.org/wiki/Property:P289) | depending on target type
-| homePort                   | [P504](https://www.wikidata.org/wiki/Property:P504) | &nbsp;&nbsp; with start/end qualifers
+| navalVessel.homePort       | [P504](https://www.wikidata.org/wiki/Property:P504) | &nbsp;&nbsp; with start/end qualifers
 | navalVessel.isSubRecord    | | &nbsp;&nbsp; *not used*
 | navalVessel.hasSubRecord   | | &nbsp;&nbsp; *not used*
 | navalVessel.registration   | [P879](https://www.wikidata.org/wiki/Property:P879) | but only if navalVessel.registration.type is<br>[2c8a7e85-5b0c-4ceb-b56f-a229b6a71d2a](http://kulturnav.org/2c8a7e85-5b0c-4ceb-b56f-a229b6a71d2a)

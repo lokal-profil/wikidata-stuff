@@ -27,7 +27,7 @@ FOO_BAR = u'A multilingual result (or one with multiple options) was ' \
           u'encountered but I have yet to support that functionality'
 
 parameter_help = u"""\
-Basic KulturNavBot options (may be omitted):
+Basic KulturnavBot options (may be omitted):
 -cutoff:INT        number of entries to process before terminating
 -max_hits:INT      number of items to request at a time from Kulturnav
                     (default 250)
@@ -44,33 +44,138 @@ Can also handle any pywikibot options. Most importantly:
 docuReplacements = {'&params;': parameter_help}
 
 
-class Rule():
-    """
-    A class for encoding rules used by runLayout()
-    """
-    def __init__(self, keys, values, target, viaId=None):
+class Rule(object):
+    """A class for encoding rules used to isolate data in a Kulturnav entry."""
+
+    def __init__(self, target, keys=None, viaId=None):
         """
-        keys: list|string|None of keys which must be present
-              (in addition to value/target)
-        values: a dict|None of key-value pairs which must be present
-        target: the key for which the value is wanted
-        viaId: if not None then the value of target should be matched to
-               an @id entry where this key should be used
+        Initialize the rule.
+
+        Keys gives the resolver the environment in which the target
+        is expected.
+        Target is the first-pass value to be extracted from the data. The
+        result can be a list of values.
+        ViaId gives the path through which a second-pass value can be extracted
+        from Target.
+
+        For data which must remain connected (such as the start and end dates
+        of a particular claim) a dict can be supplied to ViaId. Each entry is
+        looked for under the same Target value but follows a different ViaId
+        path.
+
+        :param target: string key for which the value is wanted
+        :param keys: list|string|None of keys which must be present
+            (in addition to target). If none is supplied it defaults to a key
+            in the top node of the graph.
+        :param viaId: string|tuple|dict|None if the value of "target" should be
+            matched to an @id entry where this key then gives the wanted value.
+            If a tuple is supplied then each intermediate entry is matched to
+            an @id entry.
+            If a dict is supplied then the each value is treated as its own
+            viaId and the returned value is a dict where each entry has been
+            resolved.
         """
+        self.target = target
+        self.viaId = viaId
+
         self.keys = []
+        keys = keys or 'inDataset'  # default to the top node in the graph
         if keys is not None:
             self.keys += helpers.listify(keys)
-        self.values = values
-        if values is not None:
-            self.keys += values.keys()
-        self.target = target
         self.keys.append(target)
-        self.viaId = viaId
 
     def __repr__(self):
         """Return a more complete string representation."""
         return u'Rule(%s, %s, %s, %s)' % (
             self.keys, self.values, self.target, self.viaId)
+
+    @staticmethod
+    def hasKeys(needles, haystack):
+        """
+        Checks if all the provided keys are present.
+
+        :param needles: a list of strings
+        :param haystack: a dict
+        :return: bool
+        """
+        for n in needles:
+            if n not in haystack.keys():
+                return False
+        return True
+
+    @staticmethod
+    def resolve_via_id(via_id, value, ids):
+        """
+        Resolve a viaId rule to return the resulting value.
+
+        :param via_id: string|tuple of strings, viaId chains
+        :param value: string the entry matching "target" of the rule.
+        :param ids: a dict of all @id values
+        :return: the matching value
+        """
+        # allow strings as input but handle them like tuples
+        if isinstance(via_id, basestring):
+            via_id = (via_id, )
+
+        i = 0
+        while len(via_id) > i:
+            id_entry = via_id[i]
+            if value in ids.keys() and id_entry in ids[value].keys():
+                value = ids[value][id_entry]
+                i += 1
+            else:
+                return None
+        return value
+
+    def resolve(self, entries, ids):
+        """
+        Resolve a rule to return the resulting value.
+
+        :param entries: all the data under @graph
+        :param ids: a dict of all @id values
+        :return: the matching value
+        """
+        value = None
+        if Rule.hasKeys(self.keys, entries):
+            value = entries[self.target]
+
+        # break here if no hit
+        if not value:
+            return None
+
+        # convert values for viaId rules
+        if self.viaId:
+            # value can be either a single entry or a list
+            values = helpers.listify(value)
+            results = []
+            for val in values:
+                if isinstance(self.viaId, dict):
+                    result = {}
+                    for key, via_id in self.viaId.iteritems():
+                        result[key] = Rule.resolve_via_id(via_id, val, ids)
+                    try:
+                        if set(result.values()) == set([None]):
+                            # if all entries are None
+                            # @todo: should log these to spot schema changes
+                            return None
+                        results.append(result)
+                    except TypeError:
+                        pywikibot.output("Could not handle: %s" % result)
+                        return None
+                else:  # self.viaId is either string or tuple
+                    result = Rule.resolve_via_id(self.viaId, val, ids)
+                    if not result:
+                        # @todo: should log these to spot schema changes
+                        return None
+                    results.append(result)
+
+            # reformat for output
+            if len(results) == 1:
+                value = results[0]  # undo listify
+            else:
+                value = results
+
+        return value
 
 
 class KulturnavBot(object):
@@ -253,32 +358,6 @@ class KulturnavBot(object):
         param hit: a kulturnav entry
         return bool problemFree
         """
-        def hasKeys(needles, haystack):
-            """
-            checks if all the provided keys are present
-            param needles: a list of strings
-            param haystack: a dict
-            return bool
-            """
-            for n in needles:
-                if n not in haystack.keys():
-                    return False
-            return True
-
-        def hasValues(needles, haystack):
-            """
-            checks if all the provided keys are present
-            param needles: None or a dict of key-value pairs
-            param haystack: a dict
-            return bool
-            """
-            if needles is None:
-                return True
-            for n, v in needles.iteritems():
-                if not haystack[n] == v:
-                    return False
-            return True
-
         ids = {}
         problemFree = True
         for entries in hit[u'@graph']:
@@ -288,15 +367,16 @@ class KulturnavBot(object):
                     pywikibot.output('Non-unique viaID key: \n%s\n%s' %
                                      (entries, ids[entries['@id']]))
                 ids[entries['@id']] = entries
+
+        for entries in hit[u'@graph']:
             # handle rules
             for key, rule in rules.iteritems():
                 val = None
                 if rule is None:
                     if key in entries.keys():
                         val = entries[key]
-                elif hasKeys(rule.keys, entries):
-                    if hasValues(rule.values, entries):
-                        val = entries[rule.target]
+                elif isinstance(rule, Rule):
+                    val = rule.resolve(entries, ids)
 
                 # test and register found value
                 if val is not None:
@@ -305,28 +385,6 @@ class KulturnavBot(object):
                     else:
                         pywikibot.output(u'duplicate entries for %s' % key)
                         problemFree = False
-
-        # convert values for viaId rules
-        for key, rule in rules.iteritems():
-            if rule is not None and rule.viaId is not None:
-                if values[key] is not None and values[key] in ids.keys():
-                    if rule.viaId in ids[values[key]].keys():
-                        values[key] = ids[values[key]][rule.viaId]
-                    else:
-                        values[key] = None
-        for key, rule in rules.iteritems():
-            if rule is not None and \
-                    rule.viaId is not None and \
-                    values[key] is not None:
-                if isinstance(values[key], list):
-                    # for list deal with each at a time and return a list
-                    results = []
-                    for val in values[key]:
-                        if val in ids.keys():
-                            results.append(ids[val][rule.viaId])
-                    values[key] = results
-                elif values[key] in ids.keys():
-                    values[key] = ids[values[key]][rule.viaId]
 
         # the minimum which must have been identified
         if values[u'identifier'] is None:
@@ -757,11 +815,12 @@ class KulturnavBot(object):
                     raise pywikibot.Error(u'Unhandled KulturarvsdataLocation '
                                           u'prefix: %s' % s)
 
-                # only here if a municipality or county was found
-                wdq_result = wdqsLookup.wdq_to_wdqs(wdq_query)
-                if wdq_result and len(wdq_result) == 1:
-                    self.ADMIN_UNITS.append(wdq_result[0])
-                    return wdq_result[0]
+                if wdq_query:
+                    # only here if a municipality or county was found
+                    wdq_result = wdqsLookup.wdq_to_wdqs(wdq_query)
+                    if wdq_result and len(wdq_result) == 1:
+                        self.ADMIN_UNITS.append(wdq_result[0])
+                        return wdq_result[0]
         return None
 
     def getLocationProperty(self, item, strict=True):
