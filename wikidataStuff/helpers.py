@@ -16,8 +16,8 @@ from datetime import datetime  # for today_as_WbTime
 import pywikibot
 from pywikibot import pagegenerators
 import pywikibot.data.wikidataquery as wdquery
-import WikidataStuff
-from WikidataStuff import WikidataStuff as WD
+import wikidataStuff.WikidataStuff as WikidataStuff
+from wikidataStuff.WikidataStuff import WikidataStuff as WD
 START_P = 'P580'  # start date
 END_P = 'P582'  # end date
 INSTANCE_OF_P = 'P31'
@@ -445,6 +445,52 @@ def dbpedia_2_wikidata(dbpedia):
                         return same[len('http://wikidata.org/entity/'):]
                 return None
     return None
+
+
+def get_unit_q(unit):
+    """
+    Given a unit abbreviation return the appropriate qid.
+
+    @param unit: the unit abbreviation to look up
+    @type unit: str
+    @return: Q-value of matching wikidata entry or None if not mapped
+    @rtype: str|None
+    """
+    units = {
+        'm': 'Q11573',
+        'km': 'Q828224',
+        'cm': 'Q174728',
+        'mm': 'Q174789'
+    }
+    if unit in units.keys():
+        return units[unit]
+    else:
+        return None
+
+
+def sig_fig_error(digits):
+    """
+    Guestimate the error based on the significant figures.
+
+    This will assume the largest possible error in the case of integers.
+
+    Requires that the number be given as a string (since sig. figs. may
+    otherwise have been removed.)
+
+    @param digits: the number to guestimate the error from
+    @type unit: str
+    @return: error
+    @rtype: float
+    """
+    integral, _, fractional = digits.partition(".")
+    if fractional:
+        num = '0.%s5' % ('0' * len(fractional))
+        return float(num)
+    elif int(integral) == 0:
+        return 0.5
+    else:
+        to_the = len(integral) - len(integral.rstrip('0'))
+        return pow(10, to_the)/2.0
 
 
 # generic methods which are needed in WikidataStuff.py are defined there to
