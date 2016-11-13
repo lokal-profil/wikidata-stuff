@@ -13,7 +13,8 @@ BASE_URL = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql?' \
 
 
 def make_simple_wdqs_query(query, verbose=False):
-    """Make limited queries to the wdqs service for wikidata.
+    """
+    Make limited queries to the wdqs service for Wikidata.
 
     Allows for simpler queries to be asked and for the results to be somewhat
     processed.
@@ -57,7 +58,8 @@ def make_simple_wdqs_query(query, verbose=False):
 
 
 def wdq_to_wdqs(wdq_query):
-    """A wrapper for easily swapping in wdqs for WDQ queries.
+    """
+    A wrapper for easily swapping in wdqs for WDQ queries.
 
     Tries to convert the query & convert the results to the same
     format as that outputted by WDQ. In addition to the caught exceptions this
@@ -89,7 +91,8 @@ def wdq_to_wdqs(wdq_query):
 
 
 def sanitize_to_wdq_result(data):
-    """Format data to match WDQ output.
+    """
+    Format data to match WDQ output.
 
     @param data: data to sanitize
     @type data: list of str
@@ -103,7 +106,8 @@ def sanitize_to_wdq_result(data):
 
 
 def sanitize_wdqs_result(data):
-    """Strip url component out of wdqs results.
+    """
+    Strip url component out of wdqs results.
 
     I.e. strip out http://www.wikidata.org/entity/
     For dicts it is assumed that it is the key which should be sanitized
@@ -130,7 +134,8 @@ def sanitize_wdqs_result(data):
 
 
 def list_of_dict_to_list(data, key):
-    """Given a list of dicts, return a list of values for a given key.
+    """
+    Given a list of dicts, return a list of values for a given key.
 
     Crashes badly if the key is not present in each dict entry.
 
@@ -148,7 +153,8 @@ def list_of_dict_to_list(data, key):
 
 
 def list_of_dict_to_dict(data, key_key, value_key=None, allow_multiple=False):
-    """Given a list of dicts make a dict where the given key is used to get keys.
+    """
+    Given a list of dicts make a dict where the given key is used to get keys.
 
     Crashes badly if the key is not present in each dict entry.
 
@@ -192,7 +198,8 @@ def list_of_dict_to_dict(data, key_key, value_key=None, allow_multiple=False):
 
 
 def make_string_wdqs_search(prop, string):
-    """Make a simple string search and return matching items.
+    """
+    Make a simple string search and return matching items.
 
     A replacement for the WDQ STRING[prop:"string"].
 
@@ -216,10 +223,11 @@ def make_string_wdqs_search(prop, string):
 
 
 def make_tree_wdqs_search(item_1, prop_2, prop_3):
-    """Make a simple TREE search and return matching items.
+    """
+    Make a simple TREE search and return matching items.
 
     A replacement for the WDQ TREE[item_1][prop_2][prop_3]. Depending on which
-    are present the resulting queriy becomes:
+    are present the resulting query becomes:
 
     All three:
         SELECT ?item WHERE {
@@ -276,7 +284,8 @@ def make_tree_wdqs_search(item_1, prop_2, prop_3):
 
 def make_claim_wdqs_search(prop, get_values=False, q_value=None,
                            optional_props=None, allow_multiple=False):
-    """Make a simple search for items with a certain property.
+    """
+    Make a simple search for items with a certain property.
 
     A replacement for the WDQ CLAIM[prop] and CLAIM[prop:qid] with get_values
     corresponding to the props addon (more props are specified using

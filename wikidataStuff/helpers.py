@@ -29,13 +29,14 @@ matchedNames = {  # a dict of found first/last_name_Q lookups
 
 
 def load_json_file(filename, force_path=None):
-    """Load a local json file and return the data.
+    """
+    Load a local json file and return the data.
 
     The force_path parameter is needed for loading files in the same
     directory as the calling script, when that script is called from
     another directory.
 
-    @param filename: The filename, and path, to the josn file
+    @param filename: The filename, and path, to the json file
     @type filename: str, unicode
     @param force_path: Force the system to look for the file in the
         same directory as this file
@@ -51,7 +52,8 @@ def load_json_file(filename, force_path=None):
 
 
 def fill_cache(pid, queryoverride=None, cache_max_age=0):
-    """Query Wikidata to fill the cache of entities which contain the id.
+    """
+    Query Wikidata to fill the cache of entities which contain the id.
 
     @param pid: The id property
     @type pid: str, unicode
@@ -91,7 +93,8 @@ def fill_cache(pid, queryoverride=None, cache_max_age=0):
 
 
 def today_as_WbTime():
-    """Get todays date as a WbTime object.
+    """
+    Get todays date as a WbTime object.
 
     @return: Todays date correctly formated
     @rtype: pywikibot.WbTime
@@ -104,7 +107,8 @@ def today_as_WbTime():
 
 
 def iso_to_WbTime(date):
-    """Convert ISO date string into WbTime object.
+    """
+    Convert ISO date string into WbTime object.
 
     Given an ISO date object (1922-09-17Z or 2014-07-11T08:14:46Z)
     this returns the equivalent WbTime object
@@ -145,7 +149,8 @@ def iso_to_WbTime(date):
 
 
 def add_start_end_qualifiers(statement, startVal, endVal):
-    """Add start/end qualifiers to a statement if non-None, or return None.
+    """
+    Add start/end qualifiers to a statement if non-None, or return None.
 
     @param statement: The statement to decorate
     @type statement: WD.Statement
@@ -179,7 +184,8 @@ def add_start_end_qualifiers(statement, startVal, endVal):
 
 
 def match_name(name, typ, wd, limit=75):
-    """Check if there is an item matching the name.
+    """
+    Check if there is an item matching the name.
 
     Given a plaintext name (first or last) this checks if there is
     a unique matching entity of the right name type. Search results are
@@ -231,7 +237,8 @@ def match_name(name, typ, wd, limit=75):
 
 
 def match_name_on_labs(name, types, wd):
-    """Check if there is an item matching the name using database on labs.
+    """
+    Check if there is an item matching the name using database on labs.
 
     Requires that the bot is running on WMF toollabs.
 
@@ -253,7 +260,8 @@ def match_name_on_labs(name, types, wd):
 
 
 def match_name_off_labs(name, types, wd, limit):
-    """Check if there is an item matching the name using API search.
+    """
+    Check if there is an item matching the name using API search.
 
     Less good than match_name_on_labs() but works from anywhere.
 
@@ -290,7 +298,8 @@ def match_name_off_labs(name, types, wd, limit):
 
 
 def filter_on_types(obj, types, matches):
-    """Filter potential matches by (instance of) type.
+    """
+    Filter potential matches by (instance of) type.
 
     @param obj: potential matches
     @type obj: pywikibot.ItemPage
@@ -309,7 +318,8 @@ def filter_on_types(obj, types, matches):
 
 
 def is_int(value):
-    """Check if the given value is an integer.
+    """
+    Check if the given value is an integer.
 
     @param value: The value to check
     @type value: str, or int
@@ -323,7 +333,8 @@ def is_int(value):
 
 
 def is_pos_int(value):
-    """Check if the given value is a positive integer.
+    """
+    Check if the given value is a positive integer.
 
     @param value: The value to check
     @type value: str, or int
@@ -335,7 +346,8 @@ def is_pos_int(value):
 
 
 def bundle_values(values):
-    """Merge multiple values/lists into one list.
+    """
+    Merge multiple values/lists into one list.
 
     @param values: values to bundle
     @param values: list, of values or lists
@@ -352,7 +364,8 @@ def bundle_values(values):
 
 
 def reorder_names(name):
-    """Detect a "Last, First" string and return as "First Last".
+    """
+    Detect a "Last, First" string and return as "First Last".
 
     Strings without commas are returned as is.
     Strings with multiple commas result in an None being returned.
@@ -375,7 +388,8 @@ def reorder_names(name):
 
 
 def find_files(path, fileExts, subdir=True):
-    """Identify all files with a given extension in a given directory.
+    """
+    Identify all files with a given extension in a given directory.
 
     @param path: Path to directory to look in
     @type path: str, or unicode
@@ -399,7 +413,8 @@ def find_files(path, fileExts, subdir=True):
 
 
 def dbpedia_2_wikidata(dbpedia):
-    """Return the wikidata id matching a dbpedia entry.
+    """
+    Return the wikidata id matching a dbpedia entry.
 
     Given a dbpedia resource reference
     (e.g. http://dbpedia.org/resource/Richard_Bergh)
