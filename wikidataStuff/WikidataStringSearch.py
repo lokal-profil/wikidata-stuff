@@ -11,7 +11,8 @@ class WikidataStringSearch:
     """Run string searches on Wikidata from labs."""
 
     def __init__(self, verbose=False):
-        """Set up connection and fetches allowed languages and types.
+        """
+        Set up connection and fetches allowed languages and types.
 
         @param verbose: if output (errors, queries) should be printed
             (default: False)
@@ -45,7 +46,8 @@ class WikidataStringSearch:
         self.conn.close()
 
     def testInput(self, text, language=None, term_type=None, entities=None):
-        """Test that the user input is valid.
+        """
+        Test that the user input is valid.
 
         @param text: the text to search for
         @type text: str, unicode
@@ -92,7 +94,8 @@ class WikidataStringSearch:
         return True
 
     def search(self, text, language='sv', term_type=None):
-        """Search for a given string in a specified language and field.
+        """
+        Search for a given string in a specified language and field.
 
         Deprecated.
         Calls basic_search with entities=None and language defaulting to 'sv'
@@ -103,7 +106,8 @@ class WikidataStringSearch:
                                  term_type=term_type)
 
     def searchInEntities(self, text, entities, language='sv', term_type=None):
-        """search() but limit results to a provided list of entities.
+        """
+        search() but limit results to a provided list of entities.
 
         Deprecated.
         Calls basic_search with language defaulting to 'sv'
@@ -114,7 +118,8 @@ class WikidataStringSearch:
                                  term_type=term_type)
 
     def basic_search(self, text, language=None, entities=None, term_type=None):
-        """Search for a given string through exact match or SQL like wildcards.
+        """
+        Search for a given string through exact match or SQL like wild-cards.
 
         Results can be limited to a specific language, a certain field or
         to within a list of entities.
@@ -179,7 +184,8 @@ class WikidataStringSearch:
         return qs
 
     def _print(self, s):
-        """Print text if verbose.
+        """
+        Print text if verbose.
 
         @param s: text to print
         @type s: string or unicode
@@ -189,7 +195,8 @@ class WikidataStringSearch:
 
     @staticmethod
     def sql_in_format(l):
-        """Given a list of parameters output an sql compatible list of args.
+        """
+        Given a list of parameters output an sql compatible list of args.
 
         @param l: value to test
         @type l: list or tuple
@@ -201,7 +208,8 @@ class WikidataStringSearch:
 
     @staticmethod
     def is_int(s):
-        """Check if value is an int.
+        """
+        Check if value is an int.
 
         @param s: value to test
         @type s: any
