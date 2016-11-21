@@ -1,4 +1,4 @@
-wikidata-stuff
+wikidata-stuff  [![Build Status](https://travis-ci.org/lokal-profil/wikidata-stuff.svg?branch=master)](https://travis-ci.org/lokal-profil/wikidata-stuff)
 ==============
 
 Random scripts used for Wikidata. These require [pywikibot](https://github.com/wikimedia/pywikibot-core)
