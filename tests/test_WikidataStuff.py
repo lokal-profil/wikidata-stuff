@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8  -*-
 """Unit tests for WikidataStuff."""
 
@@ -35,14 +36,14 @@ class BaseTest(unittest.TestCase):
 
     def setUp(self):
         """Setup test."""
-        repo = pywikibot.Site('test', 'wikidata')
-        self.wd_page = pywikibot.ItemPage(repo, None)
+        self.repo = pywikibot.Site('test', 'wikidata')
+        self.wd_page = pywikibot.ItemPage(self.repo, None)
         data_dir = os.path.join(os.path.split(__file__)[0], 'data')
         with open(os.path.join(data_dir, 'Q27399.json')) as f:
             self.wd_page._content = json.load(f).get('entities').get('Q27399')
         self.wd_page._content['id'] = u'-1'  # override id used in demo file
         self.wd_page.get()
-        self.wd_stuff = WD.WikidataStuff(repo)
+        self.wd_stuff = WD.WikidataStuff(self.repo)
 
 
 class TestAddLabelOrAlias(BaseTest):
@@ -136,3 +137,73 @@ class TestAddLabelOrAlias(BaseTest):
             {lang: [text, ]},
             summary=u'Added [sv] alias to [[-1]], TEXT'
         )
+
+
+class TestHasClaim(BaseTest):
+
+    """Test hasClaim()."""
+
+    def setUp(self):
+        super(TestHasClaim, self).setUp()
+
+        alias_patcher = mock.patch(
+            'wikidataStuff.WikidataStuff.pywikibot.ItemPage.editAliases')
+        label_patcher = mock.patch(
+            'wikidataStuff.WikidataStuff.pywikibot.ItemPage.editLabels')
+        self.mock_edit_alias = alias_patcher.start()
+        self.mock_edit_label = label_patcher.start()
+        self.addCleanup(alias_patcher.stop)
+        self.addCleanup(label_patcher.stop)
+
+    def test_has_claim_prop_not_present(self):
+        prop = 'P0'
+        itis = 'A string'
+        self.assertIsNone(self.wd_stuff.hasClaim(prop, itis, self.wd_page))
+
+    def test_has_claim_prop_but_not_value(self):
+        prop = 'P174'
+        itis = 'An unknown string'
+        self.assertIsNone(self.wd_stuff.hasClaim(prop, itis, self.wd_page))
+
+    def test_has_claim_simple_match(self):
+        prop = 'P174'
+        itis = 'A string'
+        expected = 'Q27399$3f62d521-4efe-e8de-8f2d-0d8a10e024cf'
+        self.assertEquals(
+            self.wd_stuff.hasClaim(prop, itis, self.wd_page).toJSON()['id'],
+            expected)
+
+    def test_has_claim_match_independent_of_reference(self):
+        prop = 'P174'
+        itis = 'A string with a reference'
+        expected = 'Q27399$ef9f73ce-4cd5-13e5-a0bf-4ad835d8f9c3'
+        self.assertEquals(
+            self.wd_stuff.hasClaim(prop, itis, self.wd_page).toJSON()['id'],
+            expected)
+
+    def test_has_claim_match_item_type(self):
+        prop = 'P84'
+        itis = pywikibot.ItemPage(self.repo, 'Q1341')
+        expected = 'Q27399$58a0a8bc-46e4-3dc6-16fe-e7c364103c9b'
+        self.assertEquals(
+            self.wd_stuff.hasClaim(prop, itis, self.wd_page).toJSON()['id'],
+            expected)
+
+    def test_has_claim_match_WbTime_type(self):
+        prop = 'P74'
+        itis = pywikibot.WbTime(year=2016, month=11, day=22, site=self.repo)
+
+        with mock.patch('wikidataStuff.WikidataStuff.WikidataStuff.compareWbTimeClaim', autospec=True) as mock_compare_WbTime:
+            self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+            mock_compare_WbTime.assert_called_once_with(
+                self.wd_stuff, itis, itis)
+
+    # this test should fail later
+    # then check that it gets the qualified one only (or all of them)
+    def test_has_claim_match_independent_of_qualifier(self):
+        prop = 'P174'
+        itis = 'A string entry with a qualifier'
+        expected = 'Q27399$50b7cccb-4e9d-6f5d-d9c9-6b85d771c2d4'
+        self.assertEquals(
+            self.wd_stuff.hasClaim(prop, itis, self.wd_page).toJSON()['id'],
+            expected)

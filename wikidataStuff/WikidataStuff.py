@@ -384,6 +384,7 @@ class WikidataStuff(object):
         @type itis: object
         @param item: itemPage to check
         @type item: pywikibot.ItemPage
+        @rtype: pywikibot.Claim|None
         """
         if prop in item.claims.keys():
             for claim in item.claims[prop]:
