@@ -388,39 +388,51 @@ class WikidataStuff(object):
 
     def hasClaim(self, prop, itis, item):
         """
-        Check if the claim already exists, if so returns that claim.
+        Check if the claim already exists, if so returns any matching claim.
 
-        @todo: does this correctly handle when the claim has qualifiers,
-            https://www.wikidata.org/w/index.php?title=Q18575190&type=revision&diff=316829153&oldid=306752022
-            indicates it does not.
-            It returns the first matching claim (independent of qualifiers), as
-            a result if the first has the wrong qualifiers it does not find a
-            later claim with the correct qualifiers.
+        This only compares at target value and ignores any qualifiers.
+
         @param prop: the property id for the claim, with "P" prefix
         @type prop: basestring
         @param itis: the target of the claim
         @type itis: object
         @param item: itemPage to check
         @type item: pywikibot.ItemPage
-        @rtype: pywikibot.Claim|None
+        @return: list of matching claims
+        @rtype: list of pywikibot.Claim
         """
+        hits = []
         if prop in item.claims.keys():
             for claim in item.claims[prop]:
                 if isinstance(itis, pywikibot.WbTime):
                     # WbTime compared differently
                     if self.compareWbTimeClaim(claim.getTarget(), itis):
-                        return claim
+                        hits.append(claim)
                 elif self.bypassRedirect(claim.getTarget()) == itis:
-                    return claim
-        return None
+                    hits.append(claim)
+        return hits
 
     def hasSpecialClaim(self, prop, snaktype, item):
-        """hasClaim() in the special case of 'somevalue' and 'novalue'."""
+        """
+        hasClaim() in the special case of 'somevalue' and 'novalue'.
+
+        This only compares at target value and ignores any qualifiers.
+
+        @param prop: the property id for the claim, with "P" prefix
+        @type prop: basestring
+        @param snaktype: the target of the claim
+        @type snaktype: basestring
+        @param item: itemPage to check
+        @type item: pywikibot.ItemPage
+        @return: list of matching claims
+        @rtype: list of pywikibot.Claim
+        """
+        hits = []
         if prop in item.claims.keys():
             for claim in item.claims[prop]:
                 if claim.getSnakType() == snaktype:
-                    return claim
-        return None
+                    hits.append(claim)
+        return hits
 
     def addNewClaim(self, prop, statement, item, ref, summary=None):
         """

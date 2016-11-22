@@ -152,35 +152,48 @@ class TestHasClaim(BaseTest):
     def test_has_claim_prop_not_present(self):
         prop = 'P0'
         itis = 'A string'
-        self.assertIsNone(self.wd_stuff.hasClaim(prop, itis, self.wd_page))
+        self.assertEquals(
+            self.wd_stuff.hasClaim(prop, itis, self.wd_page),
+            [])
 
     def test_has_claim_prop_but_not_value(self):
         prop = 'P174'
         itis = 'An unknown string'
-        self.assertIsNone(self.wd_stuff.hasClaim(prop, itis, self.wd_page))
+        self.assertEquals(
+            self.wd_stuff.hasClaim(prop, itis, self.wd_page),
+            [])
 
     def test_has_claim_simple_match(self):
         prop = 'P174'
         itis = 'A string'
         expected = 'Q27399$3f62d521-4efe-e8de-8f2d-0d8a10e024cf'
+
+        hits = self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+        self.assertEquals(len(hits), 1)
         self.assertEquals(
-            self.wd_stuff.hasClaim(prop, itis, self.wd_page).toJSON()['id'],
+            hits[0].toJSON()['id'],
             expected)
 
     def test_has_claim_match_independent_of_reference(self):
         prop = 'P174'
         itis = 'A string with a reference'
         expected = 'Q27399$ef9f73ce-4cd5-13e5-a0bf-4ad835d8f9c3'
+
+        hits = self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+        self.assertEquals(len(hits), 1)
         self.assertEquals(
-            self.wd_stuff.hasClaim(prop, itis, self.wd_page).toJSON()['id'],
+            hits[0].toJSON()['id'],
             expected)
 
     def test_has_claim_match_item_type(self):
         prop = 'P84'
         itis = pywikibot.ItemPage(self.repo, 'Q1341')
         expected = 'Q27399$58a0a8bc-46e4-3dc6-16fe-e7c364103c9b'
+
+        hits = self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+        self.assertEquals(len(hits), 1)
         self.assertEquals(
-            self.wd_stuff.hasClaim(prop, itis, self.wd_page).toJSON()['id'],
+            hits[0].toJSON()['id'],
             expected)
 
     def test_has_claim_match_WbTime_type(self):
@@ -193,15 +206,31 @@ class TestHasClaim(BaseTest):
             mock_compare_WbTime.assert_called_once_with(
                 self.wd_stuff, itis, itis)
 
-    # this test should fail later
-    # then check that it gets the qualified one only (or all of them)
     def test_has_claim_match_independent_of_qualifier(self):
         prop = 'P174'
         itis = 'A string entry with a qualifier'
         expected = 'Q27399$50b7cccb-4e9d-6f5d-d9c9-6b85d771c2d4'
+
+        hits = self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+        self.assertEquals(len(hits), 1)
         self.assertEquals(
-            self.wd_stuff.hasClaim(prop, itis, self.wd_page).toJSON()['id'],
+            hits[0].toJSON()['id'],
             expected)
+
+    def test_has_claim_match_multiple(self):
+        prop = 'P664'
+        itis = 'Duplicate_string'
+        expected_1 = 'Q27399$221e4451-46d7-8c4a-53cb-47a4e0d09660'
+        expected_2 = 'Q27399$a9b83de1-49d7-d033-939d-f430a232ffd0'
+
+        hits = self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+        self.assertEquals(len(hits), 2)
+        self.assertEquals(
+            hits[0].toJSON()['id'],
+            expected_1)
+        self.assertEquals(
+            hits[1].toJSON()['id'],
+            expected_2)
 
 
 class TestHasQualifier(BaseTest):
