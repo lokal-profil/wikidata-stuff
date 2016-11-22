@@ -311,17 +311,28 @@ class WikidataStuff(object):
         Check if all qualifiers are already present.
 
         Note that this checks if the supplied qualifiers are in the provided
-        claim. But not if the provided claim has any other qualifiers.
+        claim and if the provided claim has any other qualifiers.
 
         @param quals: Qualifiers to look for
         @type quals: list of Qualifier
         @param claim: Claim to check
         @type claim: pywikibot.Claim
+        @return: Tuple of bools. First indicates an exact match of qualifiers,
+            the second that all the provided qualifiers are present.
+        @rtype: (bool, bool)
         """
+        has_all = False
+        exact_match = False
         for qual in quals:
             if not self.hasQualifier(qual, claim):
-                return False
-        return True
+                return (exact_match, has_all)
+        has_all = True
+
+        len_claim_quals = sum(len(v) for v in claim.qualifiers.values())
+        if len(quals) == len_claim_quals:
+            exact_match = True
+
+        return (exact_match, has_all)
 
     def hasQualifier(self, qual, claim):
         """

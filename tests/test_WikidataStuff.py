@@ -249,28 +249,35 @@ class TestHasQualifier(BaseTest):
         self.assertFalse(self.wd_stuff.hasQualifier(unexpected_qual, claim))
 
 
-class TestAllQualifiers(BaseTest):
+class TestHasAllQualifiers(BaseTest):
 
     """Test hasAllQualifiers()."""
 
     def setUp(self):
-        super(TestAllQualifiers, self).setUp()
-        self.claim = self.wd_page.claims['P174'][4]
+        super(TestHasAllQualifiers, self).setUp()
+        self.claim = self.wd_page.claims['P174'][4]  # 2 quals
         self.quals = []
 
     def test_has_all_qualifiers_none(self):
         with self.assertRaises(TypeError):
-            self.assertFalse(self.wd_stuff.hasAllQualifiers(None, self.claim))
+            self.wd_stuff.hasAllQualifiers(None, self.claim)
 
     def test_has_all_qualifiers_empty(self):
-        self.assertTrue(self.wd_stuff.hasAllQualifiers(self.quals, self.claim))
+        self.claim = self.wd_page.claims['P174'][2]  # no quals
+        expected = (True, True)
+        self.assertEquals(
+            self.wd_stuff.hasAllQualifiers(self.quals, self.claim),
+            expected)
 
     def test_has_all_qualifiers_has_all(self):
         self.quals.append(
             WD.WikidataStuff.Qualifier('P174', 'A qualifier'))
         self.quals.append(
             WD.WikidataStuff.Qualifier('P664', 'Another qualifier'))
-        self.assertTrue(self.wd_stuff.hasAllQualifiers(self.quals, self.claim))
+        expected = (True, True)
+        self.assertEquals(
+            self.wd_stuff.hasAllQualifiers(self.quals, self.claim),
+            expected)
 
     def test_has_all_qualifiers_has_all_but_one(self):
         self.quals.append(
@@ -279,13 +286,18 @@ class TestAllQualifiers(BaseTest):
             WD.WikidataStuff.Qualifier('P664', 'Another qualifier'))
         self.quals.append(
             WD.WikidataStuff.Qualifier('P174', 'Not a qualifier'))
-        self.assertFalse(
-            self.wd_stuff.hasAllQualifiers(self.quals, self.claim))
+        expected = (False, False)
+        self.assertEquals(
+            self.wd_stuff.hasAllQualifiers(self.quals, self.claim),
+            expected)
 
     def test_has_all_qualifiers_has_all_plus_one(self):
         self.quals.append(
             WD.WikidataStuff.Qualifier('P174', 'A qualifier'))
-        self.assertTrue(self.wd_stuff.hasAllQualifiers(self.quals, self.claim))
+        expected = (False, True)
+        self.assertEquals(
+            self.wd_stuff.hasAllQualifiers(self.quals, self.claim),
+            expected)
 
 
 class TestAddNewClaim(BaseTest):
