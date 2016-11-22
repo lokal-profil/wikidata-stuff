@@ -1,13 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8  -*-
 """Unit tests for WikidataStuff."""
-
-
-import pywikibot
-import unittest
 import json
 import mock
 import os
+import unittest
+
+import pywikibot
+
 from wikidataStuff import WikidataStuff as WD
 
 
@@ -237,8 +237,6 @@ class TestHasQualifier(BaseTest):
 
     """Test hasQualifier()."""
 
-    # test for test_qual = None
-
     def test_has_qualifier_no_qualifier(self):
         claim = self.wd_page.claims['P664'][0]
         test_qual = WD.WikidataStuff.Qualifier('P174', 'qualifier')
@@ -377,7 +375,7 @@ class TestAddNewClaim(BaseTest):
         self.mock_add_reference.assert_called_once()
 
     def test_add_new_claim_old_property_old_value(self):
-        self.prop = 'P174'  # an unused property of type string
+        self.prop = 'P174'
         self.value = 'A string'
         statement = WD.WikidataStuff.Statement(self.value)
         expected_claim = 'Q27399$3f62d521-4efe-e8de-8f2d-0d8a10e024cf'
@@ -411,7 +409,6 @@ class TestAddNewClaim(BaseTest):
         self.assertEquals(self.mock_add_qualifier.call_count, 2)
         self.mock_add_reference.assert_called_once()
 
-    # should fail once proper comparisons are done
     def test_add_new_claim_old_property_old_value_without_quals(self):
         self.prop = 'P174'
         self.value = 'A string'
@@ -427,23 +424,17 @@ class TestAddNewClaim(BaseTest):
             self.mock_add_reference.call_args[0][1].toJSON()['id'],
             expected_claim)
 
-    # should fail once proper comparisons are done
     def test_add_new_claim_old_property_old_value_with_different_quals(self):
         self.prop = 'P174'
         self.value = 'A string entry with a qualifier'
         statement = WD.WikidataStuff.Statement(self.value)
         statement.addQualifier(self.quals[0]).addQualifier(self.quals[1])
-        expected_claim = 'Q27399$50b7cccb-4e9d-6f5d-d9c9-6b85d771c2d4'
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
-        self.mock_add_claim.assert_not_called()
+        self.mock_add_claim.assert_called_once()
         self.assertEquals(self.mock_add_qualifier.call_count, 2)
         self.mock_add_reference.assert_called_once()
-        self.assertEquals(
-            self.mock_add_reference.call_args[0][1].toJSON()['id'],
-            expected_claim)
 
-    # should change once proper comparisons are done
     def test_add_new_claim_old_property_old_value_with_same_quals(self):
         self.prop = 'P174'
         self.value = 'A string entry with many qualifiers'
@@ -459,14 +450,7 @@ class TestAddNewClaim(BaseTest):
             self.mock_add_reference.call_args[0][1].toJSON()['id'],
             expected_claim)
 
-    # test_add_new_claim_old_property_old_value_without_quals_and_ref
-    # test_add_new_claim_old_property_old_value_with_different_quals_and_ref
-    # test_add_new_claim_old_property_old_value_with_same_quals_and_ref
-    # statements with quals and target with source
-    # statement.force
-
-    @unittest.expectedFailure  # issue #21 - sourcing wrong claim
-    def test_add_new_modify_source_correct_qualified_claim(self):
+    def test_add_new_claim_edit_correct_qualified_claim(self):
         self.prop = 'P664'
         self.value = 'Duplicate_string'
         statement = WD.WikidataStuff.Statement(self.value)
@@ -482,8 +466,7 @@ class TestAddNewClaim(BaseTest):
             self.mock_add_reference.call_args[0][1].toJSON()['id'],
             expected_claim)
 
-    @unittest.expectedFailure  # issue #21 - adding new claim
-    def test_add_new_modify_source_correct_qualified_claim_with_ref(self):
+    def test_add_new_claim_edit_correct_qualified_claim_with_ref(self):
         self.prop = 'P664'
         self.value = 'Duplicate_string_with_ref'
         statement = WD.WikidataStuff.Statement(self.value)
@@ -499,7 +482,7 @@ class TestAddNewClaim(BaseTest):
             self.mock_add_reference.call_args[0][1].toJSON()['id'],
             expected_claim)
 
-    def test_add_new_call_special_has_claim(self):
+    def test_add_new_claim_call_special_has_claim(self):
         value = 'somevalue'
         statement = WD.WikidataStuff.Statement(value, special=True)
         function = 'wikidataStuff.WikidataStuff.WikidataStuff.hasSpecialClaim'
@@ -509,3 +492,157 @@ class TestAddNewClaim(BaseTest):
                 self.prop, statement, self.wd_page, self.ref)
             mock_has_special_claim.assert_called_once_with(
                 self.wd_stuff, self.prop, value, self.wd_page)
+
+    def test_add_new_claim_raise_error_on_bad_ref(self):
+        statement = WD.WikidataStuff.Statement(self.value)
+        with self.assertRaises(pywikibot.Error):
+            self.wd_stuff.addNewClaim(
+                self.prop, statement, self.wd_page, 'Not a ref')
+
+    def test_add_new_claim_reraise_error_on_duplicate_matching_claim(self):
+        self.prop = 'P84'
+        self.value = pywikibot.ItemPage(self.repo, 'Q505')
+        statement = WD.WikidataStuff.Statement(self.value)
+        with self.assertRaises(pywikibot.Error):
+            self.wd_stuff.addNewClaim(
+                self.prop, statement, self.wd_page, self.ref)
+
+
+class TestMatchClaim(BaseTest):
+
+    """Test match_claim()."""
+
+    def setUp(self):
+        super(TestMatchClaim, self).setUp()
+
+        # defaults
+        self.claims = []
+        self.qualifiers = []
+        self.force = False
+
+        # Load claims to descriptive variables
+        # note that only qualifiers + references matter, main value is ignored
+        # the default qualifier in these is P174:"A qualifier"
+        self.one_qual_no_ref = self.wd_page.claims['P174'][0]
+        self.no_qual_two_ref = self.wd_page.claims['P174'][1]
+        self.no_qual_no_ref = self.wd_page.claims['P174'][2]
+        # Second qualifier P174:"Another qualifier"
+        self.two_qual_no_ref = self.wd_page.claims['P174'][5]
+
+        # load two qualifier
+        self.matched_qualifier = self.wd_stuff.Qualifier('P174', 'A qualifier')
+        self.unmatched_qualifier = self.wd_stuff.Qualifier('P174', 'Unmatched')
+
+    def test_match_claim_empty_claim(self):
+        # 0. no claims: None selected
+        self.assertIsNone(
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force))
+
+    def test_match_claim_multiple_exact_raises_error(self):
+        # 1. many exact matches: raise error (means duplicates on Wikidata)
+        self.claims.append(self.no_qual_two_ref)
+        self.claims.append(self.no_qual_no_ref)
+        with self.assertRaises(pywikibot.Error):
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force)
+
+    def test_match_claim_empty_qualifier_exact(self):
+        # 2. if no qualifier select the unqualified
+        self.claims.append(self.one_qual_no_ref)
+        self.claims.append(self.no_qual_no_ref)
+        expected_claim = self.no_qual_no_ref
+        self.assertEquals(
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force),
+            expected_claim)
+
+    def test_match_claim_one_qualifier_exact(self):
+        # 2. if qualifier select the qualified
+        self.claims.append(self.one_qual_no_ref)
+        self.claims.append(self.no_qual_no_ref)
+        self.claims.append(self.two_qual_no_ref)
+        self.qualifiers.append(self.matched_qualifier)
+        expected_claim = self.one_qual_no_ref
+        self.assertEquals(
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force),
+            expected_claim)
+
+    def test_match_claim_multiple_close_raises_error(self):
+        # 3. unclaimed i equally close to any with claims
+        self.claims.append(self.one_qual_no_ref)
+        self.claims.append(self.two_qual_no_ref)
+        with self.assertRaises(pywikibot.Error):
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force)
+
+    def test_match_claim_one_qualifier_close(self):
+        # 4. if qualified select the closest match
+        # (contains at least that qualifier)
+        self.claims.append(self.no_qual_no_ref)
+        self.claims.append(self.two_qual_no_ref)
+        self.qualifiers.append(self.matched_qualifier)
+        expected_claim = self.two_qual_no_ref
+        self.assertEquals(
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force),
+            expected_claim)
+
+    def test_match_claim_many_non_close(self):
+        # 5. qualifier does not match any of the claims
+        self.claims.append(self.one_qual_no_ref)
+        self.claims.append(self.two_qual_no_ref)
+        self.qualifiers.append(self.unmatched_qualifier)
+        self.assertIsNone(
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force))
+
+    def test_match_claim_one_claim(self):
+        # 6.1 If only one claim and
+        # if claim unsourced and unqualified: select this
+        self.claims.append(self.no_qual_no_ref)
+        expected_claim = self.no_qual_no_ref
+        self.qualifiers.append(self.unmatched_qualifier)
+        self.assertEquals(
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force),
+            expected_claim)
+
+    def test_match_claim_one_sourced_claim_forced(self):
+        # 6.2 If only one claim and
+        # if sourced and unqualified and force: select this
+        self.claims.append(self.no_qual_two_ref)
+        self.qualifiers.append(self.unmatched_qualifier)
+        self.force = True
+        expected_claim = self.no_qual_two_ref
+        self.assertEquals(
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force),
+            expected_claim)
+
+    def test_match_claim_one_sourced_claim_none_selected(self):
+        # 6.3 If only one claim and it is sourced None is selected
+        self.claims.append(self.no_qual_two_ref)
+        self.qualifiers.append(self.unmatched_qualifier)
+        self.assertIsNone(
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force))
+
+    def test_match_claim_one_qualified_claim_none_selected(self):
+        # 6.3 If only one claim and it is qualified None is selected
+        self.claims.append(self.one_qual_no_ref)
+        self.qualifiers.append(self.unmatched_qualifier)
+        self.assertIsNone(
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force))
+
+    def test_match_claim_one_qualified_claim_forced_none_selected(self):
+        # 6.3 If only one claim and it is qualified None is selected
+        # even if forced
+        self.claims.append(self.one_qual_no_ref)
+        self.qualifiers.append(self.unmatched_qualifier)
+        self.force = True
+        self.assertIsNone(
+            self.wd_stuff.match_claim(
+                self.claims, self.qualifiers, self.force))

@@ -5,13 +5,11 @@
 # License: MIT
 #
 """Generally useful methods for interacting with Wikidata using pywikibot."""
+import os.path  # Needed for WikidataStringSearch
+
 import pywikibot
+import pywikibot.data.wikidataquery as wdquery  # Needed for wdqLookup
 
-# Needed only for wdqLookup
-import pywikibot.data.wikidataquery as wdquery
-
-# Needed only for WikidataStringSearch
-import os.path
 from wikidataStuff.WikidataStringSearch import WikidataStringSearch
 
 
@@ -221,7 +219,7 @@ class WikidataStuff(object):
         @param lang: the language code
         @param name: the value to be added
         @param item: the item to which the label/alias should be added
-        @param summary: optional summary to append to auto-generated edit summary
+        @param summary: summary to append to auto-generated edit summary
         @param caseSensitive: if the comparison is case sensitive
         """
         summary = summary or self.edit_summary
@@ -280,7 +278,7 @@ class WikidataStuff(object):
         @param item: the item on which all of this happens
         @param claim: the pywikibot.Claim to be sourced
         @param ref: the WD.Reference to add
-        @param summary: optional summary to append to auto-generated edit summary
+        @param summary: summary to append to auto-generated edit summary
         """
         # check if any of the sources are already present
         # note that this can be in any of its references
@@ -297,7 +295,7 @@ class WikidataStuff(object):
             pywikibot.output('Adding reference claim to %s in %s' %
                              (claim.getID(), item))
             return True
-        except pywikibot.data.api.APIError, e:
+        except pywikibot.data.api.APIError as e:
             if e.code == u'modification-failed':
                 pywikibot.output(u'modification-failed error: '
                                  u'ref to %s in %s' % (claim.getID(), item))
@@ -362,7 +360,7 @@ class WikidataStuff(object):
         @param item: itemPage to check
         @param claim: Claim to check
         @param qual: Qualifier to check
-        @param summary: optional summary to append to auto-generated edit summary
+        @param summary: summary to append to auto-generated edit summary
         """
         # check if already present
         if self.hasQualifier(qual, claim):
@@ -375,7 +373,7 @@ class WikidataStuff(object):
             pywikibot.output('Adding qualifier %s to %s in %s' %
                              (qual.prop, claim.getID(), item))
             return True
-        except pywikibot.data.api.APIError, e:
+        except pywikibot.data.api.APIError as e:
             if e.code == u'modification-failed':
                 pywikibot.output(u'modification-failed error: '
                                  u'qualifier to %s to %s in %s' %
@@ -390,7 +388,7 @@ class WikidataStuff(object):
         """
         Check if the claim already exists, if so returns any matching claim.
 
-        This only compares at target value and ignores any qualifiers.
+        This only compares the target value and ignores any qualifiers.
 
         @param prop: the property id for the claim, with "P" prefix
         @type prop: basestring
@@ -416,7 +414,7 @@ class WikidataStuff(object):
         """
         hasClaim() in the special case of 'somevalue' and 'novalue'.
 
-        This only compares at target value and ignores any qualifiers.
+        This only compares the target value and ignores any qualifiers.
 
         @param prop: the property id for the claim, with "P" prefix
         @type prop: basestring
@@ -438,8 +436,9 @@ class WikidataStuff(object):
         """
         Add a claim or source it if already existing.
 
-        Known issues:
-        * Will source a claim with other qualifiers
+        Known caveats:
+        * Will source a claim with no qualifiers
+        * Will not source a claim with only one of the qualifiers
 
         @param prop: property id, with "P" prefix
         @type prop: basestring
@@ -449,7 +448,7 @@ class WikidataStuff(object):
         @type item: pywikibot.ItemPage
         @param ref: reference to add to the claim
         @type ref: Reference|None
-        @param summary: optional summary to append to auto-generated edit summary
+        @param summary: summary to append to auto-generated edit summary
         @type summary: basestring|None
         """
         claim = pywikibot.Claim(self.repo, prop)
@@ -458,41 +457,28 @@ class WikidataStuff(object):
         # handle special cases
         if statement.special:
             claim.setSnakType(statement.itis)
-            priorClaim = self.hasSpecialClaim(prop, statement.itis, item)
+            prior_claims = self.hasSpecialClaim(prop, statement.itis, item)
         else:
             claim.setTarget(statement.itis)
-            priorClaim = self.hasClaim(prop, statement.itis, item)
+            prior_claims = self.hasClaim(prop, statement.itis, item)
 
         # test reference (must be a Reference or explicitly missing)
         if not isinstance(ref, WikidataStuff.Reference) and ref is not None:
             raise pywikibot.Error('The provided reference was not a Reference '
                                   'object. Crashing')
 
-        # test qualifier
-        if priorClaim and statement.quals:
-            # cannot add a qualifier to a previously sourced claim
-            if not priorClaim.sources:
-                # if unsourced
-                for qual in statement.quals:
-                    self.addQualifier(item, priorClaim, qual, summary=summary)
-                self.addReference(item, priorClaim, ref, summary=summary)
-            elif self.hasAllQualifiers(statement.quals, priorClaim):
-                # if all qualifiers already present
-                self.addReference(item, priorClaim, ref, summary=summary)
-            elif statement.force:
-                # if force is set
-                for qual in statement.quals:
-                    self.addQualifier(item, priorClaim, qual, summary=summary)
-                self.addReference(item, priorClaim, ref, summary=summary)
-            else:
-                # add new qualified claim
-                item.addClaim(claim, summary=summary)
-                pywikibot.output('Adding %s claim to %s' % (prop, item))
-                for qual in statement.quals:
-                    self.addQualifier(item, claim, qual, summary=summary)
-                self.addReference(item, claim, ref, summary=summary)
-        elif priorClaim:
-            self.addReference(item, priorClaim, ref, summary=summary)
+        # determine which, if any, prior_claim to source
+        try:
+            matching_claim = self.match_claim(
+                prior_claims, statement.quals, statement.force)
+        except pywikibot.Error as e:
+            raise pywikibot.Error(
+                "Problem adding %s claim to %s: %s" % (prop, item, e))
+
+        if matching_claim:
+            for qual in statement.quals:
+                self.addQualifier(item, matching_claim, qual, summary=summary)
+            self.addReference(item, matching_claim, ref, summary=summary)
         else:
             item.addClaim(claim, summary=summary)
             pywikibot.output('Adding %s claim to %s' % (prop, item))
@@ -522,6 +508,64 @@ class WikidataStuff(object):
             return item.getRedirectTarget()
         else:
             return item
+
+    def match_claim(self, claims, qualifiers, force):
+        """
+        Determine which claim is the best match for some given qualifiers.
+
+        Selection is done in the following order:
+        0. no claims: None selected
+        1. many exact matches: raise error (means duplicates on Wikidata)
+        2. one exact: select this
+        3. many has_all: raise error (likely means duplicates on Wikidata)
+        4. one has_all: select this
+        5. if many claims: None selected
+        6. if only one claim: see below
+        6.1. if claim unsourced and unqualified: select this
+        6.2. if sourced and unqualified and force: select this
+        6.3. else: None selected
+
+        @param claims: claims to attempt matching against
+        @type claims: list of pywikibot.Claims
+        @param qualifiers: qualifiers to match with
+        @type qualifiers: list of Qualifier
+        @param force: if sourced (but unqualified) claims should get qualified
+        @type force: bool
+        @return: Matching claim or None
+        @rtype pywikibot.Claim|None
+        """
+        # case 0
+        if not claims:
+            return None
+
+        # close matches for qualifiers case 1-4
+        exact_matches = []
+        has_all_matches = []
+        for claim in claims:
+            exact, has_all = self.hasAllQualifiers(qualifiers, claim)
+            if exact:
+                exact_matches.append(claim)
+            if has_all:
+                has_all_matches.append(claim)
+        if exact_matches:
+            if len(exact_matches) > 1:
+                raise pywikibot.Error("Multiple identical claims")
+            return exact_matches[0]
+        elif has_all_matches:
+            if len(has_all_matches) > 1:
+                raise pywikibot.Error("Multiple semi-identical claims")
+            return has_all_matches[0]
+
+        # weak matches case 5-6
+        if len(claims) > 1:
+            return None
+        claim = claims[0]
+        if not claim.sources and not claim.qualifiers:
+            return claim
+        elif not claim.qualifiers and force:
+            return claim
+        else:
+            return None
 
     def compareWbTimeClaim(self, target, itis):
         """

@@ -1,7 +1,7 @@
 {
     "entities": {
         "Q27399": {
-            "lastrevid": 100538, 
+            "lastrevid": 100580, 
             "pageid": 41311, 
             "sitelinks": {}, 
             "title": "Q27399", 
@@ -15,7 +15,7 @@
                     "language": "sv"
                 }
             }, 
-            "modified": "2016-11-22T13:57:45Z", 
+            "modified": "2016-11-22T20:48:04Z", 
             "descriptions": {
                 "en": {
                     "value": "en_description", 
@@ -430,6 +430,42 @@
                             "snaktype": "value"
                         }, 
                         "id": "Q27399$58a0a8bc-46e4-3dc6-16fe-e7c364103c9b", 
+                        "rank": "normal"
+                    }, 
+                    {
+                        "type": "statement", 
+                        "mainsnak": {
+                            "datatype": "wikibase-item", 
+                            "datavalue": {
+                                "type": "wikibase-entityid", 
+                                "value": {
+                                    "id": "Q505", 
+                                    "entity-type": "item", 
+                                    "numeric-id": 505
+                                }
+                            }, 
+                            "property": "P84", 
+                            "snaktype": "value"
+                        }, 
+                        "id": "Q27399$d504b497-4b45-7fa1-3dca-a9bef1278fa5", 
+                        "rank": "normal"
+                    }, 
+                    {
+                        "type": "statement", 
+                        "mainsnak": {
+                            "datatype": "wikibase-item", 
+                            "datavalue": {
+                                "type": "wikibase-entityid", 
+                                "value": {
+                                    "id": "Q505", 
+                                    "entity-type": "item", 
+                                    "numeric-id": 505
+                                }
+                            }, 
+                            "property": "P84", 
+                            "snaktype": "value"
+                        }, 
+                        "id": "Q27399$65be88ee-4e1f-3c9b-277a-5f09cf766425", 
                         "rank": "normal"
                     }
                 ]

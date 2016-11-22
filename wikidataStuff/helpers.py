@@ -447,7 +447,7 @@ def dbpedia_2_wikidata(dbpedia):
 
     try:
         json_data = json.loads(r.text)
-    except ValueError, e:
+    except ValueError as e:
         pywikibot.output(u'dbpedia-skip: %s, %s' % (dbpedia, e))
         return None
 
