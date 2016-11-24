@@ -14,5 +14,8 @@ setup(
     url='https://github.com/lokal-profil/' + repo,
     download_url='https://github.com/lokal-profil/' + repo + '/tarball/' + version,
     keywords=['Wikidata', 'Wikimedia', 'pywikibot', 'API'],
-    classifiers=[],
+    classifiers=[
+        'Programming Language :: Python :: 2.7'
+        # no py3 support due to MySQL-python
+    ],
 )
