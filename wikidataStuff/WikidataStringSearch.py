@@ -190,9 +190,9 @@ class WikidataStringSearch(object):
 
     def _print(self, s):
         """
-        Print text if verbose.
+        Output text if verbose.
 
-        @param s: text to print
+        @param s: text to output
         @type s: basestring
         """
         if self.verbose:
