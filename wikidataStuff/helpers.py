@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Common non-fundamental methods used by WikidataStuff bots.
 
-Methods comonly shared by Wikidata-stuff bots which are:
+Methods commonly shared by Wikidata-stuff bots which are:
 * not fundamental enough to be in WikidataStuff.py
 * not limited to kulturNav (in which case they are in kulturnavBot.py)
 * unrelated to Wikidata but reused throughout, if also needed in
@@ -38,7 +38,7 @@ def load_json_file(filename, force_path=None):
     another directory.
 
     @param filename: The filename, and path, to the json file
-    @type filename: str, unicode
+    @type filename: basestring
     @param force_path: Force the system to look for the file in the
         same directory as this file
     @type force_path: str
@@ -57,9 +57,9 @@ def fill_cache(pid, queryoverride=None, cache_max_age=0):
     Query Wikidata to fill the cache of entities which contain the id.
 
     @param pid: The id property
-    @type pid: str, unicode
+    @type pid: basestring
     @param queryoverride: A WDQ query to use instead of CLAIM[pid]
-    @type queryoverride: str, unicode
+    @type queryoverride: basestring
     @param cache_max_age: Max age of local cache, defaults to 0
     @type cache_max_age: int
     @return: Dictionary of IDno to Qno
@@ -115,7 +115,7 @@ def iso_to_WbTime(date):
     this returns the equivalent WbTime object
 
     @param item: An ISO date string
-    @type item: str, unicode
+    @type item: basestring
     @return: The converted result
     @rtype: pywikibot.WbTime
     """
@@ -156,9 +156,9 @@ def add_start_end_qualifiers(statement, startVal, endVal):
     @param statement: The statement to decorate
     @type statement: WD.Statement
     @param startVal: An ISO date string for the starting point
-    @type startVal: str, unicode, or None
+    @type startVal: basestring or None
     @param endVal: An ISO date string for the end point
-    @type endVal: str, unicode, or None
+    @type endVal: basestring or None
     @return: A statement decorated with start/end qualifiers
     @rtype: WD.Statement, or None
     """
@@ -193,9 +193,9 @@ def match_name(name, typ, wd, limit=75):
     stored in 'matchedNames' for later look-up.
 
     @param name: The name to search for
-    @type name: str, unicode
+    @type name: basestring
     @param typ: The name type (either 'lastName' or 'firstName')
-    @type typ: str, unicode
+    @type typ: basestring
     @param wd: The running WikidataStuff instance
     @type wd: WikidataStuff (WD)
     @param limit: Number of hits before skipping (defaults to 75,
@@ -244,9 +244,9 @@ def match_name_on_labs(name, types, wd):
     Requires that the bot is running on WMF toollabs.
 
     @param name: The name to search for
-    @type name: str, unicode
+    @type name: basestring
     @param types: The Q-values which are allowed for INSTANCE_OF_P
-    @type types: tuple of unicode
+    @type types: tuple of basestring
     @param wd: The running WikidataStuff instance
     @type wd: WikidataStuff (WD)
     @return: Any matching items
@@ -267,9 +267,9 @@ def match_name_off_labs(name, types, wd, limit):
     Less good than match_name_on_labs() but works from anywhere.
 
     @param name: The name to search for
-    @type name: str, unicode
+    @type name: basestring
     @param types: The Q-values which are allowed for INSTANCE_OF_P
-    @type types: tuple of unicode
+    @type types: tuple of basestring
     @param wd: The running WikidataStuff instance
     @type wd: WikidataStuff (WD)
     @return: Any matching items
@@ -305,7 +305,7 @@ def filter_on_types(obj, types, matches):
     @param obj: potential matches
     @type obj: pywikibot.ItemPage
     @param types: The Q-values which are allowed for INSTANCE_OF_P
-    @type types: tuple of unicode
+    @type types: tuple of basestring
     @param matches: list of confirmed matches
     @type matches: list (of pywikibot.ItemPage)
     """
@@ -371,8 +371,8 @@ def reorder_names(name):
     Strings with multiple commas result in an None being returned.
 
     @param name: The value to check
-    @type name: str, or unicode
-    @return str, or None
+    @type name: basestring
+    @return: str or None
     """
     if name.find(',') > 0 and len(name.split(',')) == 2:
         p = name.split(',')
@@ -392,12 +392,12 @@ def find_files(path, fileExts, subdir=True):
     Identify all files with a given extension in a given directory.
 
     @param path: Path to directory to look in
-    @type path: str, or unicode
+    @type path: basestring
     @param fileExts: Allowed file extensions (case insensitive)
-    @type fileExts: tuple (of str, or unicode)
+    @type fileExts: tuple (of basestring)
     @param subdir: Whether subdirs should also be searched, default=True
     @return: Paths to found files
-    @rtype: list (of str, or unicode)
+    @rtype: list (of basestring)
     """
     files = []
     subdirs = []
@@ -455,7 +455,7 @@ def dbpedia_2_wikidata(dbpedia):
         for g in json_data.get('@graph'):
             if g.get('http://www.w3.org/2002/07/owl#sameAs'):
                 for same in g.get('http://www.w3.org/2002/07/owl#sameAs'):
-                    if isinstance(same, (str, unicode)) and \
+                    if isinstance(same, basestring) and \
                             same.startswith('http://wikidata.org/entity/'):
                         return same[len('http://wikidata.org/entity/'):]
                 return None

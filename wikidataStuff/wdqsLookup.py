@@ -117,7 +117,7 @@ def sanitize_wdqs_result(data):
     @return: sanitized data
     @rtype: list of str
     """
-    if isinstance(data, (str, unicode)):
+    if isinstance(data, basestring):
         return data.split('/')[-1]
     elif isinstance(data, list):
         for i, d in enumerate(data):

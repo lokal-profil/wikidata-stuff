@@ -50,14 +50,14 @@ class WikidataStringSearch:
         Test that the user input is valid.
 
         @param text: the text to search for
-        @type text: str, unicode
+        @type text: basestring
         @param language: the language to search in, defaults to None=any
-        @type language: str, unicode, or None
+        @type language: basestring or None
         @param entities: the language to search in, defaults to None=any
-        @type entities: list (of str, unicode), or None
+        @type entities: list (of basestring), or None
         @param term_type: field to search in, defaults
             to None=['label', 'alias']
-        @type term_type: str, unicode, or None
+        @type term_type: basestring or None
         @return: if input is valid
         @rtype: bool
         """
@@ -84,7 +84,7 @@ class WikidataStringSearch:
 
             # Check each is correctly formatted
             if not all(e.startswith('Q') and
-                       isinstance(e, (str, unicode)) and
+                       isinstance(e, basestring) and
                        WikidataStringSearch.is_int(e[1:])
                        for e in entities):
                 self._print('Each entity must be a string like Q<integer>')
@@ -125,14 +125,14 @@ class WikidataStringSearch:
         to within a list of entities.
 
         @param text: the text to search for
-        @type text: str, unicode
+        @type text: basestring
         @param language: the language to search in, defaults to None=any
-        @type language: str, unicode, or None
+        @type language: basestring or None
         @param entities: the language to search in, defaults to None=any
-        @type entities: list (of str, unicode), or None
+        @type entities: list (of basestring), or None
         @param term_type: field to search in, defaults
             to None=['label', 'alias']
-        @type term_type: str, unicode, or None
+        @type term_type: basestring or None
         @return: list of matching Q values
         @rtype: list (of str)
         """
@@ -188,7 +188,7 @@ class WikidataStringSearch:
         Print text if verbose.
 
         @param s: text to print
-        @type s: string or unicode
+        @type s: basestring
         """
         if self.verbose:
             print s
