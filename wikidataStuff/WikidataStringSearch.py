@@ -4,11 +4,11 @@
 Must be run from labs and does these (SQL LIKE style) in
 labels, aliases and descriptions of items.
 """
-from __future__ import print_function
 from __future__ import unicode_literals
 from builtins import object
 import MySQLdb
 
+from pywikibot import output
 import wikidataStuff.helpers as helpers
 
 
@@ -196,7 +196,7 @@ class WikidataStringSearch(object):
         @type s: basestring
         """
         if self.verbose:
-            print(s)
+            output(s)
 
     @staticmethod
     def _type_fixed_row(row):
