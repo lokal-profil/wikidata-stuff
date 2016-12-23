@@ -1,7 +1,7 @@
 {
     "entities": {
         "Q27399": {
-            "lastrevid": 100085, 
+            "lastrevid": 100580, 
             "pageid": 41311, 
             "sitelinks": {}, 
             "title": "Q27399", 
@@ -15,7 +15,7 @@
                     "language": "sv"
                 }
             }, 
-            "modified": "2016-11-21T22:15:27Z", 
+            "modified": "2016-11-22T20:48:04Z", 
             "descriptions": {
                 "en": {
                     "value": "en_description", 
@@ -52,6 +52,93 @@
                         "id": "Q27399$a9b83de1-49d7-d033-939d-f430a232ffd0", 
                         "qualifiers-order": [
                             "P174"
+                        ], 
+                        "type": "statement", 
+                        "qualifiers": {
+                            "P174": [
+                                {
+                                    "datatype": "string", 
+                                    "datavalue": {
+                                        "type": "string", 
+                                        "value": "qualifier"
+                                    }, 
+                                    "property": "P174", 
+                                    "hash": "d7765b3535c17d733d316003eae496181f114787", 
+                                    "snaktype": "value"
+                                }
+                            ]
+                        }
+                    }, 
+                    {
+                        "type": "statement", 
+                        "references": [
+                            {
+                                "snaks": {
+                                    "P174": [
+                                        {
+                                            "datatype": "string", 
+                                            "datavalue": {
+                                                "type": "string", 
+                                                "value": "ref"
+                                            }, 
+                                            "property": "P174", 
+                                            "snaktype": "value"
+                                        }
+                                    ]
+                                }, 
+                                "hash": "8a9ff9f039e6add83e86ce07e5ba28ad88dcc8eb", 
+                                "snaks-order": [
+                                    "P174"
+                                ]
+                            }
+                        ], 
+                        "mainsnak": {
+                            "datatype": "string", 
+                            "datavalue": {
+                                "type": "string", 
+                                "value": "Duplicate_string_with_ref"
+                            }, 
+                            "property": "P664", 
+                            "snaktype": "value"
+                        }, 
+                        "id": "Q27399$87fff948-4ff0-0df9-a9bd-182d7f89281f", 
+                        "rank": "normal"
+                    }, 
+                    {
+                        "mainsnak": {
+                            "datatype": "string", 
+                            "datavalue": {
+                                "type": "string", 
+                                "value": "Duplicate_string_with_ref"
+                            }, 
+                            "property": "P664", 
+                            "snaktype": "value"
+                        }, 
+                        "rank": "normal", 
+                        "id": "Q27399$e63f47a3-45ea-e2fc-1363-8f6062205084", 
+                        "qualifiers-order": [
+                            "P174"
+                        ], 
+                        "references": [
+                            {
+                                "snaks": {
+                                    "P174": [
+                                        {
+                                            "datatype": "string", 
+                                            "datavalue": {
+                                                "type": "string", 
+                                                "value": "ref"
+                                            }, 
+                                            "property": "P174", 
+                                            "snaktype": "value"
+                                        }
+                                    ]
+                                }, 
+                                "hash": "8a9ff9f039e6add83e86ce07e5ba28ad88dcc8eb", 
+                                "snaks-order": [
+                                    "P174"
+                                ]
+                            }
                         ], 
                         "type": "statement", 
                         "qualifiers": {
@@ -239,6 +326,91 @@
                         }, 
                         "id": "Q27399$fd26eeb2-46c6-55e0-a770-08e0ad21e138", 
                         "rank": "normal"
+                    }, 
+                    {
+                        "mainsnak": {
+                            "datatype": "string", 
+                            "datavalue": {
+                                "type": "string", 
+                                "value": "A string entry with many qualifiers"
+                            }, 
+                            "property": "P174", 
+                            "snaktype": "value"
+                        }, 
+                        "rank": "normal", 
+                        "id": "Q27399$b48a2630-4fbb-932d-4f01-eefcf1e73f59", 
+                        "qualifiers-order": [
+                            "P174", 
+                            "P664"
+                        ], 
+                        "type": "statement", 
+                        "qualifiers": {
+                            "P664": [
+                                {
+                                    "datatype": "string", 
+                                    "datavalue": {
+                                        "type": "string", 
+                                        "value": "Another qualifier"
+                                    }, 
+                                    "property": "P664", 
+                                    "hash": "fbfe2b5fbe1bbb88ec430324551e80bcf5410ecd", 
+                                    "snaktype": "value"
+                                }
+                            ], 
+                            "P174": [
+                                {
+                                    "datatype": "string", 
+                                    "datavalue": {
+                                        "type": "string", 
+                                        "value": "A qualifier"
+                                    }, 
+                                    "property": "P174", 
+                                    "hash": "45d775f6987454f8631b9642f3171ad20fb80879", 
+                                    "snaktype": "value"
+                                }
+                            ]
+                        }
+                    }, 
+                    {
+                        "mainsnak": {
+                            "datatype": "string", 
+                            "datavalue": {
+                                "type": "string", 
+                                "value": "A string entry with many qualifiers 2"
+                            }, 
+                            "property": "P174", 
+                            "snaktype": "value"
+                        }, 
+                        "rank": "normal", 
+                        "id": "Q27399$0bc9927a-4bb2-145a-c1f9-059897f270bf", 
+                        "qualifiers-order": [
+                            "P174"
+                        ], 
+                        "type": "statement", 
+                        "qualifiers": {
+                            "P174": [
+                                {
+                                    "datatype": "string", 
+                                    "datavalue": {
+                                        "type": "string", 
+                                        "value": "A qualifier"
+                                    }, 
+                                    "property": "P174", 
+                                    "hash": "45d775f6987454f8631b9642f3171ad20fb80879", 
+                                    "snaktype": "value"
+                                }, 
+                                {
+                                    "datatype": "string", 
+                                    "datavalue": {
+                                        "type": "string", 
+                                        "value": "Another qualifier"
+                                    }, 
+                                    "property": "P174", 
+                                    "hash": "6b8b796a49afb2dd42e219352679d386af8390b1", 
+                                    "snaktype": "value"
+                                }
+                            ]
+                        }
                     }
                 ], 
                 "P84": [
@@ -258,6 +430,42 @@
                             "snaktype": "value"
                         }, 
                         "id": "Q27399$58a0a8bc-46e4-3dc6-16fe-e7c364103c9b", 
+                        "rank": "normal"
+                    }, 
+                    {
+                        "type": "statement", 
+                        "mainsnak": {
+                            "datatype": "wikibase-item", 
+                            "datavalue": {
+                                "type": "wikibase-entityid", 
+                                "value": {
+                                    "id": "Q505", 
+                                    "entity-type": "item", 
+                                    "numeric-id": 505
+                                }
+                            }, 
+                            "property": "P84", 
+                            "snaktype": "value"
+                        }, 
+                        "id": "Q27399$d504b497-4b45-7fa1-3dca-a9bef1278fa5", 
+                        "rank": "normal"
+                    }, 
+                    {
+                        "type": "statement", 
+                        "mainsnak": {
+                            "datatype": "wikibase-item", 
+                            "datavalue": {
+                                "type": "wikibase-entityid", 
+                                "value": {
+                                    "id": "Q505", 
+                                    "entity-type": "item", 
+                                    "numeric-id": 505
+                                }
+                            }, 
+                            "property": "P84", 
+                            "snaktype": "value"
+                        }, 
+                        "id": "Q27399$65be88ee-4e1f-3c9b-277a-5f09cf766425", 
                         "rank": "normal"
                     }
                 ]

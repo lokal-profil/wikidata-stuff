@@ -1,5 +1,6 @@
 user-config.py
 secretPasswords
+wikidata_batches/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -13,6 +14,7 @@ logs/
 
 # various
 *.log
+*.backup
 .tox/
 .coverage
 

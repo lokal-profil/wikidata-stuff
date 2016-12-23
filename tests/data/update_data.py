@@ -8,7 +8,6 @@ import json
 import codecs
 
 # load new
-#url = 'https://test.wikidata.org/wiki/Special:EntityData/Q27399.json'
 url = 'https://test.wikidata.org/w/api.php?action=wbgetentities&format=json&ids=Q27399'
 r = requests.get(url)
 loaded_data = json.loads(r.text)
