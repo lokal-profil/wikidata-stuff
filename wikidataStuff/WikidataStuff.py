@@ -668,10 +668,7 @@ def list_to_lower(string_list):
     @type string_list: list (of basestring)
     @rtype: list (of basestring)
     """
-    lower_list = []
-    for s in string_list:
-        lower_list.append(s.lower())
-    return lower_list
+    return [s.lower() for s in string_list]
 
 
 def listify(value):

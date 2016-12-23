@@ -13,6 +13,7 @@ import codecs
 import requests  # for dbpedia_2_wikidata
 import time  # for dbpedia_2_wikidata
 from datetime import datetime  # for today_as_WbTime
+
 import pywikibot
 from pywikibot import pagegenerators
 import pywikibot.data.wikidataquery as wdquery
@@ -359,8 +360,7 @@ def bundle_values(values):
         if v is not None:
             v = listify(v)
             bundle += v
-    if bundle:
-        return bundle
+    return bundle
 
 
 def reorder_names(name):
@@ -491,6 +491,9 @@ def sig_fig_error(digits):
 
     Requires that the number be given as a string (since sig. figs. may
     otherwise have been removed.)
+
+    Note that this is now rarely needed since errors no longer need to be
+    explicitly set.
 
     @param digits: the number to guestimate the error from
     @type unit: str
