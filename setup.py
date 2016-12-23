@@ -11,7 +11,7 @@ setup(
         'pywikibot==3.0-dev',
         'requests',
         'future',
-        'MySQL-python'
+        'mysqlclient'
     ],
     dependency_links=['git+https://github.com/wikimedia/pywikibot-core.git#egg=pywikibot-3.0-dev'],
     version=version,

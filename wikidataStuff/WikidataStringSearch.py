@@ -36,14 +36,14 @@ class WikidataStringSearch(object):
 
         # get types
         self.cursor.execute("SELECT DISTINCT term_type FROM wb_terms;")
-        for t in self.cursor.fetchall():
-            self.term_types += t
+        for row in self.cursor.fetchall():
+            self.term_types += WikidataStringSearch._type_fixed_row(row)
         self._print('found %d term_types' % len(self.term_types))
 
         # get languages
         self.cursor.execute("SELECT DISTINCT term_language FROM wb_terms;")
-        for l in self.cursor.fetchall():
-            self.languages += l
+        for row in self.cursor.fetchall():
+            self.languages += WikidataStringSearch._type_fixed_row(row)
         self._print('found %d languages' % len(self.languages))
 
     def close_connection(self):
@@ -197,6 +197,11 @@ class WikidataStringSearch(object):
         """
         if self.verbose:
             print(s)
+
+    @staticmethod
+    def _type_fixed_row(row):
+        """Ensure byte strings are converted to str, unicode as appropriate."""
+        return tuple([el.decode('utf-8') if isinstance(el, bytes) else el for el in row])
 
     @staticmethod
     def sql_in_format(l):
