@@ -8,10 +8,9 @@ Methods commonly shared by Wikidata-stuff bots which are:
   WikidataStuff.py then it is defined there and a wrapper provided here.
 """
 from __future__ import unicode_literals
-from builtins import dict, str
+from builtins import dict, open, str
 import os
 import json
-import codecs
 import requests  # for dbpedia_2_wikidata
 import time  # for dbpedia_2_wikidata
 from datetime import datetime  # for today_as_WbTime
@@ -60,7 +59,7 @@ def load_json_file(filename, force_path=None):
     if force_path:
         path = os.path.dirname(os.path.abspath(force_path))
         filename = os.path.join(path, filename)
-    with codecs.open(filename, 'r', 'utf-8') as f:
+    with open(filename, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 
