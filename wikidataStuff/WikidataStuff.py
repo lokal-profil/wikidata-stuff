@@ -13,8 +13,6 @@ import pywikibot
 import pywikibot.data.wikidataquery as wdquery  # Needed for wdqLookup
 from pywikibot.tools import deprecated
 
-from wikidataStuff.WikidataStringSearch import WikidataStringSearch
-
 
 class WikidataStuff(object):
     """Useful methods for interacting with Wikidata using pywikibot."""
@@ -182,6 +180,7 @@ class WikidataStuff(object):
             os.path.expanduser("~") +
             "/replica.my.cnf")
         if self.onLabs:
+            from wikidataStuff.WikidataStringSearch import WikidataStringSearch
             self.wdss = WikidataStringSearch()
 
         # extend pywikibot.Claim with a __repr__ method

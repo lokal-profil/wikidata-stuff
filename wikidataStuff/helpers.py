@@ -34,9 +34,11 @@ try:
     basestring  # attempt to evaluate basestring
 except NameError:
     def is_str(s):
+        """Python 3 test for string type."""
         return isinstance(s, str)
 else:
     def is_str(s):
+        """Python 2 test for basestring type."""
         return isinstance(s, basestring)
 
 
