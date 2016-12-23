@@ -4,6 +4,7 @@
 Must be run from labs and does these (SQL LIKE style) in
 labels, aliases and descriptions of items.
 """
+from __future__ import print_function
 import MySQLdb
 
 
@@ -191,7 +192,7 @@ class WikidataStringSearch:
         @type s: basestring
         """
         if self.verbose:
-            print s
+            print(s)
 
     @staticmethod
     def sql_in_format(l):
