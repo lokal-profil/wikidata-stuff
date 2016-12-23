@@ -1,5 +1,6 @@
 # -*- coding: utf-8  -*-
 """Unit tests for converters."""
+from __future__ import unicode_literals
 
 import unittest
 from wikidataStuff.helpers import (

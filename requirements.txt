@@ -1,3 +1,4 @@
+future
 git+https://github.com/wikimedia/pywikibot-core.git
 MySQL-python
 requests

@@ -5,10 +5,14 @@ Must be run from labs and does these (SQL LIKE style) in
 labels, aliases and descriptions of items.
 """
 from __future__ import print_function
+from __future__ import unicode_literals
+from builtins import object
 import MySQLdb
 
+import wikidataStuff.helpers as helpers
 
-class WikidataStringSearch:
+
+class WikidataStringSearch(object):
     """Run string searches on Wikidata from labs."""
 
     def __init__(self, verbose=False):
@@ -85,7 +89,7 @@ class WikidataStringSearch:
 
             # Check each is correctly formatted
             if not all(e.startswith('Q') and
-                       isinstance(e, basestring) and
+                       helpers.is_str(e) and
                        WikidataStringSearch.is_int(e[1:])
                        for e in entities):
                 self._print('Each entity must be a string like Q<integer>')

@@ -5,6 +5,8 @@
 # License: MIT
 #
 """Generally useful methods for interacting with Wikidata using pywikibot."""
+from __future__ import unicode_literals
+from builtins import dict, str, object
 import os.path  # Needed for WikidataStringSearch
 
 import pywikibot
@@ -230,7 +232,7 @@ class WikidataStuff(object):
             edit_summary = u'%s, %s' % (edit_summary, summary)
 
         # look at label
-        if not item.labels or lang not in item.labels.keys():
+        if not item.labels or lang not in item.labels:
             # add name to label
             labels = {lang: name}
             edit_summary %= 'label'
@@ -242,7 +244,7 @@ class WikidataStuff(object):
                 if name.lower() == item.labels[lang].lower():
                     return None
             edit_summary %= 'alias'
-            if not item.aliases or lang not in item.aliases.keys():
+            if not item.aliases or lang not in item.aliases:
                 aliases = {lang: [name, ]}
                 item.editAliases(aliases, summary=edit_summary)
                 pywikibot.output(edit_summary)
@@ -266,7 +268,7 @@ class WikidataStuff(object):
         """
         if claim.sources:
             for i, source in enumerate(claim.sources):
-                if prop in source.keys():
+                if prop in source:
                     for s in source[prop]:
                         if self.bypassRedirect(s.getTarget()) == itis:
                             return True
@@ -343,7 +345,7 @@ class WikidataStuff(object):
         @type claim: pywikibot.Claim
         """
         if claim.qualifiers:
-            if qual.prop in claim.qualifiers.keys():
+            if qual.prop in claim.qualifiers:
                 for s in claim.qualifiers[qual.prop]:
                     if self.bypassRedirect(s.getTarget()) == qual.itis:
                         return True
@@ -402,7 +404,7 @@ class WikidataStuff(object):
         @rtype: list of pywikibot.Claim
         """
         hits = []
-        if prop in item.claims.keys():
+        if prop in item.claims:
             for claim in item.claims[prop]:
                 if isinstance(itis, pywikibot.WbTime):
                     # WbTime compared differently
@@ -428,7 +430,7 @@ class WikidataStuff(object):
         @rtype: list of pywikibot.Claim
         """
         hits = []
-        if prop in item.claims.keys():
+        if prop in item.claims:
             for claim in item.claims[prop]:
                 if claim.getSnakType() == snaktype:
                     hits.append(claim)
@@ -650,7 +652,7 @@ class WikidataStuff(object):
         @type summary: basestring
         @rtype: pywikibot.ItemPage
         """
-        identification = {}  # If empty this defaults to creating an entity
+        identification = dict()  # If empty this defaults to creating an entity
         result = self.repo.editEntity(identification, data, summary=summary)
         pywikibot.output(summary)  # afterwards in case an error is raised
 

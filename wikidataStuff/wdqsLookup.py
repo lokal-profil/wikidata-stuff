@@ -4,9 +4,14 @@
 Meant as a quick replacement for WDQ searches (which always time out) to be
 used until there is a proper pywikibot module.
 """
+from __future__ import unicode_literals
+from builtins import dict, str
 import json
 import requests
 import pywikibot
+
+import wikidataStuff.helpers as helpers
+
 
 BASE_URL = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql?' \
            'format=json&query='
@@ -44,7 +49,7 @@ def make_simple_wdqs_query(query, verbose=False):
         data = []
         hooks = j['head']['vars']
         for binding in j['results']['bindings']:
-            entry = {}
+            entry = dict()
             for hook in hooks:
                 if binding.get(hook):
                     entry[hook] = binding[hook]['value']
@@ -117,15 +122,15 @@ def sanitize_wdqs_result(data):
     @return: sanitized data
     @rtype: list of str
     """
-    if isinstance(data, basestring):
+    if helpers.is_str(data):
         return data.split('/')[-1]
     elif isinstance(data, list):
         for i, d in enumerate(data):
             data[i] = d.split('/')[-1]
         return data
     if isinstance(data, dict):
-        new_data = {}
-        for k, v in data.iteritems():
+        new_data = dict()
+        for k, v in data.items():
             new_data[k.split('/')[-1]] = v
         return new_data
     else:
@@ -173,7 +178,7 @@ def list_of_dict_to_dict(data, key_key, value_key=None, allow_multiple=False):
     @return: the dict of new key-value pairs
     @rtype: dict
     """
-    results = {}
+    results = dict()
     for entry in data:
         key = entry[key_key]
         value = None
@@ -184,10 +189,10 @@ def list_of_dict_to_dict(data, key_key, value_key=None, allow_multiple=False):
             del value[key_key]
 
         if allow_multiple:
-            if key not in results.keys():
+            if key not in results:
                 results[key] = set()
             results[key].add(value)
-        elif key in results.keys() and value != results[key]:
+        elif key in results and value != results[key]:
             # two hits corresponding to different values
             raise pywikibot.Error(
                 'Double ids in Wikidata (%s): %s, %s' %

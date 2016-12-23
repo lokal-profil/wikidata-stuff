@@ -7,6 +7,8 @@ Methods commonly shared by Wikidata-stuff bots which are:
 * unrelated to Wikidata but reused throughout, if also needed in
   WikidataStuff.py then it is defined there and a wrapper provided here.
 """
+from __future__ import unicode_literals
+from builtins import dict, str
 import os
 import json
 import codecs
@@ -24,9 +26,19 @@ END_P = 'P582'  # end date
 INSTANCE_OF_P = 'P31'
 
 matchedNames = {  # a dict of found first/last_name_Q lookups
-    u'lastName': {},
-    u'firstName': {}
+    u'lastName': dict(),
+    u'firstName': dict()
 }
+
+# avoids having to use from past.builtins import basestring
+try:
+    basestring  # attempt to evaluate basestring
+except NameError:
+    def is_str(s):
+        return isinstance(s, str)
+else:
+    def is_str(s):
+        return isinstance(s, basestring)
 
 
 def load_json_file(filename, force_path=None):
@@ -66,7 +78,7 @@ def fill_cache(pid, queryoverride=None, cache_max_age=0):
     @rtype: dict
     """
     pid = pid.lstrip('P')  # standardise input
-    result = {}
+    result = dict()
     if queryoverride:
         query = queryoverride
     else:
@@ -80,7 +92,7 @@ def fill_cache(pid, queryoverride=None, cache_max_age=0):
         expectedItems = data.get('status').get('items')
         props = data.get('props').get(str(pid))
         for prop in props:
-            if prop[2] in result.keys() and prop[0] != result[prop[2]]:
+            if prop[2] in result and prop[0] != result[prop[2]]:
                 # Detect id's that are used more than once.
                 raise pywikibot.Error('Double ids in Wikidata: %s, %s (%s)' %
                                       (prop[0], result[prop[2]], query))
@@ -213,7 +225,7 @@ def match_name(name, typ, wd, limit=75):
         return
 
     # Check if already looked up
-    if name in matchedNames[typ].keys():
+    if name in matchedNames[typ]:
         return matchedNames[typ][name]
 
     # search for potential matches
@@ -292,8 +304,8 @@ def match_name_off_labs(name, types, wd, limit):
             # remove any matches (since incomplete) and exit loop
             return []  # avoids keeping a partial list
 
-        if name in (obj.get().get('labels').values() +
-                    obj.get().get('aliases').values()):
+        if name in obj.get().get('labels').values() or \
+                name in obj.get().get('aliases').values():
             filter_on_types(obj, types, matches)
     return matches
 
@@ -455,7 +467,7 @@ def dbpedia_2_wikidata(dbpedia):
         for g in json_data.get('@graph'):
             if g.get('http://www.w3.org/2002/07/owl#sameAs'):
                 for same in g.get('http://www.w3.org/2002/07/owl#sameAs'):
-                    if isinstance(same, basestring) and \
+                    if is_str(same) and \
                             same.startswith('http://wikidata.org/entity/'):
                         return same[len('http://wikidata.org/entity/'):]
                 return None
@@ -477,10 +489,7 @@ def get_unit_q(unit):
         'cm': 'Q174728',
         'mm': 'Q174789'
     }
-    if unit in units.keys():
-        return units[unit]
-    else:
-        return None
+    return units.get(unit)
 
 
 def sig_fig_error(digits):
@@ -508,7 +517,7 @@ def sig_fig_error(digits):
         return 0.5
     else:
         to_the = len(integral) - len(integral.rstrip('0'))
-        return pow(10, to_the)/2.0
+        return pow(10, to_the) / 2.0
 
 
 # generic methods which are needed in WikidataStuff.py are defined there to
