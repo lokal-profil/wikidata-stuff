@@ -6,9 +6,8 @@ python:
 env:
  - TOX_ENV=flake8
  - TOX_ENV=pydocstyle
- - TOX_ENV=py27
- - TOX_ENV=py3
 install:
  - pip install tox-travis
 script:
+ - tox
  - tox -e $TOX_ENV
