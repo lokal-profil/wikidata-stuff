@@ -9,6 +9,7 @@ import os.path  # Needed for WikidataStringSearch
 
 import pywikibot
 import pywikibot.data.wikidataquery as wdquery  # Needed for wdqLookup
+from pywikibot.tools import deprecated
 
 from wikidataStuff.WikidataStringSearch import WikidataStringSearch
 
@@ -304,7 +305,7 @@ class WikidataStuff(object):
                 raise pywikibot.Error(
                     'Something went very wrong trying to add a source: %s' % e)
 
-    def hasAllQualifiers(self, quals, claim):
+    def has_all_qualifiers(self, quals, claim):
         """
         Check if all qualifiers are already present.
 
@@ -384,7 +385,8 @@ class WikidataStuff(object):
                     'Something went very wrong trying to add a qualifier: %s' %
                     e)
 
-    def hasClaim(self, prop, itis, item):
+    @deprecated('hasClaim')
+    def has_claim(self, prop, itis, item):
         """
         Check if the claim already exists, if so returns any matching claim.
 
@@ -410,9 +412,9 @@ class WikidataStuff(object):
                     hits.append(claim)
         return hits
 
-    def hasSpecialClaim(self, prop, snaktype, item):
+    def has_special_claim(self, prop, snaktype, item):
         """
-        hasClaim() in the special case of 'somevalue' and 'novalue'.
+        has_claim() in the special case of 'somevalue' and 'novalue'.
 
         This only compares the target value and ignores any qualifiers.
 
@@ -457,10 +459,10 @@ class WikidataStuff(object):
         # handle special cases
         if statement.special:
             claim.setSnakType(statement.itis)
-            prior_claims = self.hasSpecialClaim(prop, statement.itis, item)
+            prior_claims = self.has_special_claim(prop, statement.itis, item)
         else:
             claim.setTarget(statement.itis)
-            prior_claims = self.hasClaim(prop, statement.itis, item)
+            prior_claims = self.has_claim(prop, statement.itis, item)
 
         # test reference (must be a Reference or explicitly missing)
         if not isinstance(ref, WikidataStuff.Reference) and ref is not None:
@@ -542,7 +544,7 @@ class WikidataStuff(object):
         exact_matches = []
         has_all_matches = []
         for claim in claims:
-            exact, has_all = self.hasAllQualifiers(qualifiers, claim)
+            exact, has_all = self.has_all_qualifiers(qualifiers, claim)
             if exact:
                 exact_matches.append(claim)
             if has_all:

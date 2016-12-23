@@ -147,20 +147,20 @@ class TestAddLabelOrAlias(BaseTest):
 
 class TestHasClaim(BaseTest):
 
-    """Test hasClaim()."""
+    """Test has_claim()."""
 
     def test_has_claim_prop_not_present(self):
         prop = 'P0'
         itis = 'A string'
         self.assertEquals(
-            self.wd_stuff.hasClaim(prop, itis, self.wd_page),
+            self.wd_stuff.has_claim(prop, itis, self.wd_page),
             [])
 
     def test_has_claim_prop_but_not_value(self):
         prop = 'P174'
         itis = 'An unknown string'
         self.assertEquals(
-            self.wd_stuff.hasClaim(prop, itis, self.wd_page),
+            self.wd_stuff.has_claim(prop, itis, self.wd_page),
             [])
 
     def test_has_claim_simple_match(self):
@@ -168,7 +168,7 @@ class TestHasClaim(BaseTest):
         itis = 'A string'
         expected = 'Q27399$3f62d521-4efe-e8de-8f2d-0d8a10e024cf'
 
-        hits = self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+        hits = self.wd_stuff.has_claim(prop, itis, self.wd_page)
         self.assertEquals(len(hits), 1)
         self.assertEquals(
             hits[0].toJSON()['id'],
@@ -179,7 +179,7 @@ class TestHasClaim(BaseTest):
         itis = 'A string with a reference'
         expected = 'Q27399$ef9f73ce-4cd5-13e5-a0bf-4ad835d8f9c3'
 
-        hits = self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+        hits = self.wd_stuff.has_claim(prop, itis, self.wd_page)
         self.assertEquals(len(hits), 1)
         self.assertEquals(
             hits[0].toJSON()['id'],
@@ -190,7 +190,7 @@ class TestHasClaim(BaseTest):
         itis = pywikibot.ItemPage(self.repo, 'Q1341')
         expected = 'Q27399$58a0a8bc-46e4-3dc6-16fe-e7c364103c9b'
 
-        hits = self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+        hits = self.wd_stuff.has_claim(prop, itis, self.wd_page)
         self.assertEquals(len(hits), 1)
         self.assertEquals(
             hits[0].toJSON()['id'],
@@ -202,7 +202,7 @@ class TestHasClaim(BaseTest):
         function = 'wikidataStuff.WikidataStuff.WikidataStuff.compareWbTimeClaim'
 
         with mock.patch(function, autospec=True) as mock_compare_WbTime:
-            self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+            self.wd_stuff.has_claim(prop, itis, self.wd_page)
             mock_compare_WbTime.assert_called_once_with(
                 self.wd_stuff, itis, itis)
 
@@ -211,7 +211,7 @@ class TestHasClaim(BaseTest):
         itis = 'A string entry with a qualifier'
         expected = 'Q27399$50b7cccb-4e9d-6f5d-d9c9-6b85d771c2d4'
 
-        hits = self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+        hits = self.wd_stuff.has_claim(prop, itis, self.wd_page)
         self.assertEquals(len(hits), 1)
         self.assertEquals(
             hits[0].toJSON()['id'],
@@ -223,7 +223,7 @@ class TestHasClaim(BaseTest):
         expected_1 = 'Q27399$221e4451-46d7-8c4a-53cb-47a4e0d09660'
         expected_2 = 'Q27399$a9b83de1-49d7-d033-939d-f430a232ffd0'
 
-        hits = self.wd_stuff.hasClaim(prop, itis, self.wd_page)
+        hits = self.wd_stuff.has_claim(prop, itis, self.wd_page)
         self.assertEquals(len(hits), 2)
         self.assertEquals(
             hits[0].toJSON()['id'],
@@ -278,7 +278,7 @@ class TestHasQualifier(BaseTest):
 
 class TestHasAllQualifiers(BaseTest):
 
-    """Test hasAllQualifiers()."""
+    """Test has_all_qualifiers()."""
 
     def setUp(self):
         super(TestHasAllQualifiers, self).setUp()
@@ -287,13 +287,13 @@ class TestHasAllQualifiers(BaseTest):
 
     def test_has_all_qualifiers_none(self):
         with self.assertRaises(TypeError):
-            self.wd_stuff.hasAllQualifiers(None, self.claim)
+            self.wd_stuff.has_all_qualifiers(None, self.claim)
 
     def test_has_all_qualifiers_empty(self):
         self.claim = self.wd_page.claims['P174'][2]  # no quals
         expected = (True, True)
         self.assertEquals(
-            self.wd_stuff.hasAllQualifiers(self.quals, self.claim),
+            self.wd_stuff.has_all_qualifiers(self.quals, self.claim),
             expected)
 
     def test_has_all_qualifiers_has_all(self):
@@ -303,7 +303,7 @@ class TestHasAllQualifiers(BaseTest):
             WD.WikidataStuff.Qualifier('P664', 'Another qualifier'))
         expected = (True, True)
         self.assertEquals(
-            self.wd_stuff.hasAllQualifiers(self.quals, self.claim),
+            self.wd_stuff.has_all_qualifiers(self.quals, self.claim),
             expected)
 
     def test_has_all_qualifiers_has_all_but_one(self):
@@ -315,7 +315,7 @@ class TestHasAllQualifiers(BaseTest):
             WD.WikidataStuff.Qualifier('P174', 'Not a qualifier'))
         expected = (False, False)
         self.assertEquals(
-            self.wd_stuff.hasAllQualifiers(self.quals, self.claim),
+            self.wd_stuff.has_all_qualifiers(self.quals, self.claim),
             expected)
 
     def test_has_all_qualifiers_has_all_plus_one(self):
@@ -323,7 +323,7 @@ class TestHasAllQualifiers(BaseTest):
             WD.WikidataStuff.Qualifier('P174', 'A qualifier'))
         expected = (False, True)
         self.assertEquals(
-            self.wd_stuff.hasAllQualifiers(self.quals, self.claim),
+            self.wd_stuff.has_all_qualifiers(self.quals, self.claim),
             expected)
 
 
@@ -485,7 +485,7 @@ class TestAddNewClaim(BaseTest):
     def test_add_new_claim_call_special_has_claim(self):
         value = 'somevalue'
         statement = WD.WikidataStuff.Statement(value, special=True)
-        function = 'wikidataStuff.WikidataStuff.WikidataStuff.hasSpecialClaim'
+        function = 'wikidataStuff.WikidataStuff.WikidataStuff.has_special_claim'
 
         with mock.patch(function, autospec=True) as mock_has_special_claim:
             self.wd_stuff.addNewClaim(
