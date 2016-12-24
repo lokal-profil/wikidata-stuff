@@ -496,17 +496,23 @@ class TestAddNewClaim(BaseTest):
 
     def test_add_new_claim_raise_error_on_bad_ref(self):
         statement = WD.WikidataStuff.Statement(self.value)
-        with self.assertRaises(pywikibot.Error):
+        with self.assertRaises(pywikibot.Error) as e:
             self.wd_stuff.addNewClaim(
                 self.prop, statement, self.wd_page, 'Not a ref')
+        self.assertEquals(str(e.exception),
+                          'The provided reference was not a '
+                          'Reference object. Crashing')
 
     def test_add_new_claim_reraise_error_on_duplicate_matching_claim(self):
         self.prop = 'P84'
         self.value = pywikibot.ItemPage(self.repo, 'Q505')
         statement = WD.WikidataStuff.Statement(self.value)
-        with self.assertRaises(pywikibot.Error):
+        with self.assertRaises(pywikibot.Error) as e:
             self.wd_stuff.addNewClaim(
                 self.prop, statement, self.wd_page, self.ref)
+        self.assertEquals(str(e.exception),
+                          'Problem adding P84 claim to [[wikidata:test:-1]]: '
+                          'Multiple identical claims')
 
 
 class TestMatchClaim(BaseTest):
@@ -544,9 +550,10 @@ class TestMatchClaim(BaseTest):
         # 1. many exact matches: raise error (means duplicates on Wikidata)
         self.claims.append(self.no_qual_two_ref)
         self.claims.append(self.no_qual_no_ref)
-        with self.assertRaises(pywikibot.Error):
+        with self.assertRaises(pywikibot.Error) as e:
             self.wd_stuff.match_claim(
                 self.claims, self.qualifiers, self.force)
+        self.assertEquals(str(e.exception), 'Multiple identical claims')
 
     def test_match_claim_empty_qualifier_exact(self):
         # 2. if no qualifier select the unqualified
@@ -574,9 +581,10 @@ class TestMatchClaim(BaseTest):
         # 3. unclaimed i equally close to any with claims
         self.claims.append(self.one_qual_no_ref)
         self.claims.append(self.two_qual_no_ref)
-        with self.assertRaises(pywikibot.Error):
+        with self.assertRaises(pywikibot.Error) as e:
             self.wd_stuff.match_claim(
                 self.claims, self.qualifiers, self.force)
+        self.assertEquals(str(e.exception), 'Multiple semi-identical claims')
 
     def test_match_claim_one_qualifier_close(self):
         # 4. if qualified select the closest match
