@@ -277,6 +277,9 @@ class WikidataStuff(object):
         """
         Add a reference if not already present.
 
+        If a source contains the claims in WD.Reference AND additional claims,
+        it will not be sourced.
+
         @param item: the item on which all of this happens
         @param claim: the pywikibot.Claim to be sourced
         @param ref: the WD.Reference to add

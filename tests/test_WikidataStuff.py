@@ -328,6 +328,127 @@ class TestHasAllQualifiers(BaseTest):
             expected)
 
 
+class TestAddReference(BaseTest):
+
+    """Test addReference()."""
+
+    def setUp(self):
+        super(TestAddReference, self).setUp()
+        self.claim_no_ref = self.wd_page.claims['P174'][2]
+        # one ref with two claims: P174:ref_1, P664:ref_2
+        self.claim_one_ref = self.wd_page.claims['P174'][1]
+        # two refs each with one claim: P174:ref_1, P174:ref_2
+        self.claim_two_refs = self.wd_page.claims['P174'][3]
+
+        # load three claims to use when making references
+        self.ref_1 = pywikibot.Claim(self.repo, 'P174')
+        self.ref_1.setTarget('ref_1')
+        self.ref_2 = pywikibot.Claim(self.repo, 'P664')
+        self.ref_2.setTarget('ref_2')
+        self.unmatched_ref = pywikibot.Claim(self.repo, 'P174')
+        self.unmatched_ref.setTarget('Unmatched_ref')
+
+        sources_patcher = mock.patch(
+            'wikidataStuff.WikidataStuff.pywikibot.Claim.addSources')
+        self.mock_add_sources = sources_patcher.start()
+        self.addCleanup(sources_patcher.stop)
+
+    def test_add_reference_empty_ref(self):
+        self.assertFalse(
+            self.wd_stuff.addReference(item=None, claim=None, ref=None))
+        self.mock_add_sources.assert_not_called()
+
+    def test_add_reference_test_no_prior(self):
+        reference = WD.WikidataStuff.Reference(source_test=self.ref_1)
+        self.assertTrue(
+            self.wd_stuff.addReference(
+                item=self.wd_page,
+                claim=self.claim_no_ref,
+                ref=reference))
+        self.mock_add_sources.assert_called_once_with(
+            [self.ref_1], summary=None)
+
+    def test_add_reference_notest_no_prior(self):
+        reference = WD.WikidataStuff.Reference(source_notest=self.ref_1)
+        self.assertTrue(
+            self.wd_stuff.addReference(
+                item=self.wd_page,
+                claim=self.claim_no_ref,
+                ref=reference))
+        self.mock_add_sources.assert_called_once_with(
+            [self.ref_1], summary=None)
+
+    def test_add_reference_has_ref_and_one_more(self):
+        reference = WD.WikidataStuff.Reference(source_test=self.ref_1)
+        self.assertFalse(
+            self.wd_stuff.addReference(
+                item=self.wd_page,
+                claim=self.claim_one_ref,
+                ref=reference))
+        self.mock_add_sources.assert_not_called()
+
+    def test_add_reference_has_both(self):
+        reference = WD.WikidataStuff.Reference(
+            source_test=self.ref_1, source_notest=self.ref_2)
+        self.assertFalse(
+            self.wd_stuff.addReference(
+                item=self.wd_page,
+                claim=self.claim_one_ref,
+                ref=reference))
+        self.mock_add_sources.assert_not_called()
+
+    def test_add_reference_has_test_only(self):
+        reference = WD.WikidataStuff.Reference(
+            source_test=self.ref_1, source_notest=self.unmatched_ref)
+        self.assertFalse(
+            self.wd_stuff.addReference(
+                item=self.wd_page,
+                claim=self.claim_one_ref,
+                ref=reference))
+        self.mock_add_sources.assert_not_called()
+
+    def test_add_reference_has_notest_only(self):
+        reference = WD.WikidataStuff.Reference(
+            source_test=self.unmatched_ref, source_notest=self.ref_2)
+        self.assertTrue(
+            self.wd_stuff.addReference(
+                item=self.wd_page,
+                claim=self.claim_one_ref,
+                ref=reference))
+        self.mock_add_sources.assert_called_once_with(
+            [self.unmatched_ref, self.ref_2], summary=None)
+
+    def test_add_reference_with_summary(self):
+        reference = WD.WikidataStuff.Reference(source_test=self.ref_1)
+        self.assertTrue(
+            self.wd_stuff.addReference(
+                item=self.wd_page,
+                claim=self.claim_no_ref,
+                ref=reference,
+                summary='test_me'))
+        self.mock_add_sources.assert_called_once_with(
+            [self.ref_1], summary='test_me')
+
+    def test_add_reference_detect_when_multple_sources(self):
+        reference = WD.WikidataStuff.Reference(source_test=self.ref_1)
+        self.assertFalse(
+            self.wd_stuff.addReference(
+                item=self.wd_page,
+                claim=self.claim_two_refs,
+                ref=reference))
+        self.mock_add_sources.assert_not_called()
+
+    def test_add_reference_add_when_multple_sources(self):
+        reference = WD.WikidataStuff.Reference(source_test=self.ref_2)
+        self.assertTrue(
+            self.wd_stuff.addReference(
+                item=self.wd_page,
+                claim=self.claim_two_refs,
+                ref=reference))
+        self.mock_add_sources.assert_called_once_with(
+            [self.ref_2], summary=None)
+
+
 class TestAddNewClaim(BaseTest):
 
     """Test addNewClaim()."""
