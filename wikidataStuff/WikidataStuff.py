@@ -367,6 +367,9 @@ class WikidataStuff(object):
         @param qual: Qualifier to check
         @param summary: summary to append to auto-generated edit summary
         """
+        if not qual:
+            raise pywikibot.Error(
+                'Cannot call addQualifier() without a qualifier.')
         # check if already present
         if self.hasQualifier(qual, claim):
             return False

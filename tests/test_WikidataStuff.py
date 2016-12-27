@@ -449,6 +449,82 @@ class TestAddReference(BaseTest):
             [self.ref_2], summary=None)
 
 
+class TestAddQualifier(BaseTest):
+
+    """Test addQualifier()."""
+
+    def setUp(self):
+        super(TestAddQualifier, self).setUp()
+        self.claim = self.wd_page.claims['P174'][2]
+        self.qual = WD.WikidataStuff.Qualifier('P174', 'A qualifier')
+
+        qualifier_patcher = mock.patch(
+            'wikidataStuff.WikidataStuff.pywikibot.Claim.addQualifier')
+        make_claim_patcher = mock.patch(
+            'wikidataStuff.WikidataStuff.WikidataStuff.make_simple_claim')
+        has_qualifier_patcher = mock.patch(
+            'wikidataStuff.WikidataStuff.WikidataStuff.hasQualifier')
+        self.mock_add_qualifier = qualifier_patcher.start()
+        self.mock_make_simple_claim = make_claim_patcher.start()
+        self.mock_has_qualifier = has_qualifier_patcher.start()
+        self.addCleanup(qualifier_patcher.stop)
+        self.addCleanup(make_claim_patcher.stop)
+        self.addCleanup(has_qualifier_patcher.stop)
+
+    def test_add_qualifier_empty_qual(self):
+        with self.assertRaises(pywikibot.Error) as e:
+            self.wd_stuff.addQualifier(item=None, claim=None, qual=None)
+        self.assertEquals(
+            str(e.exception),
+            'Cannot call addQualifier() without a qualifier.')
+        self.mock_has_qualifier.assert_not_called()
+        self.mock_make_simple_claim.assert_not_called()
+        self.mock_add_qualifier.assert_not_called()
+
+    def test_add_qualifier_has(self):
+        self.mock_has_qualifier.return_value = True
+        self.assertFalse(
+            self.wd_stuff.addQualifier(
+                item=self.wd_page,
+                claim=self.claim,
+                qual=self.qual))
+        self.mock_has_qualifier.assert_called_once_with(
+            self.qual, self.claim)
+        self.mock_make_simple_claim.assert_not_called()
+        self.mock_add_qualifier.assert_not_called()
+
+    def test_add_qualifier_has_not(self):
+        self.mock_has_qualifier.return_value = False
+        self.mock_make_simple_claim.return_value = 'test'
+        self.assertTrue(
+            self.wd_stuff.addQualifier(
+                item=self.wd_page,
+                claim=self.claim,
+                qual=self.qual))
+        self.mock_has_qualifier.assert_called_once_with(
+            self.qual, self.claim)
+        self.mock_make_simple_claim.assert_called_once_with(
+            self.qual.prop, self.qual.itis)
+        self.mock_add_qualifier.assert_called_once_with(
+            'test', summary=None)
+
+    def test_add_qualifier_with_summary(self):
+        self.mock_has_qualifier.return_value = False
+        self.mock_make_simple_claim.return_value = 'test'
+        self.assertTrue(
+            self.wd_stuff.addQualifier(
+                item=self.wd_page,
+                claim=self.claim,
+                qual=self.qual,
+                summary='test_me'))
+        self.mock_has_qualifier.assert_called_once_with(
+            self.qual, self.claim)
+        self.mock_make_simple_claim.assert_called_once_with(
+            self.qual.prop, self.qual.itis)
+        self.mock_add_qualifier.assert_called_once_with(
+            'test', summary='test_me')
+
+
 class TestAddNewClaim(BaseTest):
 
     """Test addNewClaim()."""
