@@ -17,20 +17,20 @@ class TestListify(unittest.TestCase):
     """Test listify()."""
 
     def test_listify_none(self):
-        self.assertEquals(WD.listify(None), None)
+        self.assertEqual(WD.listify(None), None)
 
     def test_listify_empty_list(self):
-        self.assertEquals(WD.listify([]), [])
+        self.assertEqual(WD.listify([]), [])
 
     def test_listify_list(self):
         input_value = ['a', 'c']
         expected = ['a', 'c']
-        self.assertEquals(WD.listify(input_value), expected)
+        self.assertEqual(WD.listify(input_value), expected)
 
     def test_listify_string(self):
         input_value = 'a string'
         expected = ['a string']
-        self.assertEquals(WD.listify(input_value), expected)
+        self.assertEqual(WD.listify(input_value), expected)
 
 
 class BaseTest(unittest.TestCase):
@@ -153,14 +153,14 @@ class TestHasClaim(BaseTest):
     def test_has_claim_prop_not_present(self):
         prop = 'P0'
         itis = 'A string'
-        self.assertEquals(
+        self.assertEqual(
             self.wd_stuff.has_claim(prop, itis, self.wd_page),
             [])
 
     def test_has_claim_prop_but_not_value(self):
         prop = 'P174'
         itis = 'An unknown string'
-        self.assertEquals(
+        self.assertEqual(
             self.wd_stuff.has_claim(prop, itis, self.wd_page),
             [])
 
@@ -170,8 +170,8 @@ class TestHasClaim(BaseTest):
         expected = 'Q27399$3f62d521-4efe-e8de-8f2d-0d8a10e024cf'
 
         hits = self.wd_stuff.has_claim(prop, itis, self.wd_page)
-        self.assertEquals(len(hits), 1)
-        self.assertEquals(
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(
             hits[0].toJSON()['id'],
             expected)
 
@@ -181,8 +181,8 @@ class TestHasClaim(BaseTest):
         expected = 'Q27399$ef9f73ce-4cd5-13e5-a0bf-4ad835d8f9c3'
 
         hits = self.wd_stuff.has_claim(prop, itis, self.wd_page)
-        self.assertEquals(len(hits), 1)
-        self.assertEquals(
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(
             hits[0].toJSON()['id'],
             expected)
 
@@ -192,8 +192,8 @@ class TestHasClaim(BaseTest):
         expected = 'Q27399$58a0a8bc-46e4-3dc6-16fe-e7c364103c9b'
 
         hits = self.wd_stuff.has_claim(prop, itis, self.wd_page)
-        self.assertEquals(len(hits), 1)
-        self.assertEquals(
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(
             hits[0].toJSON()['id'],
             expected)
 
@@ -213,8 +213,8 @@ class TestHasClaim(BaseTest):
         expected = 'Q27399$50b7cccb-4e9d-6f5d-d9c9-6b85d771c2d4'
 
         hits = self.wd_stuff.has_claim(prop, itis, self.wd_page)
-        self.assertEquals(len(hits), 1)
-        self.assertEquals(
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(
             hits[0].toJSON()['id'],
             expected)
 
@@ -225,11 +225,11 @@ class TestHasClaim(BaseTest):
         expected_2 = 'Q27399$a9b83de1-49d7-d033-939d-f430a232ffd0'
 
         hits = self.wd_stuff.has_claim(prop, itis, self.wd_page)
-        self.assertEquals(len(hits), 2)
-        self.assertEquals(
+        self.assertEqual(len(hits), 2)
+        self.assertEqual(
             hits[0].toJSON()['id'],
             expected_1)
-        self.assertEquals(
+        self.assertEqual(
             hits[1].toJSON()['id'],
             expected_2)
 
@@ -323,7 +323,7 @@ class TestHasAllQualifiers(BaseTest):
 
     def test_has_all_qualifiers_empty(self):
         expected = (True, True)
-        self.assertEquals(
+        self.assertEqual(
             self.wd_stuff.has_all_qualifiers(self.quals, self.claim_no_qual),
             expected)
 
@@ -331,7 +331,7 @@ class TestHasAllQualifiers(BaseTest):
         self.quals.append(self.qual_1)
         self.quals.append(self.qual_2)
         expected = (True, True)
-        self.assertEquals(
+        self.assertEqual(
             self.wd_stuff.has_all_qualifiers(self.quals, self.claim),
             expected)
 
@@ -340,14 +340,14 @@ class TestHasAllQualifiers(BaseTest):
         self.quals.append(self.qual_2)
         self.quals.append(self.unmatched)
         expected = (False, False)
-        self.assertEquals(
+        self.assertEqual(
             self.wd_stuff.has_all_qualifiers(self.quals, self.claim),
             expected)
 
     def test_has_all_qualifiers_has_all_plus_one(self):
         self.quals.append(self.qual_1)
         expected = (False, True)
-        self.assertEquals(
+        self.assertEqual(
             self.wd_stuff.has_all_qualifiers(self.quals, self.claim),
             expected)
 
@@ -498,7 +498,7 @@ class TestAddQualifier(BaseTest):
     def test_add_qualifier_empty_qual(self):
         with self.assertRaises(pywikibot.Error) as e:
             self.wd_stuff.addQualifier(item=None, claim=None, qual=None)
-        self.assertEquals(
+        self.assertEqual(
             str(e.exception),
             'Cannot call addQualifier() without a qualifier.')
         self.mock_has_qualifier.assert_not_called()
@@ -606,7 +606,7 @@ class TestAddNewClaim(BaseTest):
         self.mock_add_reference.assert_called_once()
 
         # ensure the right claim was sourced
-        self.assertEquals(
+        self.assertEqual(
             self.mock_add_reference.call_args[0][1].toJSON()['id'],
             expected_claim)
 
@@ -616,7 +616,7 @@ class TestAddNewClaim(BaseTest):
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
         self.mock_add_claim.assert_called_once()
-        self.assertEquals(self.mock_add_qualifier.call_count, 2)
+        self.assertEqual(self.mock_add_qualifier.call_count, 2)
         self.mock_add_reference.assert_called_once()
 
     def test_add_new_claim_old_property_new_value_with_quals(self):
@@ -626,7 +626,7 @@ class TestAddNewClaim(BaseTest):
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
         self.mock_add_claim.assert_called_once()
-        self.assertEquals(self.mock_add_qualifier.call_count, 2)
+        self.assertEqual(self.mock_add_qualifier.call_count, 2)
         self.mock_add_reference.assert_called_once()
 
     def test_add_new_claim_old_property_old_value_without_quals(self):
@@ -638,9 +638,9 @@ class TestAddNewClaim(BaseTest):
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
         self.mock_add_claim.assert_not_called()
-        self.assertEquals(self.mock_add_qualifier.call_count, 2)
+        self.assertEqual(self.mock_add_qualifier.call_count, 2)
         self.mock_add_reference.assert_called_once()
-        self.assertEquals(
+        self.assertEqual(
             self.mock_add_reference.call_args[0][1].toJSON()['id'],
             expected_claim)
 
@@ -652,7 +652,7 @@ class TestAddNewClaim(BaseTest):
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
         self.mock_add_claim.assert_called_once()
-        self.assertEquals(self.mock_add_qualifier.call_count, 2)
+        self.assertEqual(self.mock_add_qualifier.call_count, 2)
         self.mock_add_reference.assert_called_once()
 
     def test_add_new_claim_old_property_old_value_with_same_quals(self):
@@ -664,9 +664,9 @@ class TestAddNewClaim(BaseTest):
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
         self.mock_add_claim.assert_not_called()
-        self.assertEquals(self.mock_add_qualifier.call_count, 2)
+        self.assertEqual(self.mock_add_qualifier.call_count, 2)
         self.mock_add_reference.assert_called_once()
-        self.assertEquals(
+        self.assertEqual(
             self.mock_add_reference.call_args[0][1].toJSON()['id'],
             expected_claim)
 
@@ -682,7 +682,7 @@ class TestAddNewClaim(BaseTest):
         self.mock_add_claim.assert_not_called()
         self.mock_add_claim.mock_add_qualifier()
         self.mock_add_reference.assert_called_once()
-        self.assertEquals(
+        self.assertEqual(
             self.mock_add_reference.call_args[0][1].toJSON()['id'],
             expected_claim)
 
@@ -698,7 +698,7 @@ class TestAddNewClaim(BaseTest):
         self.mock_add_claim.assert_not_called()
         self.mock_add_claim.mock_add_qualifier()
         self.mock_add_reference.assert_called_once()
-        self.assertEquals(
+        self.assertEqual(
             self.mock_add_reference.call_args[0][1].toJSON()['id'],
             expected_claim)
 
@@ -718,7 +718,7 @@ class TestAddNewClaim(BaseTest):
         with self.assertRaises(pywikibot.Error) as e:
             self.wd_stuff.addNewClaim(
                 self.prop, statement, self.wd_page, 'Not a ref')
-        self.assertEquals(str(e.exception),
+        self.assertEqual(str(e.exception),
                           'The provided reference was not a '
                           'Reference object. Crashing')
 
@@ -729,7 +729,7 @@ class TestAddNewClaim(BaseTest):
         with self.assertRaises(pywikibot.Error) as e:
             self.wd_stuff.addNewClaim(
                 self.prop, statement, self.wd_page, self.ref)
-        self.assertEquals(str(e.exception),
+        self.assertEqual(str(e.exception),
                           'Problem adding P84 claim to [[wikidata:test:-1]]: '
                           'Multiple identical claims')
 
@@ -772,14 +772,14 @@ class TestMatchClaim(BaseTest):
         with self.assertRaises(pywikibot.Error) as e:
             self.wd_stuff.match_claim(
                 self.claims, self.qualifiers, self.force)
-        self.assertEquals(str(e.exception), 'Multiple identical claims')
+        self.assertEqual(str(e.exception), 'Multiple identical claims')
 
     def test_match_claim_empty_qualifier_exact(self):
         # 2. if no qualifier select the unqualified
         self.claims.append(self.one_qual_no_ref)
         self.claims.append(self.no_qual_no_ref)
         expected_claim = self.no_qual_no_ref
-        self.assertEquals(
+        self.assertEqual(
             self.wd_stuff.match_claim(
                 self.claims, self.qualifiers, self.force),
             expected_claim)
@@ -791,7 +791,7 @@ class TestMatchClaim(BaseTest):
         self.claims.append(self.two_qual_no_ref)
         self.qualifiers.append(self.matched_qualifier)
         expected_claim = self.one_qual_no_ref
-        self.assertEquals(
+        self.assertEqual(
             self.wd_stuff.match_claim(
                 self.claims, self.qualifiers, self.force),
             expected_claim)
@@ -803,7 +803,7 @@ class TestMatchClaim(BaseTest):
         with self.assertRaises(pywikibot.Error) as e:
             self.wd_stuff.match_claim(
                 self.claims, self.qualifiers, self.force)
-        self.assertEquals(str(e.exception), 'Multiple semi-identical claims')
+        self.assertEqual(str(e.exception), 'Multiple semi-identical claims')
 
     def test_match_claim_one_qualifier_close(self):
         # 4. if qualified select the closest match
@@ -812,7 +812,7 @@ class TestMatchClaim(BaseTest):
         self.claims.append(self.two_qual_no_ref)
         self.qualifiers.append(self.matched_qualifier)
         expected_claim = self.two_qual_no_ref
-        self.assertEquals(
+        self.assertEqual(
             self.wd_stuff.match_claim(
                 self.claims, self.qualifiers, self.force),
             expected_claim)
@@ -832,7 +832,7 @@ class TestMatchClaim(BaseTest):
         self.claims.append(self.no_qual_no_ref)
         expected_claim = self.no_qual_no_ref
         self.qualifiers.append(self.unmatched_qualifier)
-        self.assertEquals(
+        self.assertEqual(
             self.wd_stuff.match_claim(
                 self.claims, self.qualifiers, self.force),
             expected_claim)
@@ -844,7 +844,7 @@ class TestMatchClaim(BaseTest):
         self.qualifiers.append(self.unmatched_qualifier)
         self.force = True
         expected_claim = self.no_qual_two_ref
-        self.assertEquals(
+        self.assertEqual(
             self.wd_stuff.match_claim(
                 self.claims, self.qualifiers, self.force),
             expected_claim)
