@@ -106,6 +106,45 @@ def fill_cache(pid, queryoverride=None, cache_max_age=0):
     return result
 
 
+#@todo: test and implement rest.
+#Move to wdqs since import here is cyclical?
+#support queryoverride
+def fill_cache_wdqs(pid, queryoverride=None, cache_max_age=0):
+    """
+    Query Wikidata to fill the cache of entities which contain the id.
+
+    @param pid: The id property
+    @type pid: basestring
+    @param queryoverride: A WDQ query to use instead of CLAIM[pid] [ignored]
+    @type queryoverride: basestring
+    @param cache_max_age: Max age of local cache, defaults to 0 [ignored]
+    @type cache_max_age: int
+    @return: Dictionary of IDno to Qno (without Q prefix)
+    @rtype: dict
+    """
+    import wikidataStuff.wdqsLookup as wdqsLookup  # to avoid cyclical import
+    pid = pid.lstrip('P')  # standardise input
+    result = dict()
+    if queryoverride:
+        query = queryoverride
+        raise NotImplementedError('querryoverride has not been implemented')
+    else:
+        query = 'CLAIM[%s]' % pid  # for error
+        item_ids = wdqsLookup.make_claim_wdqs_search(
+            'P%s' % pid, get_values=True, allow_multiple=True)
+
+    # invert and check existence and uniqueness
+    for q_id, values in item_ids.items():
+        for value in values:
+            if value in result:
+                pywikibot.output(
+                    'Double ids in Wikidata: %s, %s (%s)' %
+                    (q_id, result[value], query))
+            result[value] = int(q_id.lstrip('Q'))  # int for wdq compatibility
+
+    return result
+
+
 def today_as_WbTime():
     """
     Get todays date as a WbTime object.

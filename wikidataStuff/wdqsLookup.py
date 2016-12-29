@@ -63,6 +63,7 @@ def make_simple_wdqs_query(query, verbose=False):
     return data
 
 
+# Need support for u'CLAIM[195:qid1,195:qid2] AND NOCLAIM[170]'
 def wdq_to_wdqs(wdq_query):
     """
     A wrapper for easily swapping in wdqs for WDQ queries.
@@ -310,6 +311,10 @@ def make_tree_wdqs_search(item_1, prop_2, prop_3):
         list_of_dict_to_list(data, 'item'))
 
 
+# @todo: make addition to handle multiple prop/q_value pairs (incl. support for get_values)
+# for get_values only on some we can instead set get_values=False  + optional_props
+# split out CLAIM part and select/optional handling to allow more general queries
+# i.e. this would send send something like "?item wdt:%%s %s . " % q_value" there.
 def make_claim_wdqs_search(prop, get_values=False, q_value=None,
                            optional_props=None, allow_multiple=False,
                            qualifiers=None):
@@ -397,7 +402,7 @@ def make_claim_wdqs_search(prop, get_values=False, q_value=None,
 
 def make_claim_qualifiers_sparql(main_prop, qualifiers):
     """
-    Make the required sparql for qualifier to a CLAIM.
+    Make the required sparql for qualifiers to a CLAIM.
 
     I.e. a qualifier like CLAIM[pid]{CLAIM[pid:qid]}.
     Only supports qualifiers of CLAIM and STRING type.
@@ -475,3 +480,5 @@ def make_string_qualifier(qual_prop, qual_string):
         "?dummy0 pq:P%s \"%s\" ." \
         "}" % (str(qual_prop).lstrip('P'), qual_string)
     return sparql
+
+#https://query.wikidata.org/#%23%20u%27CLAIM%5B1248%5D%7BCLAIM%5B972%3A20103697%5D%20OR%20CLAIM%5B972%3A20742915%5D%20OR%20CLAIM%5B972%3A20742975%5D%7D%0ASELECT%20%3Fitem%20%3Fdummy1%20%23%20%3FitemLabel%20%3Fdummy0%20%3Fdummy1%0AWHERE%20%7B%0A%09%3Fitem%20wdt%3AP1248%20%3Fdummy1%20.%0A%20%20%20%20%3Fitem%20p%3AP1248%20%3Fdummy0%20.%0A%09%7B%0A%09%09%3Fdummy0%20pq%3AP972%20wd%3AQ20103697%20.%0A%09%7D%20UNION%20%7B%0A%09%09%3Fdummy0%20pq%3AP972%20wd%3AQ20742915%20.%0A%09%7D%20UNION%20%7B%0A%09%09%3Fdummy0%20pq%3AP972%20wd%3AQ20742975%20.%0A%09%7D%0A%0A%09SERVICE%20wikibase%3Alabel%20%7B%20%20%20%20%20%20%20%20%20%20%20%20%23%20...%20include%20the%20labels%0A%09%09bd%3AserviceParam%20wikibase%3Alanguage%20%22sv%22%20.%0A%20%20%20%20%7D%0A%7D
