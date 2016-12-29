@@ -32,10 +32,11 @@ def make_simple_wdqs_query(query, verbose=False):
     @rtype: list of dicts
     """
     prefix = "" \
-        "prefix wdt: <http://www.wikidata.org/prop/direct/>\n" \
-        "prefix prov: <http://www.w3.org/ns/prov#>\n" \
-        "prefix pr: <http://www.wikidata.org/prop/reference/>\n" \
-        "prefix wd: <http://www.wikidata.org/entity/>\n"
+        "PREFIX wd: <http://www.wikidata.org/entity/>\n" \
+        "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n" \
+        "PREFIX p: <http://www.wikidata.org/prop/>\n" \
+        "PREFIX pq: <http://www.wikidata.org/prop/qualifier/>\n" \
+        "PREFIX pr: <http://www.wikidata.org/prop/reference/>\n"
 
     # perform query
     if verbose:
@@ -69,10 +70,13 @@ def wdq_to_wdqs(wdq_query):
     Tries to convert the query & convert the results to the same
     format as that outputted by WDQ. In addition to the caught exceptions this
     cannot handle:
-    * qualifiers CLAIM[...]{CLAIM[...]}
-    * multiple values CLAIM[piq:qid,pid2:qid2]
+    * non-CLAIM/STRING qualifiers CLAIM[...]{AROUND[...]}
+    * multiple values CLAIM[pid:qid,pid2:qid2]
     could possibly be replaced by a call to
     https://tools.wmflabs.org/wdq2sparql/w2s.php?wdq=<wdq_query>
+
+    Note that this should in no way be considered complete and will not support
+    a bunch of edge cases.
 
     @param wdq_query: the WDQ query
     @type wdq_query: str
@@ -87,6 +91,25 @@ def wdq_to_wdqs(wdq_query):
         # TREE[item_1][prop_2][prop_3]
         part = wdq_query[len('TREE['):-len(']')].split('][')
         data = make_tree_wdqs_search(part[0], part[1], part[2])
+    elif wdq_query.startswith('CLAIM') and ',' not in wdq_query:
+        # WDQ CLAIM[prop], CLAIM[prop:qid] and CLAIM[prop]{qualifiers}
+        # but not CLAIM[pid:qid,pid2:qid2]
+        main_claim = wdq_query[len('CLAIM['):wdq_query.find(']')]
+        prop, sep, item = main_claim.partition(':')
+        item = item or None
+
+        qual_sparql = None
+        if wdq_query.rfind(']') != wdq_query.find(']'):
+            if wdq_query[wdq_query.find(']') + 1] == '{':
+                qualifiers = wdq_query[wdq_query.find(']') + 1:]
+                qual_sparql = make_claim_qualifiers_sparql(prop, qualifiers)
+            else:
+                raise NotImplementedError(
+                    "Please Implement a method for wdq_queries of type: %s" %
+                    wdq_query)
+
+        data = make_claim_wdqs_search(prop, q_value=item,
+                                      qualifiers=qual_sparql)
     else:
         raise NotImplementedError("Please Implement a method for wdq_queries "
                                   "of type: %s" % wdq_query)
@@ -288,7 +311,8 @@ def make_tree_wdqs_search(item_1, prop_2, prop_3):
 
 
 def make_claim_wdqs_search(prop, get_values=False, q_value=None,
-                           optional_props=None, allow_multiple=False):
+                           optional_props=None, allow_multiple=False,
+                           qualifiers=None):
     """
     Make a simple search for items with a certain property.
 
@@ -301,21 +325,26 @@ def make_claim_wdqs_search(prop, get_values=False, q_value=None,
     @param get_values: whether to also return the values
     @type get_values: bool
     @param q_value: sets the expected value of the prop; CLAIM[prop:q_value]
-    @type q_value: a Q item
+        must be a Q item (with or without Q-prefix).
+    @type q_value: str
     @param optional_props: list of other properties to optionally request
     @type optional_props: list
     @param allow_multiple: if multiple values are allowed for each item.
         If True then each entry is a set of values.
     @type allow_multiple: bool
+    @param qualifiers: sparql code for further filtering on qualifiers
+    @type qualifiers: str
     @return: the resulting Q-ids, with Q prefix and values if requested
     @rtype: list of str or dict
     """
     prop = 'P%s' % str(prop).lstrip('P')  # standardise input
 
-    # handle q_value
+    # check for illegal combinations
     if q_value and get_values:
         raise pywikibot.Error('Cannot combine q_value and get_value')
-    elif q_value:
+
+    # handle q_value
+    if q_value:
         q_value = 'wd:Q%s' % str(q_value).lstrip('Q')  # standardise input
     else:
         q_value = '?value'
@@ -346,6 +375,10 @@ def make_claim_wdqs_search(prop, get_values=False, q_value=None,
                 "?item wdt:%s ?%s . " \
                 "} " % (opt_prop, opt_prop)
 
+    # add qualifiers
+    if qualifiers:
+        query += qualifiers % "?item"
+
     # close query
     query += "}"
 
@@ -360,3 +393,85 @@ def make_claim_wdqs_search(prop, get_values=False, q_value=None,
     else:
         return sanitize_wdqs_result(
             list_of_dict_to_dict(data, 'item', allow_multiple=allow_multiple))
+
+
+def make_claim_qualifiers_sparql(main_prop, qualifiers):
+    """
+    Make the required sparql for qualifier to a CLAIM.
+
+    I.e. a qualifier like CLAIM[pid]{CLAIM[pid:qid]}.
+    Only supports qualifiers of CLAIM and STRING type.
+
+    @param main_prop: the property (pid) of the main CLAIM
+    @type main_prop: str
+    @param qualifiers: the qualifier string including "{}"
+    @type qualifiers: str
+    @return: sparql code for (all) qualifiers
+    @rtype: str
+    """
+    qualifier_sparqls = []
+    for qualifier in [q.strip() for q in qualifiers.strip('{}').split(' OR ')]:
+        typ = func = None
+        if qualifier.startswith('CLAIM'):
+            typ = 'CLAIM'
+            func = make_claim_qualifier
+        elif qualifier.startswith('STRING'):
+            typ = 'STRING'
+            func = make_string_qualifier
+        else:
+            raise NotImplementedError(
+                "Please implement a method for non CLAIM/STRING qualifiers.")
+        prop, sep, val = qualifier[len('%s[' % typ):-len(']')].partition(':')
+        qualifier_sparqls.append(func(prop, val))
+
+    subquery = "" \
+        "%%s p:P%s ?dummy0 . " \
+        "{ " \
+        "%s" \
+        " } " % (str(main_prop).lstrip('P'),
+                 " } UNION { ".join(qualifier_sparqls))
+    return subquery
+
+
+def make_claim_qualifier(qual_prop, qual_value):
+    """
+    Make sparql addition for a qualifier of CLAIM type.
+
+    I.e. a qualifier like CLAIM[pid]{CLAIM[pid:qid]}
+
+    @param qual_prop: the qualifier property (pid)
+    @type qual_prop: str
+    @param qual_value: the qualifier item id (qid), if any
+    @type qual_value: str|None
+    @return: sparql code for qualifier matching
+    @rtype: str
+    """
+    if qual_value:
+        qual_value = 'wd:Q%s' % str(qual_value).lstrip('Q')
+    else:
+        qual_value = '?dummy1'
+    sparql = "" \
+        "{" \
+        "?dummy0 pq:P%s %s ." \
+        "}" % (str(qual_prop).lstrip('P'), qual_value)
+    return sparql
+
+
+def make_string_qualifier(qual_prop, qual_string):
+    """
+    Make sparql addition for a qualifier of STRING type.
+
+    I.e. a qualifier like CLAIM[pid]{STRING[prop:"string"]}
+
+    @param qual_prop: the qualifier property (pid)
+    @type qual_prop: str
+    @param qual_string: the qualifier string
+    @type qual_string: str
+    @return: sparql code for qualifier matching
+    @rtype: str
+    """
+    sparql = "" \
+        "{" \
+        "?dummy0 pq:P%s \"%s\" ." \
+        "}" % (str(qual_prop).lstrip('P'), qual_string)
+    return sparql
