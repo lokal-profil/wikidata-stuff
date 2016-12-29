@@ -10,7 +10,6 @@ from builtins import dict, str, object
 import os.path  # Needed for WikidataStringSearch
 
 import pywikibot
-import pywikibot.data.wikidataquery as wdquery  # Needed for wdqLookup
 from pywikibot.tools import deprecated
 
 
@@ -187,26 +186,6 @@ class WikidataStuff(object):
         def new_repr(self):
             return u'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
         pywikibot.Claim.__repr__ = new_repr
-
-    def wdqLookup(self, query, cache_max_age=0):
-        """
-        Do a simple WDQ lookup returning the items.
-
-        This is less advanced than fillCache() in KulturnavBot.
-
-        @param query: a correctly formated wdq query
-        @type query: basestring
-        @param cache_max_age: age of local cache, 0 = disabled
-        @type cache_max_age: int
-        @rtype list|None
-        """
-        wd_queryset = wdquery.QuerySet(query)
-        wd_query = wdquery.WikidataQuery(cacheMaxAge=cache_max_age)
-        data = wd_query.query(wd_queryset)
-
-        if data.get('status').get('error') == 'OK':
-            return data.get('items')
-        return None
 
     def searchGenerator(self, text, language):
         """A generator for WikidataStringSearch."""
