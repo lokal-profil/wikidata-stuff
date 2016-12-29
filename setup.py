@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 from setuptools import setup
-version = '0.2.0'
+version = '0.2.1'
 repo = 'wikidata-stuff'
 
 setup(

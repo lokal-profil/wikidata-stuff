@@ -359,6 +359,21 @@ def is_pos_int(value):
     return False
 
 
+def is_number(value):
+    """
+    Check if the given value is a number.
+
+    @param value: The value to check
+    @type value: str, or int
+    @return bool
+    """
+    try:
+        float(value)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 def bundle_values(values):
     """
     Merge multiple values/lists into one list.

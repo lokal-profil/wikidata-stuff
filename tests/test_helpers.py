@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 import unittest
 from wikidataStuff.helpers import (
+    is_number,
     is_int,
     is_pos_int,
     sig_fig_error
@@ -77,6 +78,41 @@ class TestIsPosInt(unittest.TestCase):
     def test_is_pos_int_valid_int_succeed(self):
         s = '123'
         result = is_pos_int(s)
+        self.assertEqual(result, True)
+
+
+class TestIsNumber(unittest.TestCase):
+
+    """Test the is_number method."""
+
+    def test_is_number_empty_string_fail(self):
+        s = ''
+        result = is_number(s)
+        self.assertEqual(result, False)
+
+    def test_is_number_none_fail(self):
+        s = None
+        result = is_number(s)
+        self.assertEqual(result, False)
+
+    def test_is_number_random_string_fail(self):
+        s = 'random_string'
+        result = is_number(s)
+        self.assertEqual(result, False)
+
+    def test_is_number_valid_int_succeed(self):
+        s = '123'
+        result = is_number(s)
+        self.assertEqual(result, True)
+
+    def test_is_number_valid_float_succeed(self):
+        s = '123.456'
+        result = is_number(s)
+        self.assertEqual(result, True)
+
+    def test_is_number_valid_negative_float_succeed(self):
+        s = '123.456'
+        result = is_number(s)
         self.assertEqual(result, True)
 
 
