@@ -481,8 +481,9 @@ class WikidataStuff(object):
             matching_claim = self.match_claim(
                 prior_claims, statement.quals, statement.force)
         except pywikibot.Error as e:
-            raise pywikibot.Error(
+            pywikibot.warning(
                 "Problem adding %s claim to %s: %s" % (prop, item, e))
+            return
 
         if matching_claim:
             for qual in statement.quals:
