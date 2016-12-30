@@ -4,10 +4,15 @@
 Must be run from labs and does these (SQL LIKE style) in
 labels, aliases and descriptions of items.
 """
+from __future__ import unicode_literals
+from builtins import object
 import MySQLdb
 
+from pywikibot import output
+import wikidataStuff.helpers as helpers
 
-class WikidataStringSearch:
+
+class WikidataStringSearch(object):
     """Run string searches on Wikidata from labs."""
 
     def __init__(self, verbose=False):
@@ -31,14 +36,14 @@ class WikidataStringSearch:
 
         # get types
         self.cursor.execute("SELECT DISTINCT term_type FROM wb_terms;")
-        for t in self.cursor.fetchall():
-            self.term_types += t
+        for row in self.cursor.fetchall():
+            self.term_types += WikidataStringSearch._type_fixed_row(row)
         self._print('found %d term_types' % len(self.term_types))
 
         # get languages
         self.cursor.execute("SELECT DISTINCT term_language FROM wb_terms;")
-        for l in self.cursor.fetchall():
-            self.languages += l
+        for row in self.cursor.fetchall():
+            self.languages += WikidataStringSearch._type_fixed_row(row)
         self._print('found %d languages' % len(self.languages))
 
     def close_connection(self):
@@ -50,14 +55,14 @@ class WikidataStringSearch:
         Test that the user input is valid.
 
         @param text: the text to search for
-        @type text: str, unicode
+        @type text: basestring
         @param language: the language to search in, defaults to None=any
-        @type language: str, unicode, or None
+        @type language: basestring or None
         @param entities: the language to search in, defaults to None=any
-        @type entities: list (of str, unicode), or None
+        @type entities: list (of basestring), or None
         @param term_type: field to search in, defaults
             to None=['label', 'alias']
-        @type term_type: str, unicode, or None
+        @type term_type: basestring or None
         @return: if input is valid
         @rtype: bool
         """
@@ -84,7 +89,7 @@ class WikidataStringSearch:
 
             # Check each is correctly formatted
             if not all(e.startswith('Q') and
-                       isinstance(e, (str, unicode)) and
+                       helpers.is_str(e) and
                        WikidataStringSearch.is_int(e[1:])
                        for e in entities):
                 self._print('Each entity must be a string like Q<integer>')
@@ -125,14 +130,14 @@ class WikidataStringSearch:
         to within a list of entities.
 
         @param text: the text to search for
-        @type text: str, unicode
+        @type text: basestring
         @param language: the language to search in, defaults to None=any
-        @type language: str, unicode, or None
+        @type language: basestring or None
         @param entities: the language to search in, defaults to None=any
-        @type entities: list (of str, unicode), or None
+        @type entities: list (of basestring), or None
         @param term_type: field to search in, defaults
             to None=['label', 'alias']
-        @type term_type: str, unicode, or None
+        @type term_type: basestring or None
         @return: list of matching Q values
         @rtype: list (of str)
         """
@@ -185,13 +190,18 @@ class WikidataStringSearch:
 
     def _print(self, s):
         """
-        Print text if verbose.
+        Output text if verbose.
 
-        @param s: text to print
-        @type s: string or unicode
+        @param s: text to output
+        @type s: basestring
         """
         if self.verbose:
-            print s
+            output(s)
+
+    @staticmethod
+    def _type_fixed_row(row):
+        """Ensure byte strings are converted to str, unicode as appropriate."""
+        return tuple([el.decode('utf-8') if isinstance(el, bytes) else el for el in row])
 
     @staticmethod
     def sql_in_format(l):

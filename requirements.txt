@@ -1,3 +1,4 @@
-git+https://github.com/wikimedia/pywikibot-core.git
-MySQL-python
+future
+mysqlclient
 requests
+git+https://github.com/wikimedia/pywikibot-core.git

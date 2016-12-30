@@ -5,13 +5,13 @@
 # License: MIT
 #
 """Generally useful methods for interacting with Wikidata using pywikibot."""
+from __future__ import unicode_literals
+from builtins import dict, str, object
 import os.path  # Needed for WikidataStringSearch
 
 import pywikibot
 import pywikibot.data.wikidataquery as wdquery  # Needed for wdqLookup
 from pywikibot.tools import deprecated
-
-from wikidataStuff.WikidataStringSearch import WikidataStringSearch
 
 
 class WikidataStuff(object):
@@ -180,6 +180,7 @@ class WikidataStuff(object):
             os.path.expanduser("~") +
             "/replica.my.cnf")
         if self.onLabs:
+            from wikidataStuff.WikidataStringSearch import WikidataStringSearch
             self.wdss = WikidataStringSearch()
 
         # extend pywikibot.Claim with a __repr__ method
@@ -230,7 +231,7 @@ class WikidataStuff(object):
             edit_summary = u'%s, %s' % (edit_summary, summary)
 
         # look at label
-        if not item.labels or lang not in item.labels.keys():
+        if not item.labels or lang not in item.labels:
             # add name to label
             labels = {lang: name}
             edit_summary %= 'label'
@@ -242,7 +243,7 @@ class WikidataStuff(object):
                 if name.lower() == item.labels[lang].lower():
                     return None
             edit_summary %= 'alias'
-            if not item.aliases or lang not in item.aliases.keys():
+            if not item.aliases or lang not in item.aliases:
                 aliases = {lang: [name, ]}
                 item.editAliases(aliases, summary=edit_summary)
                 pywikibot.output(edit_summary)
@@ -266,7 +267,7 @@ class WikidataStuff(object):
         """
         if claim.sources:
             for i, source in enumerate(claim.sources):
-                if prop in source.keys():
+                if prop in source:
                     for s in source[prop]:
                         if self.bypassRedirect(s.getTarget()) == itis:
                             return True
@@ -275,6 +276,9 @@ class WikidataStuff(object):
     def addReference(self, item, claim, ref, summary=None):
         """
         Add a reference if not already present.
+
+        If a source contains the claims in WD.Reference AND additional claims,
+        it will not be sourced.
 
         @param item: the item on which all of this happens
         @param claim: the pywikibot.Claim to be sourced
@@ -343,7 +347,7 @@ class WikidataStuff(object):
         @type claim: pywikibot.Claim
         """
         if claim.qualifiers:
-            if qual.prop in claim.qualifiers.keys():
+            if qual.prop in claim.qualifiers:
                 for s in claim.qualifiers[qual.prop]:
                     if self.bypassRedirect(s.getTarget()) == qual.itis:
                         return True
@@ -363,6 +367,9 @@ class WikidataStuff(object):
         @param qual: Qualifier to check
         @param summary: summary to append to auto-generated edit summary
         """
+        if not qual:
+            raise pywikibot.Error(
+                'Cannot call addQualifier() without a qualifier.')
         # check if already present
         if self.hasQualifier(qual, claim):
             return False
@@ -402,7 +409,7 @@ class WikidataStuff(object):
         @rtype: list of pywikibot.Claim
         """
         hits = []
-        if prop in item.claims.keys():
+        if prop in item.claims:
             for claim in item.claims[prop]:
                 if isinstance(itis, pywikibot.WbTime):
                     # WbTime compared differently
@@ -428,7 +435,7 @@ class WikidataStuff(object):
         @rtype: list of pywikibot.Claim
         """
         hits = []
-        if prop in item.claims.keys():
+        if prop in item.claims:
             for claim in item.claims[prop]:
                 if claim.getSnakType() == snaktype:
                     hits.append(claim)
@@ -474,8 +481,9 @@ class WikidataStuff(object):
             matching_claim = self.match_claim(
                 prior_claims, statement.quals, statement.force)
         except pywikibot.Error as e:
-            raise pywikibot.Error(
+            pywikibot.warning(
                 "Problem adding %s claim to %s: %s" % (prop, item, e))
+            return
 
         if matching_claim:
             for qual in statement.quals:
@@ -650,7 +658,7 @@ class WikidataStuff(object):
         @type summary: basestring
         @rtype: pywikibot.ItemPage
         """
-        identification = {}  # If empty this defaults to creating an entity
+        identification = dict()  # If empty this defaults to creating an entity
         result = self.repo.editEntity(identification, data, summary=summary)
         pywikibot.output(summary)  # afterwards in case an error is raised
 
