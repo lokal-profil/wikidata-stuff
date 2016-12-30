@@ -49,8 +49,12 @@ class BaseTest(unittest.TestCase):
         # silence output
         output_patcher = mock.patch(
             'wikidataStuff.WikidataStuff.pywikibot.output')
+        warning_patcher = mock.patch(
+            'wikidataStuff.WikidataStuff.pywikibot.warning')
         self.mock_output = output_patcher.start()
+        self.mock_warning = warning_patcher.start()
         self.addCleanup(output_patcher.stop)
+        self.addCleanup(warning_patcher.stop)
 
 
 class TestAddLabelOrAlias(BaseTest):
@@ -719,19 +723,21 @@ class TestAddNewClaim(BaseTest):
             self.wd_stuff.addNewClaim(
                 self.prop, statement, self.wd_page, 'Not a ref')
         self.assertEqual(str(e.exception),
-                          'The provided reference was not a '
-                          'Reference object. Crashing')
+                         'The provided reference was not a '
+                         'Reference object. Crashing')
 
-    def test_add_new_claim_reraise_error_on_duplicate_matching_claim(self):
+    def test_add_new_claim_warning_on_duplicate_matching_claim(self):
         self.prop = 'P84'
         self.value = pywikibot.ItemPage(self.repo, 'Q505')
         statement = WD.WikidataStuff.Statement(self.value)
-        with self.assertRaises(pywikibot.Error) as e:
-            self.wd_stuff.addNewClaim(
-                self.prop, statement, self.wd_page, self.ref)
-        self.assertEqual(str(e.exception),
-                          'Problem adding P84 claim to [[wikidata:test:-1]]: '
-                          'Multiple identical claims')
+        self.wd_stuff.addNewClaim(
+            self.prop, statement, self.wd_page, self.ref)
+        self.mock_warning.assert_called_once_with(
+            'Problem adding P84 claim to [[wikidata:test:-1]]: '
+            'Multiple identical claims')
+        self.mock_add_claim.assert_not_called()
+        self.mock_add_qualifier.assert_not_called()
+        self.mock_add_reference.assert_not_called()
 
 
 class TestMatchClaim(BaseTest):
