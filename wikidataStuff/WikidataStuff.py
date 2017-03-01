@@ -213,6 +213,31 @@ class WikidataStuff(object):
         for q in self.wdss.search(text, language=language):
             yield self.QtoItemPage(q)
 
+    # TODO: Add function allowing multiple descriptions at once
+    def add_description(self, lang, description, item, overwrite=False,
+                        summary=None):
+        """
+        Add a description to the item in the given language.
+
+        @param lang: the language code
+        @param description: the value to be added, set to an empty string to,
+            remove an existing description.
+        @param item: the item to which the description should be added
+        @param overwrite: whether any pre-existing description should be
+            overwritten.
+        @param summary: summary to append to auto-generated edit summary
+        """
+        summary = summary or self.edit_summary
+        edit_summary = u'Added [%s] description to [[%s]]' % (
+            lang, item.title())
+        if summary:
+            edit_summary = u'%s, %s' % (edit_summary, summary)
+
+        if not item.descriptions or lang not in item.descriptions or overwrite:
+            payload = {lang: description}
+            item.editDescriptions(payload, summary=edit_summary)
+            pywikibot.output(edit_summary)
+
     def addLabelOrAlias(self, lang, name, item, summary=None,
                         caseSensitive=False):
         """
