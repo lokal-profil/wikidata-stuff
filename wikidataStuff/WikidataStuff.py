@@ -226,7 +226,6 @@ class WikidataStuff(object):
         @param overwrite: whether any pre-existing description should be
             overwritten.
         @param summary: summary to append to auto-generated edit summary
-        @param caseSensitive: if the comparison is case sensitive
         """
         summary = summary or self.edit_summary
         edit_summary = u'Added [%s] description to [[%s]]' % (
