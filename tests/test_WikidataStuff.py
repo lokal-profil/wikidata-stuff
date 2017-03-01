@@ -57,6 +57,69 @@ class BaseTest(unittest.TestCase):
         self.addCleanup(warning_patcher.stop)
 
 
+class TestAddDescription(BaseTest):
+
+    """Test add_description()."""
+
+    def setUp(self):
+        super(TestAddDescription, self).setUp()
+        # override loaded descriptions
+        self.wd_page.descriptions = {u'en': u'en_desc', u'sv': u'sv_desc'}
+
+        description_patcher = mock.patch(
+            'wikidataStuff.WikidataStuff.pywikibot.ItemPage.editDescriptions')
+        self.mock_edit_description = description_patcher.start()
+        self.addCleanup(description_patcher.stop)
+
+    def test_add_description_no_descriptions(self):
+        """Test adding description when no descriptions present."""
+        self.wd_page.descriptions = {}
+        lang = 'fi'
+        text = 'fi_desc'
+        self.wd_stuff.add_description(lang, text, self.wd_page)
+        self.mock_edit_description.assert_called_once_with(
+            {lang: text},
+            summary=u'Added [fi] description to [[-1]]'
+        )
+
+    def test_add_description_no_language(self):
+        """Test adding description when language not present."""
+        lang = 'fi'
+        text = 'fi_desc'
+        self.wd_stuff.add_description(lang, text, self.wd_page)
+        self.mock_edit_description.assert_called_once_with(
+            {lang: text},
+            summary=u'Added [fi] description to [[-1]]'
+        )
+
+    def test_add_description_has_language(self):
+        """Test adding description when already present."""
+        lang = 'sv'
+        text = 'sv_new_desc'
+        self.wd_stuff.add_description(lang, text, self.wd_page)
+        self.mock_edit_description.assert_not_called()
+
+    def test_add_description_overwrite(self):
+        """Test overwriting description when already present."""
+        lang = 'sv'
+        text = 'sv_new_desc'
+        self.wd_stuff.add_description(lang, text, self.wd_page, overwrite=True)
+        self.mock_edit_description.assert_called_once_with(
+            {lang: text},
+            summary=u'Added [sv] description to [[-1]]'
+        )
+
+    def test_add_description_with_summary(self):
+        """Test appending to the summary."""
+        lang = 'fi'
+        text = 'fi_desc'
+        self.wd_stuff.add_description(lang, text, self.wd_page, summary='TEXT')
+        self.mock_edit_description.assert_called_once_with(
+            {lang: text},
+            summary=u'Added [fi] description to [[-1]], TEXT'
+        )
+
+
 class TestAddLabelOrAlias(BaseTest):
 
     """Test addLabelOrAlias()."""
