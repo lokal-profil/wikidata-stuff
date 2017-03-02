@@ -6,7 +6,6 @@ used until there is a proper pywikibot module.
 """
 from __future__ import unicode_literals
 from builtins import dict, str
-import json
 import requests
 import pywikibot
 
