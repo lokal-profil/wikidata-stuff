@@ -698,7 +698,7 @@ class WikidataStuff(object):
         but enforcing a summary and reusing the repo object.
 
         @param page: the page from which the item should be created
-        @type data: pywikibot.Page
+        @type page: pywikibot.Page
         @param summary: an edit summary for the action
         @type summary: basestring
         @rtype: pywikibot.ItemPage
