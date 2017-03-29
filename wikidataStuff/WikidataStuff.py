@@ -690,6 +690,25 @@ class WikidataStuff(object):
         # return the new item
         return self.QtoItemPage(result.get(u'entity').get('id'))
 
+    def make_new_item_from_page(self, page, summary):
+        """
+        Make a new ItemPage given a Page object and an edit summary.
+
+        Largely a wrapper around pywikibot.site.createNewItemFromPage()
+        but enforcing a summary and reusing the repo object.
+
+        @param page: the page from which the item should be created
+        @type page: pywikibot.Page
+        @param summary: an edit summary for the action
+        @type summary: basestring
+        @rtype: pywikibot.ItemPage
+        """
+        result = self.repo.createNewItemFromPage(page, summary)
+        pywikibot.output(summary)  # afterwards in case an error is raised
+
+        # return the new item
+        return result
+
 
 # generic methods which are used already here and so could not be in helpers
 # since that would cause a cyclical import
