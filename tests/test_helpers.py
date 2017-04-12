@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 import unittest
 import mock
-import sys
 
 from wikidataStuff.helpers import (
     is_number,
@@ -14,10 +13,7 @@ from wikidataStuff.helpers import (
     fill_cache_wdqs,
     fill_cache
 )
-PYTHON_VERSION = sys.version_info[:3]
-PY2 = (PYTHON_VERSION[0] == 2)
-if PY2:
-    unittest.TestCase.assertCountEqual = unittest.TestCase.assertItemsEqual
+
 
 class TestIsInt(unittest.TestCase):
 

@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 import unittest
 import mock
-import sys
 
 import pywikibot
 
@@ -26,9 +25,6 @@ from wikidataStuff.wdqsLookup import (
     sanitize_to_wdq_result,
     wdq_to_wdqs
 )
-PYTHON_VERSION = sys.version_info[:3]
-if (PYTHON_VERSION[0] == 2):
-    unittest.TestCase.assertCountEqual = unittest.TestCase.assertItemsEqual
 
 
 # @todo: use autospec=True for patches but figure out why this causes errors
