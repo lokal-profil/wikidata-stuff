@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 import unittest
 import mock
+import sys
 
 import pywikibot
 
@@ -25,6 +26,9 @@ from wikidataStuff.wdqsLookup import (
     sanitize_to_wdq_result,
     wdq_to_wdqs
 )
+PYTHON_VERSION = sys.version_info[:3]
+if (PYTHON_VERSION[0] == 2):
+    unittest.TestCase.assertCountEqual = unittest.TestCase.assertItemsEqual
 
 
 # @todo: use autospec=True for patches but figure out why this causes errors
@@ -590,7 +594,7 @@ class TestListOfDictToDict(unittest.TestCase):
             'alef': {'b': 'bet', 'c': 'gimel'},
         }
         result = list_of_dict_to_dict(self.data, 'a')
-        self.assertEqual(result, expected)
+        self.assertCountEqual(result, expected)
 
     def test_list_of_dict_to_dict_value_key(self):
         expected = {
@@ -599,7 +603,7 @@ class TestListOfDictToDict(unittest.TestCase):
             'alef': 'bet',
         }
         result = list_of_dict_to_dict(self.data, 'a', value_key='b')
-        self.assertEqual(result, expected)
+        self.assertCountEqual(result, expected)
 
     def test_list_of_dict_to_dict_allowed_duplicates(self):
         expected = {
@@ -609,7 +613,7 @@ class TestListOfDictToDict(unittest.TestCase):
         }
         result = list_of_dict_to_dict(
             self.dupe_data, 'a', value_key='b', allow_multiple=True)
-        self.assertEqual(result, expected)
+        self.assertCountEqual(result, expected)
 
     def test_list_of_dict_to_dict_allowed_duplicates_wo_value_key(self):
         patcher = mock.patch('wikidataStuff.wdqsLookup.pywikibot.warning')
@@ -658,7 +662,7 @@ class TestListOfDictToList(unittest.TestCase):
     def test_list_of_dict_to_list(self):
         expected = ['A', 'alpha', 'alef']
         result = list_of_dict_to_list(self.data, 'a')
-        self.assertEqual(result, expected)
+        self.assertCountEqual(result, expected)
 
     def test_list_of_dict_to_list_missing_key(self):
         with self.assertRaises(KeyError):
@@ -692,7 +696,7 @@ class TestSanitizeWdqsResult(unittest.TestCase):
             'Q678': {'a/b': 'c/d'}
         }
         result = sanitize_wdqs_result(data)
-        self.assertEqual(result, expected)
+        self.assertCountEqual(result, expected)
 
     def test_sanitize_wdqs_result_other_raises_error(self):
         data = None

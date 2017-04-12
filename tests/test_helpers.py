@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 import unittest
 import mock
+import sys
 
 from wikidataStuff.helpers import (
     is_number,
@@ -13,7 +14,10 @@ from wikidataStuff.helpers import (
     fill_cache_wdqs,
     fill_cache
 )
-
+PYTHON_VERSION = sys.version_info[:3]
+PY2 = (PYTHON_VERSION[0] == 2)
+if PY2:
+    unittest.TestCase.assertCountEqual = unittest.TestCase.assertItemsEqual
 
 class TestIsInt(unittest.TestCase):
 
@@ -178,7 +182,7 @@ class TestFillCacheWdqs(unittest.TestCase):
             'P123', get_values=True, allow_multiple=True
         )
         self.mock_output.assert_not_called()
-        self.assertEqual(result, expected)
+        self.assertCountEqual(result, expected)
 
     def test_fill_cache_wdqs_prop_wo_p(self):
         expected = {'abc': 123, 'def': 123, 'ghi': 456}
@@ -187,7 +191,7 @@ class TestFillCacheWdqs(unittest.TestCase):
             'P123', get_values=True, allow_multiple=True
         )
         self.mock_output.assert_not_called()
-        self.assertEqual(result, expected)
+        self.assertCountEqual(result, expected)
 
     def test_fill_cache_wdqs_non_unique(self):
         self.mock_wdqs_search.return_value = {
@@ -202,7 +206,7 @@ class TestFillCacheWdqs(unittest.TestCase):
         self.mock_output.assert_called_once()
         # Note that we cannot easily check the sent value since order of the
         # dict is not guaranteed
-        self.assertEqual(result, expected)
+        self.assertCountEqual(result, expected)
 
     def test_fill_cache_wdqs_queryoverride_trigger_error(self):
         with self.assertRaises(NotImplementedError):
