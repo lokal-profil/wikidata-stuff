@@ -625,9 +625,8 @@ class TestListOfDictToDict(unittest.TestCase):
     def test_list_of_dict_to_dict_dissallowed_duplicates_wo_value_key(self):
         with self.assertRaises(pywikibot.Error) as cm:
             list_of_dict_to_dict(self.dupe_data, 'a')
-        self.assertEqual(
-            str(cm.exception),
-            "Double ids in Wikidata (A): {u'b': u'bonus'}, {u'b': u'B'}")
+        self.assertTrue(
+            str(cm.exception).startswith('Double ids in Wikidata'))
 
     def test_list_of_dict_to_dict_dissallowed_duplicates_w_value_key(self):
         with self.assertRaises(pywikibot.Error) as cm:
