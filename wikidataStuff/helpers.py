@@ -17,7 +17,7 @@ from datetime import datetime  # for today_as_WbTime
 
 import pywikibot
 from pywikibot import pagegenerators
-import pywikibot.data.wikidataquery as wdquery
+
 import wikidataStuff.WikidataStuff as WikidataStuff
 from wikidataStuff.WikidataStuff import WikidataStuff as WD
 START_P = 'P580'  # start date
@@ -66,59 +66,21 @@ def load_json_file(filename, force_path=None):
 
 
 def fill_cache(pid, queryoverride=None, cache_max_age=0):
+    """Deprecated. Cannot use @deprecated due to differing args."""
+    pywikibot.warning(
+        'fill_cache is deprecated. Use fill_cache_wdqs instead.')
+    return fill_cache_wdqs(pid, queryoverride=queryoverride)
+
+
+# @todo: Move to wdqs since import here is cyclical?
+def fill_cache_wdqs(pid, queryoverride=None):
     """
     Query Wikidata to fill the cache of entities which contain the id.
 
     @param pid: The id property
     @type pid: basestring
-    @param queryoverride: A WDQ query to use instead of CLAIM[pid]
-    @type queryoverride: basestring
-    @param cache_max_age: Max age of local cache, defaults to 0
-    @type cache_max_age: int
-    @return: Dictionary of IDno to Qno
-    @rtype: dict
-    """
-    pid = pid.lstrip('P')  # standardise input
-    result = dict()
-    if queryoverride:
-        query = queryoverride
-    else:
-        query = u'CLAIM[%s]' % pid
-    wd_queryset = wdquery.QuerySet(query)
-
-    wd_query = wdquery.WikidataQuery(cacheMaxAge=cache_max_age)
-    data = wd_query.query(wd_queryset, props=[str(pid), ])
-
-    if data.get('status').get('error') == 'OK':
-        expectedItems = data.get('status').get('items')
-        props = data.get('props').get(str(pid))
-        for prop in props:
-            if prop[2] in result and prop[0] != result[prop[2]]:
-                # Detect id's that are used more than once.
-                raise pywikibot.Error('Double ids in Wikidata: %s, %s (%s)' %
-                                      (prop[0], result[prop[2]], query))
-            result[prop[2]] = prop[0]
-
-        if expectedItems == len(result):
-            pywikibot.output('I now have %s items in cache' %
-                             expectedItems)
-
-    return result
-
-
-#@todo: test and implement rest.
-#Move to wdqs since import here is cyclical?
-#support queryoverride
-def fill_cache_wdqs(pid, queryoverride=None, cache_max_age=0):
-    """
-    Query Wikidata to fill the cache of entities which contain the id.
-
-    @param pid: The id property
-    @type pid: basestring
-    @param queryoverride: A WDQ query to use instead of CLAIM[pid] [ignored]
-    @type queryoverride: basestring
-    @param cache_max_age: Max age of local cache, defaults to 0 [ignored]
-    @type cache_max_age: int
+    @param queryoverride: Temporary compatibility parameter triggering error
+    @type queryoverride: anything
     @return: Dictionary of IDno to Qno (without Q prefix)
     @rtype: dict
     """
