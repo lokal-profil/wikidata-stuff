@@ -168,7 +168,7 @@ class TestFillCacheWdqs(unittest.TestCase):
         }
         self.addCleanup(patcher.stop)
         patcher = mock.patch('wikidataStuff.helpers.pywikibot.output')
-        self.output = patcher.start()
+        self.mock_output = patcher.start()
         self.addCleanup(patcher.stop)
 
     def test_fill_cache_wdqs_prop_w_p(self):
@@ -177,7 +177,7 @@ class TestFillCacheWdqs(unittest.TestCase):
         self.mock_wdqs_search.assert_called_once_with(
             'P123', get_values=True, allow_multiple=True
         )
-        self.output.assert_not_called()
+        self.mock_output.assert_not_called()
         self.assertEqual(result, expected)
 
     def test_fill_cache_wdqs_prop_wo_p(self):
@@ -186,7 +186,7 @@ class TestFillCacheWdqs(unittest.TestCase):
         self.mock_wdqs_search.assert_called_once_with(
             'P123', get_values=True, allow_multiple=True
         )
-        self.output.assert_not_called()
+        self.mock_output.assert_not_called()
         self.assertEqual(result, expected)
 
     def test_fill_cache_wdqs_non_unique(self):
@@ -199,15 +199,16 @@ class TestFillCacheWdqs(unittest.TestCase):
         self.mock_wdqs_search.assert_called_once_with(
             'P123', get_values=True, allow_multiple=True
         )
-        self.output.assert_called_once_with(
-            'Double ids in Wikidata: Q123, 456 (CLAIM[123])')
+        self.mock_output.assert_called_once()
+        # Note that we cannot easily check the sent value since order of the
+        # dict is not guaranteed
         self.assertEqual(result, expected)
 
     def test_fill_cache_wdqs_queryoverride_trigger_error(self):
         with self.assertRaises(NotImplementedError):
             fill_cache_wdqs('123', queryoverride='A')
         self.mock_wdqs_search.assert_not_called()
-        self.output.assert_not_called()
+        self.mock_output.assert_not_called()
 
 
 class TestFillCache(unittest.TestCase):
