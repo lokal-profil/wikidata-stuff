@@ -160,7 +160,7 @@ class TestFillCacheWdqs(unittest.TestCase):
     """Test fill_cache_wdqs()."""
 
     def setUp(self):
-        patcher = mock.patch('wikidataStuff.wdqsLookup.make_claim_wdqs_search')
+        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_claim_wdqs_search')
         self.mock_wdqs_search = patcher.start()
         self.mock_wdqs_search.return_value = {
             'Q123': ['abc', 'def'],

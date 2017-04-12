@@ -73,6 +73,8 @@ def fill_cache(pid, queryoverride=None, cache_max_age=0):
 
 
 # @todo: Move to wdqs since import here is cyclical?
+# @todo: skip going via WdqToWdqs?
+# @todo: add flag for skipping Q-stripping
 def fill_cache_wdqs(pid, queryoverride=None):
     """
     Query Wikidata to fill the cache of entities which contain the id.
@@ -84,7 +86,7 @@ def fill_cache_wdqs(pid, queryoverride=None):
     @return: Dictionary of IDno to Qno (without Q prefix)
     @rtype: dict
     """
-    import wikidataStuff.wdqsLookup as wdqsLookup  # to avoid cyclical import
+    import wikidataStuff.WdqToWdqs as wdq_backport  # to avoid cyclical import
     pid = pid.lstrip('P')  # standardise input
     result = dict()
     if queryoverride:
@@ -92,7 +94,7 @@ def fill_cache_wdqs(pid, queryoverride=None):
         raise NotImplementedError('querryoverride has not been implemented')
     else:
         query = 'CLAIM[%s]' % pid  # for error
-        item_ids = wdqsLookup.make_claim_wdqs_search(
+        item_ids = wdq_backport.make_claim_wdqs_search(
             'P%s' % pid, get_values=True, allow_multiple=True)
 
     # invert and check existence and uniqueness
