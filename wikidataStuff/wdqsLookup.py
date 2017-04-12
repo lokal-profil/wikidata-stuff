@@ -77,7 +77,7 @@ def wdq_to_wdqs(wdq_query):
     Tries to convert the query & convert the results to the same
     format as that outputted by WDQ. In addition to the caught exceptions this
     cannot handle:
-    * non-CLAIM/NOCLAIM/STRING qualifiers CLAIM[...]{AROUND[...]}
+    * non-CLAIM/NOCLAIM/STRING qualifiers e.g. CLAIM[...]{AROUND[...]}
     * multiple values CLAIM[pid:qid,pid2:qid2] (supported in qualifiers)
     * anything with AND
     * OR outside of qualifiers
