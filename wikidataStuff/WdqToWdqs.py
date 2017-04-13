@@ -19,7 +19,7 @@ from wikidataStuff.wdqsLookup import (
 )
 
 
-# @todo: Need support for u'CLAIM[195:qid1,195:qid2]'
+# @todo: Need support for 'CLAIM[195:qid1,195:qid2]'
 def wdq_to_wdqs(wdq_query):
     """
     A wrapper for easily swapping in wdqs for WDQ queries.

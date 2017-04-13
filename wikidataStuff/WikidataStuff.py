@@ -70,7 +70,7 @@ class WikidataStuff(object):
 
         def __repr__(self):
             """Return a more complete string representation."""
-            return u'WD.Reference(test: %s, no_test: %s)' % (
+            return 'WD.Reference(test: %s, no_test: %s)' % (
                 self.source_test, self.source_notest)
 
     class Qualifier(object):
@@ -93,12 +93,12 @@ class WikidataStuff(object):
             @param itis: a valid claim target e.g. pywikibot.ItemPage
             @type itis: object
             """
-            self.prop = u'P%s' % P.lstrip('P')
+            self.prop = 'P%s' % P.lstrip('P')
             self.itis = itis
 
         def __repr__(self):
             """Return a more complete string representation."""
-            return u'WD.Qualifier(%s, %s)' % (self.prop, self.itis)
+            return 'WD.Qualifier(%s, %s)' % (self.prop, self.itis)
 
     class Statement(object):
         """A class for the contents of a statement (value + qualifiers)."""
@@ -157,7 +157,7 @@ class WikidataStuff(object):
 
         def __repr__(self):
             """Return a more complete string representation."""
-            return u'WD.Statement(itis:%s, quals:%s, special:%s, force:%s)' % (
+            return 'WD.Statement(itis:%s, quals:%s, special:%s, force:%s)' % (
                 self.itis, self.quals, self.special, self.force)
 
     def __init__(self, repo, edit_summary=None):
@@ -184,7 +184,7 @@ class WikidataStuff(object):
 
         # extend pywikibot.Claim with a __repr__ method
         def new_repr(self):
-            return u'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
+            return 'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
         pywikibot.Claim.__repr__ = new_repr
 
     def searchGenerator(self, text, language):
@@ -205,9 +205,9 @@ class WikidataStuff(object):
         """
         summary = summary or self.edit_summary
 
-        edit_summary = u'Added [%s] %s to [[%s]]' % (lang, '%s', item.title())
+        edit_summary = 'Added [%s] %s to [[%s]]' % (lang, '%s', item.title())
         if summary:
-            edit_summary = u'%s, %s' % (edit_summary, summary)
+            edit_summary = '%s, %s' % (edit_summary, summary)
 
         # look at label
         if not item.labels or lang not in item.labels:
@@ -280,9 +280,9 @@ class WikidataStuff(object):
                              (claim.getID(), item))
             return True
         except pywikibot.data.api.APIError as e:
-            if e.code == u'modification-failed':
-                pywikibot.output(u'modification-failed error: '
-                                 u'ref to %s in %s' % (claim.getID(), item))
+            if e.code == 'modification-failed':
+                pywikibot.output('modification-failed error: '
+                                 'ref to %s in %s' % (claim.getID(), item))
                 return False
             else:
                 raise pywikibot.Error(
@@ -361,9 +361,9 @@ class WikidataStuff(object):
                              (qual.prop, claim.getID(), item))
             return True
         except pywikibot.data.api.APIError as e:
-            if e.code == u'modification-failed':
-                pywikibot.output(u'modification-failed error: '
-                                 u'qualifier to %s to %s in %s' %
+            if e.code == 'modification-failed':
+                pywikibot.output('modification-failed error: '
+                                 'qualifier to %s to %s in %s' %
                                  (qual.prop, claim.getID(), item))
                 return False
             else:
@@ -580,8 +580,8 @@ class WikidataStuff(object):
         PRECISION = pywikibot.WbTime.PRECISION
         if itis.precision < PRECISION['year']:
             raise pywikibot.Error(
-                u'Comparison cannot be done if precision is more coarse '
-                u'than a year')
+                'Comparison cannot be done if precision is more coarse '
+                'than a year')
         if itis.year != target.year:
             return False
         if itis.precision >= PRECISION['month']:
@@ -611,7 +611,7 @@ class WikidataStuff(object):
         """
         return pywikibot.ItemPage(
             self.repo,
-            u'Q%s' % str(Q).lstrip('Q'))
+            'Q%s' % str(Q).lstrip('Q'))
 
     def make_simple_claim(self, prop, target):
         """
@@ -623,7 +623,7 @@ class WikidataStuff(object):
         @type target: object
         @rtype: pywikibot.Claim
         """
-        claim = pywikibot.Claim(self.repo, u'P%s' % str(prop).lstrip('P'))
+        claim = pywikibot.Claim(self.repo, 'P%s' % str(prop).lstrip('P'))
         claim.setTarget(target)
         return claim
 
@@ -642,7 +642,7 @@ class WikidataStuff(object):
         pywikibot.output(summary)  # afterwards in case an error is raised
 
         # return the new item
-        return self.QtoItemPage(result.get(u'entity').get('id'))
+        return self.QtoItemPage(result.get('entity').get('id'))
 
 
 # generic methods which are used already here and so could not be in helpers
