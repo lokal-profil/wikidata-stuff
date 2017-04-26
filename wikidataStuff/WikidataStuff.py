@@ -192,6 +192,31 @@ class WikidataStuff(object):
         for q in self.wdss.search(text, language=language):
             yield self.QtoItemPage(q)
 
+    # TODO: Add function allowing multiple descriptions at once
+    def add_description(self, lang, description, item, overwrite=False,
+                        summary=None):
+        """
+        Add a description to the item in the given language.
+
+        @param lang: the language code
+        @param description: the value to be added, set to an empty string to,
+            remove an existing description.
+        @param item: the item to which the description should be added
+        @param overwrite: whether any pre-existing description should be
+            overwritten.
+        @param summary: summary to append to auto-generated edit summary
+        """
+        summary = summary or self.edit_summary
+        edit_summary = u'Added [%s] description to [[%s]]' % (
+            lang, item.title())
+        if summary:
+            edit_summary = u'%s, %s' % (edit_summary, summary)
+
+        if not item.descriptions or lang not in item.descriptions or overwrite:
+            payload = {lang: description}
+            item.editDescriptions(payload, summary=edit_summary)
+            pywikibot.output(edit_summary)
+
     def addLabelOrAlias(self, lang, name, item, summary=None,
                         caseSensitive=False):
         """
@@ -643,6 +668,25 @@ class WikidataStuff(object):
 
         # return the new item
         return self.QtoItemPage(result.get('entity').get('id'))
+
+    def make_new_item_from_page(self, page, summary):
+        """
+        Make a new ItemPage given a Page object and an edit summary.
+
+        Largely a wrapper around pywikibot.site.createNewItemFromPage()
+        but enforcing a summary and reusing the repo object.
+
+        @param page: the page from which the item should be created
+        @type page: pywikibot.Page
+        @param summary: an edit summary for the action
+        @type summary: basestring
+        @rtype: pywikibot.ItemPage
+        """
+        result = self.repo.createNewItemFromPage(page, summary)
+        pywikibot.output(summary)  # afterwards in case an error is raised
+
+        # return the new item
+        return result
 
 
 # generic methods which are used already here and so could not be in helpers
