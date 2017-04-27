@@ -1,13 +1,17 @@
 # -*- coding: utf-8  -*-
-"""Unit tests for converters."""
+"""Unit tests for helpers."""
 from __future__ import unicode_literals
 
 import unittest
+import mock
+
 from wikidataStuff.helpers import (
     is_number,
     is_int,
     is_pos_int,
-    sig_fig_error
+    sig_fig_error,
+    fill_cache_wdqs,
+    fill_cache
 )
 
 
@@ -149,3 +153,82 @@ class TestSigFigError(unittest.TestCase):
 
     def test_sig_fig_error_negative_with_decimal(self):
         self.assertEqual(sig_fig_error("-0.1234"), 0.00005)
+
+
+class TestFillCacheWdqs(unittest.TestCase):
+
+    """Test fill_cache_wdqs()."""
+
+    def setUp(self):
+        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_claim_wdqs_search')
+        self.mock_wdqs_search = patcher.start()
+        self.mock_wdqs_search.return_value = {
+            'Q123': ['abc', 'def'],
+            'Q456': ['ghi']
+        }
+        self.addCleanup(patcher.stop)
+        patcher = mock.patch('wikidataStuff.helpers.pywikibot.output')
+        self.mock_output = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_fill_cache_wdqs_prop_w_p(self):
+        expected = {'abc': 123, 'def': 123, 'ghi': 456}
+        result = fill_cache_wdqs('P123')
+        self.mock_wdqs_search.assert_called_once_with(
+            'P123', get_values=True, allow_multiple=True
+        )
+        self.mock_output.assert_not_called()
+        self.assertCountEqual(result, expected)
+
+    def test_fill_cache_wdqs_prop_wo_p(self):
+        expected = {'abc': 123, 'def': 123, 'ghi': 456}
+        result = fill_cache_wdqs('123')
+        self.mock_wdqs_search.assert_called_once_with(
+            'P123', get_values=True, allow_multiple=True
+        )
+        self.mock_output.assert_not_called()
+        self.assertCountEqual(result, expected)
+
+    def test_fill_cache_wdqs_non_unique(self):
+        self.mock_wdqs_search.return_value = {
+            'Q123': ['abc', 'def'],
+            'Q456': ['ghi', 'abc']
+        }
+        expected = {'abc': 123, 'def': 123, 'ghi': 456}
+        result = fill_cache_wdqs('123')
+        self.mock_wdqs_search.assert_called_once_with(
+            'P123', get_values=True, allow_multiple=True
+        )
+        self.mock_output.assert_called_once()
+        # Note that we cannot easily check the sent value since order of the
+        # dict is not guaranteed
+        self.assertCountEqual(result, expected)
+
+    def test_fill_cache_wdqs_queryoverride_trigger_error(self):
+        with self.assertRaises(NotImplementedError):
+            fill_cache_wdqs('123', queryoverride='A')
+        self.mock_wdqs_search.assert_not_called()
+        self.mock_output.assert_not_called()
+
+
+class TestFillCache(unittest.TestCase):
+
+    """Test fill_cache()."""
+
+    def setUp(self):
+        patcher = mock.patch('wikidataStuff.helpers.fill_cache_wdqs')
+        self.mock_fill_cache_wdqs = patcher.start()
+        self.mock_fill_cache_wdqs.return_value = 'fill_cache_wdqs return value'
+        self.addCleanup(patcher.stop)
+        patcher = mock.patch('wikidataStuff.helpers.pywikibot.warning')
+        self.warning = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_fill_cache_redirects_and_warns(self):
+        expected = 'fill_cache_wdqs return value'
+        result = fill_cache('P123', 'override', 'max_age')
+        self.mock_fill_cache_wdqs.assert_called_once_with(
+            'P123', queryoverride='override')
+        self.warning.assert_called_once_with(
+            'fill_cache is deprecated. Use fill_cache_wdqs instead.')
+        self.assertEqual(result, expected)

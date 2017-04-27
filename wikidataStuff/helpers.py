@@ -17,7 +17,7 @@ from datetime import datetime  # for today_as_WbTime
 
 import pywikibot
 from pywikibot import pagegenerators
-import pywikibot.data.wikidataquery as wdquery
+
 import wikidataStuff.WikidataStuff as WikidataStuff
 from wikidataStuff.WikidataStuff import WikidataStuff as WD
 START_P = 'P580'  # start date
@@ -25,8 +25,8 @@ END_P = 'P582'  # end date
 INSTANCE_OF_P = 'P31'
 
 matchedNames = {  # a dict of found first/last_name_Q lookups
-    u'lastName': dict(),
-    u'firstName': dict()
+    'lastName': dict(),
+    'firstName': dict()
 }
 
 # avoids having to use from past.builtins import basestring
@@ -66,42 +66,45 @@ def load_json_file(filename, force_path=None):
 
 
 def fill_cache(pid, queryoverride=None, cache_max_age=0):
+    """Deprecated. Cannot use @deprecated due to differing args."""
+    pywikibot.warning(
+        'fill_cache is deprecated. Use fill_cache_wdqs instead.')
+    return fill_cache_wdqs(pid, queryoverride=queryoverride)
+
+
+# @todo: Move to wdqs since import here is cyclical?
+# @todo: skip going via WdqToWdqs?
+# @todo: add flag for skipping Q-stripping
+def fill_cache_wdqs(pid, queryoverride=None):
     """
     Query Wikidata to fill the cache of entities which contain the id.
 
     @param pid: The id property
     @type pid: basestring
-    @param queryoverride: A WDQ query to use instead of CLAIM[pid]
-    @type queryoverride: basestring
-    @param cache_max_age: Max age of local cache, defaults to 0
-    @type cache_max_age: int
-    @return: Dictionary of IDno to Qno
+    @param queryoverride: Temporary compatibility parameter triggering error
+    @type queryoverride: anything
+    @return: Dictionary of IDno to Qno (without Q prefix)
     @rtype: dict
     """
+    import wikidataStuff.WdqToWdqs as wdq_backport  # to avoid cyclical import
     pid = pid.lstrip('P')  # standardise input
     result = dict()
     if queryoverride:
         query = queryoverride
+        raise NotImplementedError('querryoverride has not been implemented')
     else:
-        query = u'CLAIM[%s]' % pid
-    wd_queryset = wdquery.QuerySet(query)
+        query = 'CLAIM[%s]' % pid  # for error
+        item_ids = wdq_backport.make_claim_wdqs_search(
+            'P%s' % pid, get_values=True, allow_multiple=True)
 
-    wd_query = wdquery.WikidataQuery(cacheMaxAge=cache_max_age)
-    data = wd_query.query(wd_queryset, props=[str(pid), ])
-
-    if data.get('status').get('error') == 'OK':
-        expectedItems = data.get('status').get('items')
-        props = data.get('props').get(str(pid))
-        for prop in props:
-            if prop[2] in result and prop[0] != result[prop[2]]:
-                # Detect id's that are used more than once.
-                raise pywikibot.Error('Double ids in Wikidata: %s, %s (%s)' %
-                                      (prop[0], result[prop[2]], query))
-            result[prop[2]] = prop[0]
-
-        if expectedItems == len(result):
-            pywikibot.output('I now have %s items in cache' %
-                             expectedItems)
+    # invert and check existence and uniqueness
+    for q_id, values in item_ids.items():
+        for value in values:
+            if value in result:
+                pywikibot.output(
+                    'Double ids in Wikidata: %s, %s (%s)' %
+                    (q_id, result[value], query))
+            result[value] = int(q_id.lstrip('Q'))  # int for wdq compatibility
 
     return result
 
@@ -159,7 +162,7 @@ def iso_to_WbTime(date):
             month=m)
 
     # once here all interpretations have failed
-    raise pywikibot.Error(u'An invalid ISO-date string received: ' % date)
+    raise pywikibot.Error('An invalid ISO-date string received: ' % date)
 
 
 def add_start_end_qualifiers(statement, startVal, endVal):
@@ -176,7 +179,7 @@ def add_start_end_qualifiers(statement, startVal, endVal):
     @rtype: WD.Statement, or None
     """
     if not isinstance(statement, WD.Statement):
-        raise pywikibot.Error(u'Non-statement recieved: %s' % statement)
+        raise pywikibot.Error('Non-statement recieved: %s' % statement)
     if statement.isNone():
         return None
 
@@ -218,8 +221,8 @@ def match_name(name, typ, wd, limit=75):
     @rtype: pywikibot.ItemPage, or None
     """
     global matchedNames
-    prop = {u'lastName': (u'Q101352',),
-            u'firstName': (u'Q12308941', u'Q11879590', u'Q202444')}
+    prop = {'lastName': ('Q101352',),
+            'firstName': ('Q12308941', 'Q11879590', 'Q202444')}
 
     # Skip any empty values
     if not name.strip():
@@ -244,7 +247,7 @@ def match_name(name, typ, wd, limit=75):
         matchedNames[typ][name] = item  # store for later reuse
         return item
     elif len(matches) > 1:
-        pywikibot.log(u'Possible duplicates: %s' % matches)
+        pywikibot.log('Possible duplicates: %s' % matches)
 
     # getting here means no hits so store that for later reuse
     matchedNames[typ][name] = None
@@ -323,10 +326,10 @@ def filter_on_types(obj, types, matches):
     @type matches: list (of pywikibot.ItemPage)
     """
     if INSTANCE_OF_P in obj.get().get('claims'):
-        # print 'claims:', obj.get().get('claims')[u'P31']
+        # print 'claims:', obj.get().get('claims')['P31']
         values = obj.get().get('claims')[INSTANCE_OF_P]
         for v in values:
-            # print u'val:', v.getTarget()
+            # print 'val:', v.getTarget()
             if v.getTarget().title() in types:
                 matches.append(obj)
 
@@ -404,14 +407,14 @@ def reorder_names(name):
     """
     if name.find(',') > 0 and len(name.split(',')) == 2:
         p = name.split(',')
-        name = u'%s %s' % (p[1].strip(), p[0].strip())
+        name = '%s %s' % (p[1].strip(), p[0].strip())
         return name
     elif name.find(',') == -1:
         # no comma means just a nickname e.g. Michelangelo
         return name
     else:
         # e.g. more than 1 comma
-        pywikibot.output(u'unexpectedly formatted name: %s' % name)
+        pywikibot.output('unexpectedly formatted name: %s' % name)
         return None
 
 
@@ -454,29 +457,29 @@ def dbpedia_2_wikidata(dbpedia):
     @return: Q-value of matching wikidata entry
     @rtype: str
     """
-    url = u'http://dbpedia.org/sparql?' + \
-          u'default-graph-uri=http%3A%2F%2Fdbpedia.org&query=DESCRIBE+%3C' + \
+    url = 'http://dbpedia.org/sparql?' + \
+          'default-graph-uri=http%3A%2F%2Fdbpedia.org&query=DESCRIBE+%3C' + \
           requests.utils.quote(dbpedia.encode('utf-8')) + \
-          u'%3E&output=application%2Fld%2Bjson'
+          '%3E&output=application%2Fld%2Bjson'
 
     try:
         r = requests.get(url)
         r.raise_for_status()
     except:
-        pywikibot.output(u'dbpedia is complaining so sleeping for 10s')
+        pywikibot.output('dbpedia is complaining so sleeping for 10s')
         time.sleep(10)
         try:
             r = requests.get(url)
             r.raise_for_status()
         except:
-            pywikibot.output(u'dbpedia is still complaining about %s, '
-                             u'skipping' % dbpedia)
+            pywikibot.output('dbpedia is still complaining about %s, '
+                             'skipping' % dbpedia)
             raise  # raise for now to see what sort of issue are manageable
 
     try:
         json_data = json.loads(r.text)
     except ValueError as e:
-        pywikibot.output(u'dbpedia-skip: %s, %s' % (dbpedia, e))
+        pywikibot.output('dbpedia-skip: %s, %s' % (dbpedia, e))
         return None
 
     if json_data.get('@graph'):
@@ -539,10 +542,10 @@ def sig_fig_error(digits):
 # generic methods which are needed in WikidataStuff.py are defined there to
 # avoid a cyclical import
 def listify(value):
-    """Wrapper for WikidataStuff instance of the method."""
+    """Redirect to WikidataStuff instance of the method."""
     return WikidataStuff.listify(value)
 
 
 def list_to_lower(string_list):
-    """Wrapper for WikidataStuff instance of the method."""
+    """Redirect to WikidataStuff instance of the method."""
     return WikidataStuff.list_to_lower(string_list)

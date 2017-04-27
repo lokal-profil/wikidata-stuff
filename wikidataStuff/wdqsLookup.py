@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Some common WDQS methods.
+"""
+Some common WDQS methods.
 
-Meant as a quick replacement for WDQ searches (which always time out) to be
-used until there is a proper pywikibot module.
+Originally meant as a quick replacement for WDQ searches so most things are
+built from that perspective.
+
+@todo: Deprecate bits of this in favour of new pywikibot.sparql
+@todo: Rebuild as more OOP
 """
 from __future__ import unicode_literals
 from builtins import dict, str
@@ -16,6 +20,7 @@ BASE_URL = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql?' \
            'format=json&query='
 
 
+# @todo: add tests
 def make_simple_wdqs_query(query, verbose=False):
     """
     Make limited queries to the wdqs service for Wikidata.
@@ -31,10 +36,11 @@ def make_simple_wdqs_query(query, verbose=False):
     @rtype: list of dicts
     """
     prefix = "" \
-        "prefix wdt: <http://www.wikidata.org/prop/direct/>\n" \
-        "prefix prov: <http://www.w3.org/ns/prov#>\n" \
-        "prefix pr: <http://www.wikidata.org/prop/reference/>\n" \
-        "prefix wd: <http://www.wikidata.org/entity/>\n"
+        "PREFIX wd: <http://www.wikidata.org/entity/>\n" \
+        "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n" \
+        "PREFIX p: <http://www.wikidata.org/prop/>\n" \
+        "PREFIX pq: <http://www.wikidata.org/prop/qualifier/>\n" \
+        "PREFIX pr: <http://www.wikidata.org/prop/reference/>\n"
 
     # perform query
     if verbose:
@@ -61,52 +67,44 @@ def make_simple_wdqs_query(query, verbose=False):
     return data
 
 
-def wdq_to_wdqs(wdq_query):
+def process_query_results(data, key, output_type, value_key=None,
+                          allow_multiple=False):
     """
-    A wrapper for easily swapping in wdqs for WDQ queries.
+    Process results using sanitize_wdqs_result and list processing funtions.
 
-    Tries to convert the query & convert the results to the same
-    format as that outputted by WDQ. In addition to the caught exceptions this
-    cannot handle:
-    * qualifiers CLAIM[...]{CLAIM[...]}
-    * multiple values CLAIM[piq:qid,pid2:qid2]
-    could possibly be replaced by a call to
-    https://tools.wmflabs.org/wdq2sparql/w2s.php?wdq=<wdq_query>
+    For 'list' the key is the key to look for in the dict.
+    For 'dict' the key the key corresponding to the value to use as key for
+        the new dict.
 
-    @param wdq_query: the WDQ query
-    @type wdq_query: str
-    @return: the resulting Q ids, without Q prefix
-    @rtype: list of str
+    @param data: the list of dicts
+    @type data: list of dict
+    @param key: the key to pass on to list processing
+    @type key: str
+    @param output_type: the desired output type. Either list or dict
+    @type output_type: str
+    @param value_key: the key corresponding to the value to use as value for
+        the new dict. If not present the new dict is simply a dict of all keys
+        other than key_key.
+    @type value_key: str
+    @param allow_multiple: if multiple values are allowed.
+        If true 'value' is always a set.
+    @type allow_multiple: bool
+    @return: the dict of new key-value pairs
+    @rtype: dict or list depending on output_type
     """
-    if wdq_query.startswith('STRING'):
-        # STRING[prop:"string"]
-        prop, sep, string = wdq_query[len('STRING['):-len(']')].partition(':')
-        data = make_string_wdqs_search(prop, string.strip('\'"'))
-    elif wdq_query.startswith('TREE'):
-        # TREE[item_1][prop_2][prop_3]
-        part = wdq_query[len('TREE['):-len(']')].split('][')
-        data = make_tree_wdqs_search(part[0], part[1], part[2])
+    if output_type not in ('list', 'dict'):
+        raise pywikibot.Error(
+            "process_query_results() requires output_type be either "
+            "'list' or 'dict' not '{}'".format(output_type))
+
+    processed_data = None
+    if output_type == 'list':
+        processed_data = list_of_dict_to_list(data, key)
     else:
-        raise NotImplementedError("Please Implement a method for wdq_queries "
-                                  "of type: %s" % wdq_query)
+        processed_data = list_of_dict_to_dict(
+            data, key, value_key, allow_multiple)
 
-    # format data to WDQ output
-    return sanitize_to_wdq_result(data)
-
-
-def sanitize_to_wdq_result(data):
-    """
-    Format data to match WDQ output.
-
-    @param data: data to sanitize
-    @type data: list of str
-    @return: sanitized data
-    @rtype: list of int
-    """
-    for i, d in enumerate(data):
-        # strip out http://www.wikidata.org/entity/
-        data[i] = int(d.lstrip('Q'))
-    return data
+    return sanitize_wdqs_result(processed_data)
 
 
 def sanitize_wdqs_result(data):
@@ -134,7 +132,7 @@ def sanitize_wdqs_result(data):
         return new_data
     else:
         raise pywikibot.Error('sanitize_wdqs_result() requires a string, dict '
-                              ' or a list of strings. Not a %s' % type(data))
+                              'or a list of strings. Not a %s' % type(data))
 
 
 def list_of_dict_to_list(data, key):
@@ -144,16 +142,13 @@ def list_of_dict_to_list(data, key):
     Crashes badly if the key is not present in each dict entry.
 
     @param data: the list of dicts
-    @type data: lsit of dict
+    @type data: list of dict
     @param key: the key to look for in the dict
     @type key: str
     @return: the list of matching  values
     @rtype: list
     """
-    results = []
-    for entry in data:
-        results.append(entry[key])
-    return results
+    return [entry[key] for entry in data]
 
 
 def list_of_dict_to_dict(data, key_key, value_key=None, allow_multiple=False):
@@ -177,6 +172,11 @@ def list_of_dict_to_dict(data, key_key, value_key=None, allow_multiple=False):
     @return: the dict of new key-value pairs
     @rtype: dict
     """
+    if allow_multiple and not value_key:
+        # Warning for now to see if this combo is used. Might upgrade to error.
+        pywikibot.warning(
+            'Duplicate values may cause a crash in without a value_key.')
+
     results = dict()
     for entry in data:
         key = entry[key_key]
@@ -195,167 +195,114 @@ def list_of_dict_to_dict(data, key_key, value_key=None, allow_multiple=False):
             # two hits corresponding to different values
             raise pywikibot.Error(
                 'Double ids in Wikidata (%s): %s, %s' %
-                (key, entry[value_key], results[key]))
+                (key, value, results[key]))
         else:
             results[key] = value
     return results
 
 
-def make_string_wdqs_search(prop, string):
+def make_select_wdqs_query(main_query, label=None, select_value=None,
+                           qualifiers=None, optional_props=None,
+                           allow_multiple=False):
     """
-    Make a simple string search and return matching items.
+    Put together a wdqs search query given a main query and any qualifiers.
 
-    A replacement for the WDQ STRING[prop:"string"].
+    Note: This cannot (currently) handle multiple queries.
 
-    @param prop: Property id, with or without P
-    @type prop: str or int
-    @param string: the string to search for
-    @type string: str
-    @return: the resulting Q ids, with Q prefix
-    @rtype: list of str
-    """
-    prop = 'P%s' % str(prop).lstrip('P')
-    query = ""\
-        "SELECT ?item WHERE { " \
-        "?item wdt:%s \"%s\" " \
-        "}"
-
-    # make the query
-    data = make_simple_wdqs_query(query % (prop, string))
-    return sanitize_wdqs_result(
-        list_of_dict_to_list(data, 'item'))
-
-
-def make_tree_wdqs_search(item_1, prop_2, prop_3):
-    """
-    Make a simple TREE search and return matching items.
-
-    A replacement for the WDQ TREE[item_1][prop_2][prop_3]. Depending on which
-    are present the resulting query becomes:
-
-    All three:
-        SELECT ?item WHERE {
-        ?tree0 (wdt:P2)* ?item .
-        ?tree0 (wdt:P3)* wd:Q1 .
-        }
-    First two only:
-        SELECT ?item WHERE {
-        ?tree0 (wdt:P2)* ?item .
-        BIND (wd:Q1 AS ?tree0)
-        }
-    First and last only:
-        SELECT ?item WHERE {
-        ?item (wdt:P3)* wd:Q1 .
-        }
-    First only:
-        SELECT ?item WHERE {
-        BIND (wd:Q1 AS ?item)
-        }
-
-    @param item_1: First item id, with or without Q
-    @type item_1: str or int
-    @param prop_2: Second property id, with or without P
-    @type prop_2: str or int
-    @param prop_3: Second property id, with or without P
-    @type prop_3: str or int
-    @return: the resulting Q ids, with Q prefix
-    @rtype: list of str
-    """
-    query = "SELECT ?item WHERE { "
-    # handle each component
-    if not item_1:
-        raise pywikibot.Error('Tree searchesrequires a starting item')
-    item_1 = 'Q%s' % str(item_1).lstrip('Q')
-
-    if prop_2:
-        prop_2 = 'P%s' % str(prop_2).lstrip('P')
-        query += "?tree0 (wdt:%s)* ?item . " % prop_2
-    if prop_3:
-        prop_3 = 'P%s' % str(prop_3).lstrip('P')
-        if prop_2:
-            query += "?tree0 (wdt:%s)* wd:%s . " % (prop_3, item_1)
-        else:
-            query += "?item (wdt:%s)* wd:%s . " % (prop_3, item_1)
-    else:
-        query += "BIND (wd:Q1 AS ?item) " % item_1
-    query += "}"
-
-    # make the query
-    data = make_simple_wdqs_query(query)
-    return sanitize_wdqs_result(
-        list_of_dict_to_list(data, 'item'))
-
-
-def make_claim_wdqs_search(prop, get_values=False, q_value=None,
-                           optional_props=None, allow_multiple=False):
-    """
-    Make a simple search for items with a certain property.
-
-    A replacement for the WDQ CLAIM[prop] and CLAIM[prop:qid] with get_values
-    corresponding to the props addon (more props are specified using
-    optional_props).
-
-    @param prop: Property id, with or without P
-    @type prop: str or int
-    @param get_values: whether to also return the values
-    @type get_values: bool
-    @param q_value: sets the expected value of the prop; CLAIM[prop:q_value]
-    @type q_value: a Q item
-    @param optional_props: list of other properties to optionally request
-    @type optional_props: list
+    @param main_query: sparql code for the main part of the query
+    @type main_query: str
+    @param label: label used for select, default to 'item'
+    @type label: str
+    @param select_value: a single value label to select for
+        (also affect the format of the output)
+    @type select_value: str
+    @param qualifiers: sparql code for further filtering on qualifiers
+    @type qualifiers: str
     @param allow_multiple: if multiple values are allowed for each item.
         If True then each entry is a set of values.
     @type allow_multiple: bool
-    @return: the resulting Q-ids, with Q prefix and values if requested
-    @rtype: list of str or dict
+    @param optional_props: list of other properties to optionally request
+    @type optional_props: list of str
     """
-    prop = 'P%s' % str(prop).lstrip('P')  # standardise input
+    label = label or 'item'
+    selects = []
+    selects.append(label)
+    if select_value:
+        selects.append(select_value)
 
-    # handle q_value
-    if q_value and get_values:
-        raise pywikibot.Error('Cannot combine q_value and get_value')
-    elif q_value:
-        q_value = 'wd:Q%s' % str(q_value).lstrip('Q')  # standardise input
-    else:
-        q_value = '?value'
-
-    # optional_props
+    # Standardise optional_props and add to selects
     if optional_props:
         # standardise input
         for k, v in enumerate(optional_props):
             optional_props[k] = 'P%s' % str(v).lstrip('P')
 
-    # values to select for
-    selects = ['item']
-    if get_values:
-        selects.append('value')
-    if optional_props:
         selects += optional_props
 
-    query = ""
-    query += "SELECT ?%s WHERE { " % ' ?'.join(selects)
-    query += ""\
-        "?item wdt:%%s %s . " % q_value
+    query = "SELECT ?%s WHERE { " % ' ?'.join(selects)
+    query += main_query
+
+    # add qualifiers
+    if qualifiers:
+        query += " "  # ensure at least one blank space
+        query += qualifiers % ("?%s" % label)
 
     # add OPTIONALs
     if optional_props:
+        query += " "  # ensure at least one blank space
         for opt_prop in optional_props:
-            query += "" \
-                "OPTIONAL { " \
-                "?item wdt:%s ?%s . " \
-                "} " % (opt_prop, opt_prop)
+            query += ("OPTIONAL { "
+                      "?%s wdt:%s ?%s . "
+                      "} " % (label, opt_prop, opt_prop))
 
     # close query
-    query += "}"
+    query += " }"
 
     # make the query
-    data = make_simple_wdqs_query(query % (prop))
-    if not get_values and not optional_props:
-        return sanitize_wdqs_result(
-            list_of_dict_to_list(data, 'item'))
-    elif get_values and not optional_props:
-        return sanitize_wdqs_result(
-            list_of_dict_to_dict(data, 'item', 'value', allow_multiple))
+    data = make_simple_wdqs_query(query)
+
+    # sanitize the data differently based on input
+    output_type = None
+    value_key = None
+    if not select_value and not optional_props:
+        output_type = 'list'
+    elif select_value and not optional_props:
+        output_type = 'dict'
+        value_key = select_value
     else:
-        return sanitize_wdqs_result(
-            list_of_dict_to_dict(data, 'item', allow_multiple=allow_multiple))
+        output_type = 'dict'
+
+    return process_query_results(
+        data, label, output_type, value_key, allow_multiple)
+
+
+def make_sparql_triple(prop, value=None, item_label=None, qualifier=False):
+    """
+    Make sparql triple for a claim (either STRING or CLAIM).
+
+    Can either be a main claim or a qualifier.
+
+    @param prop: Property id, with or without P-prefix
+    @type prop: str or int
+    @param value: value of the object part of the tripple.
+        (defaults to "?value" for a main claim or "?<item_label>_value" for a
+        qualifier)
+    @type value: str
+    @param item_label: label used for the subject
+        (defaults to "item" for a main claim or dummy0 for a qualifier)
+    @type item_label: str
+    @param qualifier: if the claim is a qualifier or not
+    @type qualifier: bool
+    @return: sparql code for the CLAIM (incl. qualifiers)
+    @rtype: str
+    """
+    prop = 'P%s' % str(prop).lstrip('P')  # standardise input
+    item = item_label or ('item' if not qualifier else 'dummy0')
+    obj = value or ('?value' if not qualifier else '?%s_value' % item)
+    pred = 'wdt' if not qualifier else 'pq'
+
+    sparql = "?%s %s:%s %s . " % (item, pred, prop, obj)
+
+    if qualifier:
+        sparql = '{ %s }' % sparql.strip()
+
+    return sparql

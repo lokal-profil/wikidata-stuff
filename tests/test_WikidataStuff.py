@@ -42,7 +42,7 @@ class BaseTest(unittest.TestCase):
         data_dir = os.path.join(os.path.split(__file__)[0], 'data')
         with open(os.path.join(data_dir, 'Q27399.json')) as f:
             self.wd_page._content = json.load(f).get('entities').get('Q27399')
-        self.wd_page._content['id'] = u'-1'  # override id used in demo file
+        self.wd_page._content['id'] = '-1'  # override id used in demo file
         self.wd_page.get()
         self.wd_stuff = WD.WikidataStuff(self.repo)
 
@@ -127,8 +127,8 @@ class TestAddLabelOrAlias(BaseTest):
     def setUp(self):
         super(TestAddLabelOrAlias, self).setUp()
         # override loaded labels and aliases
-        self.wd_page.labels = {u'en': u'en_label', u'sv': u'sv_label'}
-        self.wd_page.aliases = {u'en': [u'en_alias_1', ]}
+        self.wd_page.labels = {'en': 'en_label', 'sv': 'sv_label'}
+        self.wd_page.aliases = {'en': ['en_alias_1', ]}
 
         alias_patcher = mock.patch(
             'wikidataStuff.WikidataStuff.pywikibot.ItemPage.editAliases')
@@ -146,7 +146,7 @@ class TestAddLabelOrAlias(BaseTest):
         self.wd_stuff.addLabelOrAlias(lang, text, self.wd_page)
         self.mock_edit_label.assert_called_once_with(
             {lang: text},
-            summary=u'Added [fi] label to [[-1]]'
+            summary='Added [fi] label to [[-1]]'
         )
         self.mock_edit_alias.assert_not_called()
 
@@ -164,7 +164,7 @@ class TestAddLabelOrAlias(BaseTest):
         self.mock_edit_label.assert_not_called()
         self.mock_edit_alias.assert_called_once_with(
             {lang: [text, ]},
-            summary=u'Added [sv] alias to [[-1]]'
+            summary='Added [sv] alias to [[-1]]'
         )
 
     def test_add_label_has_same_alias(self):
@@ -180,8 +180,8 @@ class TestAddLabelOrAlias(BaseTest):
         self.wd_stuff.addLabelOrAlias(lang, text, self.wd_page)
         self.mock_edit_label.assert_not_called()
         self.mock_edit_alias.assert_called_once_with(
-            {lang: [u'en_alias_1', u'en_alias_2']},
-            summary=u'Added [en] alias to [[-1]]'
+            {lang: ['en_alias_1', 'en_alias_2']},
+            summary='Added [en] alias to [[-1]]'
         )
 
     def test_add_label_not_case_sensitive(self):
@@ -199,7 +199,7 @@ class TestAddLabelOrAlias(BaseTest):
         self.mock_edit_label.assert_not_called()
         self.mock_edit_alias.assert_called_once_with(
             {lang: [text, ]},
-            summary=u'Added [sv] alias to [[-1]]'
+            summary='Added [sv] alias to [[-1]]'
         )
 
     def test_add_label_with_summary(self):
@@ -209,7 +209,7 @@ class TestAddLabelOrAlias(BaseTest):
         self.mock_edit_label.assert_not_called()
         self.mock_edit_alias.assert_called_once_with(
             {lang: [text, ]},
-            summary=u'Added [sv] alias to [[-1]], TEXT'
+            summary='Added [sv] alias to [[-1]], TEXT'
         )
 
 
