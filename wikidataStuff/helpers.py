@@ -506,7 +506,8 @@ def get_unit_q(unit):
         'm': 'Q11573',
         'km': 'Q828224',
         'cm': 'Q174728',
-        'mm': 'Q174789'
+        'mm': 'Q174789',
+        'km²': 'Q712226'
     }
     return units.get(unit)
 
