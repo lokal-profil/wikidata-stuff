@@ -70,7 +70,7 @@ def make_simple_wdqs_query(query, verbose=False):
 def process_query_results(data, key, output_type, value_key=None,
                           allow_multiple=False):
     """
-    Wrapper function around sanitize_wdqs_result and list processing funtions.
+    Process results using sanitize_wdqs_result and list processing funtions.
 
     For 'list' the key is the key to look for in the dict.
     For 'dict' the key the key corresponding to the value to use as key for
