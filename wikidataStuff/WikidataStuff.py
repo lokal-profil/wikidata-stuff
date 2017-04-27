@@ -188,7 +188,7 @@ class WikidataStuff(object):
         pywikibot.Claim.__repr__ = new_repr
 
     def searchGenerator(self, text, language):
-        """A generator for WikidataStringSearch."""
+        """Contruct generator for WikidataStringSearch."""
         for q in self.wdss.search(text, language=language):
             yield self.QtoItemPage(q)
 

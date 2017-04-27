@@ -542,10 +542,10 @@ def sig_fig_error(digits):
 # generic methods which are needed in WikidataStuff.py are defined there to
 # avoid a cyclical import
 def listify(value):
-    """Wrapper for WikidataStuff instance of the method."""
+    """Redirect to WikidataStuff instance of the method."""
     return WikidataStuff.listify(value)
 
 
 def list_to_lower(string_list):
-    """Wrapper for WikidataStuff instance of the method."""
+    """Redirect to WikidataStuff instance of the method."""
     return WikidataStuff.list_to_lower(string_list)
