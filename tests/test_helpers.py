@@ -1,5 +1,5 @@
 # -*- coding: utf-8  -*-
-"""Unit tests for converters."""
+"""Unit tests for helpers."""
 from __future__ import unicode_literals
 
 import unittest
