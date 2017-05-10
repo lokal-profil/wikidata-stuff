@@ -189,6 +189,15 @@ class TestFillCacheWdqs(unittest.TestCase):
         self.mock_output.assert_not_called()
         self.assertCountEqual(result, expected)
 
+    def test_fill_cache_wdqs_no_strip(self):
+        expected = {'abc': 'Q123', 'def': 'Q123', 'ghi': 'Q456'}
+        result = fill_cache_wdqs('P123', no_strip=True)
+        self.mock_wdqs_search.assert_called_once_with(
+            'P123', get_values=True, allow_multiple=True
+        )
+        self.mock_output.assert_not_called()
+        self.assertCountEqual(result, expected)
+
     def test_fill_cache_wdqs_non_unique(self):
         self.mock_wdqs_search.return_value = {
             'Q123': ['abc', 'def'],
