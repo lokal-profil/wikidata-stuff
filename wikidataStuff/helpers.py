@@ -74,8 +74,7 @@ def fill_cache(pid, queryoverride=None, cache_max_age=0):
 
 # @todo: Move to wdqs since import here is cyclical?
 # @todo: skip going via WdqToWdqs?
-# @todo: add flag for skipping Q-stripping
-def fill_cache_wdqs(pid, queryoverride=None):
+def fill_cache_wdqs(pid, queryoverride=None, no_strip=False):
     """
     Query Wikidata to fill the cache of entities which contain the id.
 
@@ -83,6 +82,8 @@ def fill_cache_wdqs(pid, queryoverride=None):
     @type pid: basestring
     @param queryoverride: Temporary compatibility parameter triggering error
     @type queryoverride: anything
+    @param no_strip: Don't strip the Q prefix
+    @type nostrip: bool
     @return: Dictionary of IDno to Qno (without Q prefix)
     @rtype: dict
     """
@@ -104,7 +105,10 @@ def fill_cache_wdqs(pid, queryoverride=None):
                 pywikibot.output(
                     'Double ids in Wikidata: %s, %s (%s)' %
                     (q_id, result[value], query))
-            result[value] = int(q_id.lstrip('Q'))  # int for wdq compatibility
+            if no_strip:
+                result[value] = q_id
+            else:
+                result[value] = int(q_id.lstrip('Q'))  # for wdq compatibility
 
     return result
 
