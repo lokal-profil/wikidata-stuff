@@ -243,18 +243,18 @@ class WikidataStuff(object):
             pywikibot.output(edit_summary)
         elif name != item.labels[lang]:
             # look at aliases
-            if not caseSensitive:
-                if name.lower() == item.labels[lang].lower():
-                    return None
+            if not caseSensitive and \
+                    (name.lower() == item.labels[lang].lower()):
+                return None
             edit_summary %= 'alias'
             if not item.aliases or lang not in item.aliases:
                 aliases = {lang: [name, ]}
                 item.editAliases(aliases, summary=edit_summary)
                 pywikibot.output(edit_summary)
             elif name not in item.aliases[lang]:
-                if not caseSensitive:
-                    if name.lower() in list_to_lower(item.aliases[lang]):
-                        return None
+                if not caseSensitive and \
+                        (name.lower() in list_to_lower(item.aliases[lang])):
+                    return None
                 aliases = {lang: item.aliases[lang]}
                 aliases[lang].append(name)
                 item.editAliases(aliases, summary=edit_summary)
@@ -350,13 +350,12 @@ class WikidataStuff(object):
         @param claim: Claim to check
         @type claim: pywikibot.Claim
         """
-        if claim.qualifiers:
-            if qual.prop in claim.qualifiers:
-                for s in claim.qualifiers[qual.prop]:
-                    if self.bypassRedirect(s.getTarget()) == qual.itis:
-                        return True
-                    # else:
-                    #    pywikibot.output(s.getTarget())
+        if claim.qualifiers and qual.prop in claim.qualifiers:
+            for s in claim.qualifiers[qual.prop]:
+                if self.bypassRedirect(s.getTarget()) == qual.itis:
+                    return True
+                # else:
+                #    pywikibot.output(s.getTarget())
         return False
 
     def addQualifier(self, item, claim, qual, summary=None):
@@ -621,9 +620,9 @@ class WikidataStuff(object):
                     if itis.precision >= PRECISION['minute']:
                         if itis.minute != target.minute:
                             return False
-                        if itis.precision >= PRECISION['second']:
-                            if itis.second != target.second:
-                                return False
+                        if itis.precision >= PRECISION['second'] and \
+                                itis.second != target.second:
+                            return False
         return True
 
     def QtoItemPage(self, Q):

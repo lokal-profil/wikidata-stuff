@@ -35,6 +35,8 @@ class TestListify(unittest.TestCase):
 
 class BaseTest(unittest.TestCase):
 
+    """Base test setting loading offline data and setting up patchers."""
+
     def setUp(self):
         """Setup test."""
         self.repo = pywikibot.Site('test', 'wikidata')
