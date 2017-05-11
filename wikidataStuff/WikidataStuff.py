@@ -243,7 +243,8 @@ class WikidataStuff(object):
             pywikibot.output(edit_summary)
         elif name != item.labels[lang]:
             # look at aliases
-            if not caseSensitive and name.lower() == item.labels[lang].lower():
+            if not caseSensitive and \
+                    (name.lower() == item.labels[lang].lower()):
                 return None
             edit_summary %= 'alias'
             if not item.aliases or lang not in item.aliases:
@@ -252,7 +253,7 @@ class WikidataStuff(object):
                 pywikibot.output(edit_summary)
             elif name not in item.aliases[lang]:
                 if not caseSensitive and \
-                        name.lower() in list_to_lower(item.aliases[lang]):
+                        (name.lower() in list_to_lower(item.aliases[lang])):
                     return None
                 aliases = {lang: item.aliases[lang]}
                 aliases[lang].append(name)
