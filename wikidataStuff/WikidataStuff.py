@@ -21,6 +21,7 @@ class WikidataStuff(object):
 
     # extend pywikibot.Claim with a __repr__ method
     def new_repr(self):
+        """Override the normal representation of pywikibot.Claim."""
         return 'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
     pywikibot.Claim.__repr__ = new_repr
 
@@ -106,14 +107,17 @@ class WikidataStuff(object):
             return 'WD.Qualifier(%s, %s)' % (self.prop, self.itis)
 
         def __eq__(self, other):
+            """Implement equality comparison."""
             if isinstance(other, self.__class__):
                 return self.__dict__ == other.__dict__
             return NotImplemented
 
         def __ne__(self, other):
+            """Implement non-equality comparison."""
             return not self.__eq__(other)
 
         def __hash__(self):
+            """Implement hash to allow for e.g. sorting and sets."""
             return hash((self.prop, self.itis))
 
     class Statement(object):
@@ -188,6 +192,7 @@ class WikidataStuff(object):
             return NotImplemented
 
         def __ne__(self, other):
+            """Implement non-equality comparison."""
             return not self.__eq__(other)
 
     def __init__(self, repo, edit_summary=None):
