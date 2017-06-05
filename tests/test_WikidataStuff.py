@@ -104,6 +104,12 @@ class TestAddMultipleDescriptions(BaseTest):
         self.mock_edit_description = description_patcher.start()
         self.addCleanup(description_patcher.stop)
 
+    def test_add_multiple_descriptions_empty(self):
+        """Test calling without data."""
+        data = {}
+        self.wd_stuff.add_multiple_descriptions(data, self.wd_page)
+        self.mock_edit_description.assert_not_called()
+
     def test_add_multiple_descriptions_no_descriptions(self):
         """Test adding description when no descriptions present."""
         self.wd_page.descriptions = {}
@@ -225,6 +231,13 @@ class TestAddMultipleLabelOrAlias(BaseTest):
         self.mock_edit_label = label_patcher.start()
         self.addCleanup(alias_patcher.stop)
         self.addCleanup(label_patcher.stop)
+
+    def test_add_multiple_label_or_alias_empty(self):
+        """Test calling without data."""
+        data = {}
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
+        self.mock_edit_label.assert_not_called()
+        self.mock_edit_alias.assert_not_called()
 
     def test_add_multiple_label_or_alias_no_language(self):
         """Test adding label when language not present."""
