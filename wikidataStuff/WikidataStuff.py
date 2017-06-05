@@ -10,7 +10,7 @@ from builtins import dict, str, object
 import os.path  # Needed for WikidataStringSearch
 
 import pywikibot
-from pywikibot.tools import deprecated
+from pywikibot.tools import deprecated, deprecated_args
 
 
 class WikidataStuff(object):
@@ -242,8 +242,10 @@ class WikidataStuff(object):
             item.editDescriptions(new_descriptions, summary=edit_summary)
             pywikibot.output(edit_summary)
 
+    # @todo: deprecate in favour of add_label_or_alias
+    @deprecated_args(caseSensitive='case_sensitive')')
     def addLabelOrAlias(self, lang, name, item, summary=None,
-                        caseSensitive=False):
+                        case_sensitive=False):
         """
         Add a name as either label (if none) or alias in the given language.
 
@@ -251,11 +253,11 @@ class WikidataStuff(object):
         @param name: the value to be added
         @param item: the item to which the label/alias should be added
         @param summary: summary to append to auto-generated edit summary
-        @param caseSensitive: if the comparison is case sensitive
+        @param case_sensitive: if the comparison is case sensitive
         """
         data = {lang: name}
         self.add_multiple_label_or_alias(
-            data, item, case_sensitive=caseSensitive, summary=summary)
+            data, item, case_sensitive=case_sensitive, summary=summary)
 
     def add_multiple_label_or_alias(self, data, item, case_sensitive=False,
                                     summary=None):
@@ -272,7 +274,7 @@ class WikidataStuff(object):
             a single name or a list of names.
         @param item: the item to which the label/alias should be added
         @param summary: summary to append to auto-generated edit summary
-        @param caseSensitive: if the comparison is case sensitive
+        @param case_sensitive: if the comparison is case sensitive
         """
         item.exists()  # load contents
 
