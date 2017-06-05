@@ -10,7 +10,7 @@ from builtins import dict, str, object
 import os.path  # Needed for WikidataStringSearch
 
 import pywikibot
-from pywikibot.tools import deprecated
+from pywikibot.tools import deprecated, deprecated_args
 
 
 class WikidataStuff(object):
@@ -192,7 +192,6 @@ class WikidataStuff(object):
         for q in self.wdss.search(text, language=language):
             yield self.QtoItemPage(q)
 
-    # TODO: Add function allowing multiple descriptions at once
     def add_description(self, lang, description, item, overwrite=False,
                         summary=None):
         """
@@ -206,19 +205,47 @@ class WikidataStuff(object):
             overwritten.
         @param summary: summary to append to auto-generated edit summary
         """
-        summary = summary or self.edit_summary
-        edit_summary = u'Added [%s] description to [[%s]]' % (
-            lang, item.title())
-        if summary:
-            edit_summary = u'%s, %s' % (edit_summary, summary)
+        data = {lang: description}
+        self.add_multiple_descriptions(
+            data, item, overwrite=overwrite, summary=summary)
 
-        if not item.descriptions or lang not in item.descriptions or overwrite:
-            payload = {lang: description}
-            item.editDescriptions(payload, summary=edit_summary)
+    def add_multiple_descriptions(self, data, item, overwrite=False,
+                                  summary=None):
+        """
+        Add multiple descriptions to the item in one edit.
+
+        @param data: dictionary of language-description pairs
+        @param item: the item to which the descriptions should be added
+        @param overwrite: whether any pre-existing descriptions should be
+            overwritten (when a new description is available in that language).
+        @param summary: summary to append to auto-generated edit summary
+        """
+        item.exists()  # load contents
+
+        summary = summary or self.edit_summary
+        edit_summary = u'Added [{{lang}}] description to [[{qid}]]'.format(
+            qid=item.title())
+        if summary:
+            edit_summary = u'{0}, {1}'.format(edit_summary, summary)
+
+        new_descriptions = dict()
+
+        for lang, desc in data.items():
+            if not item.descriptions or \
+                    lang not in item.descriptions or \
+                    overwrite:
+                new_descriptions[lang] = desc
+
+        if new_descriptions:
+            edit_summary = edit_summary.format(
+                lang=', '.join(sorted(new_descriptions.keys())))
+            item.editDescriptions(new_descriptions, summary=edit_summary)
             pywikibot.output(edit_summary)
 
+    # @todo: deprecate in favour of add_label_or_alias
+    @deprecated_args(caseSensitive='case_sensitive')
     def addLabelOrAlias(self, lang, name, item, summary=None,
-                        caseSensitive=False):
+                        case_sensitive=False):
         """
         Add a name as either label (if none) or alias in the given language.
 
@@ -226,39 +253,73 @@ class WikidataStuff(object):
         @param name: the value to be added
         @param item: the item to which the label/alias should be added
         @param summary: summary to append to auto-generated edit summary
-        @param caseSensitive: if the comparison is case sensitive
+        @param case_sensitive: if the comparison is case sensitive
         """
+        data = {lang: name}
+        self.add_multiple_label_or_alias(
+            data, item, case_sensitive=case_sensitive, summary=summary)
+
+    def add_multiple_label_or_alias(self, data, item, case_sensitive=False,
+                                    summary=None):
+        """
+        Add multiple labels or aliases to the item in one edit.
+
+        Adds the name as either a label (if none) or an alias in the
+        given language.
+
+        If adding both a label and an alias in the same language (or multiple
+        aliases) supply a list of names where the first will be used as label.
+
+        @param data: dictionary of language-name pairs. The name can be either
+            a single name or a list of names.
+        @param item: the item to which the label/alias should be added
+        @param summary: summary to append to auto-generated edit summary
+        @param case_sensitive: if the comparison is case sensitive
+        """
+        item.exists()  # load contents
+
         summary = summary or self.edit_summary
-
-        edit_summary = 'Added [%s] %s to [[%s]]' % (lang, '%s', item.title())
+        edit_summary = 'Added [{{lang}}] {{typ}} to [[{qid}]]'.format(
+            qid=item.title())
         if summary:
-            edit_summary = '%s, %s' % (edit_summary, summary)
+            edit_summary = u'{0}, {1}'.format(edit_summary, summary)
 
-        # look at label
-        if not item.labels or lang not in item.labels:
-            # add name to label
-            labels = {lang: name}
-            edit_summary %= 'label'
-            item.editLabels(labels, summary=edit_summary)
-            pywikibot.output(edit_summary)
-        elif name != item.labels[lang]:
-            # look at aliases
-            if not caseSensitive and \
-                    (name.lower() == item.labels[lang].lower()):
-                return None
-            edit_summary %= 'alias'
-            if not item.aliases or lang not in item.aliases:
-                aliases = {lang: [name, ]}
-                item.editAliases(aliases, summary=edit_summary)
-                pywikibot.output(edit_summary)
-            elif name not in item.aliases[lang]:
-                if not caseSensitive and \
-                        (name.lower() in list_to_lower(item.aliases[lang])):
-                    return None
-                aliases = {lang: item.aliases[lang]}
-                aliases[lang].append(name)
-                item.editAliases(aliases, summary=edit_summary)
-                pywikibot.output(edit_summary)
+        new_label_langs = []
+        labels = item.labels or dict()
+        new_alias_langs = []
+        aliases = item.aliases or dict()
+
+        for lang, names in data.items():
+            for name in listify(names):
+                if lang not in labels:
+                    labels[lang] = name
+                    new_label_langs.append(lang)
+                elif (case_sensitive and name != labels[lang]) or \
+                        (not case_sensitive and
+                         name.lower() != labels[lang].lower()):
+                    if lang not in aliases:
+                        aliases[lang] = [name, ]
+                        new_alias_langs.append(lang)
+                    elif (case_sensitive and name not in aliases[lang]) or \
+                            (not case_sensitive and
+                             name.lower() not in list_to_lower(aliases[lang])):
+                        aliases[lang].append(name)
+                        new_alias_langs.append(lang)
+
+        new_label_langs = sorted(list(set(new_label_langs)))
+        new_alias_langs = sorted(list(set(new_alias_langs)))
+
+        if new_label_langs:
+            label_summary = edit_summary.format(
+                lang=', '.join(new_label_langs), typ='label')
+            item.editLabels(labels, summary=label_summary)
+            pywikibot.output(label_summary)
+
+        if new_alias_langs:
+            alias_summary = edit_summary.format(
+                lang=', '.join(new_alias_langs), typ='alias')
+            item.editAliases(aliases, summary=alias_summary)
+            pywikibot.output(alias_summary)
 
     # some more generic Wikidata methods
     def hasRef(self, prop, itis, claim):

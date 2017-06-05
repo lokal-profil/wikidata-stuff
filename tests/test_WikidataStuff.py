@@ -65,6 +65,37 @@ class TestAddDescription(BaseTest):
 
     def setUp(self):
         super(TestAddDescription, self).setUp()
+
+        description_patcher = mock.patch(
+            'wikidataStuff.WikidataStuff.WikidataStuff.'
+            'add_multiple_descriptions')
+        self.mock_add_multiple_descriptions = description_patcher.start()
+        self.addCleanup(description_patcher.stop)
+
+    def test_add_description_send_to_add_multiple(self):
+        """Test add_multiple is called with right values and defaults."""
+        lang = 'fi'
+        text = 'fi_desc'
+        self.wd_stuff.add_description(lang, text, self.wd_page)
+        self.mock_add_multiple_descriptions.assert_called_once_with(
+            {'fi': 'fi_desc'}, self.wd_page, overwrite=False, summary=None)
+
+    def test_add_description_send_all_params_to_add_multiple(self):
+        """Test add_multiple is called with all parameters."""
+        lang = 'fi'
+        text = 'fi_desc'
+        self.wd_stuff.add_description(
+            lang, text, self.wd_page, True, 'test')
+        self.mock_add_multiple_descriptions.assert_called_once_with(
+            {'fi': 'fi_desc'}, self.wd_page, overwrite=True, summary='test')
+
+
+class TestAddMultipleDescriptions(BaseTest):
+
+    """Test add_multiple_descriptions()."""
+
+    def setUp(self):
+        super(TestAddMultipleDescriptions, self).setUp()
         # override loaded descriptions
         self.wd_page.descriptions = {u'en': u'en_desc', u'sv': u'sv_desc'}
 
@@ -73,52 +104,79 @@ class TestAddDescription(BaseTest):
         self.mock_edit_description = description_patcher.start()
         self.addCleanup(description_patcher.stop)
 
-    def test_add_description_no_descriptions(self):
-        """Test adding description when no descriptions present."""
-        self.wd_page.descriptions = {}
-        lang = 'fi'
-        text = 'fi_desc'
-        self.wd_stuff.add_description(lang, text, self.wd_page)
-        self.mock_edit_description.assert_called_once_with(
-            {lang: text},
-            summary=u'Added [fi] description to [[-1]]'
-        )
-
-    def test_add_description_no_language(self):
-        """Test adding description when language not present."""
-        lang = 'fi'
-        text = 'fi_desc'
-        self.wd_stuff.add_description(lang, text, self.wd_page)
-        self.mock_edit_description.assert_called_once_with(
-            {lang: text},
-            summary=u'Added [fi] description to [[-1]]'
-        )
-
-    def test_add_description_has_language(self):
-        """Test adding description when already present."""
-        lang = 'sv'
-        text = 'sv_new_desc'
-        self.wd_stuff.add_description(lang, text, self.wd_page)
+    def test_add_multiple_descriptions_empty(self):
+        """Test calling without data."""
+        data = {}
+        self.wd_stuff.add_multiple_descriptions(data, self.wd_page)
         self.mock_edit_description.assert_not_called()
 
-    def test_add_description_overwrite(self):
-        """Test overwriting description when already present."""
-        lang = 'sv'
-        text = 'sv_new_desc'
-        self.wd_stuff.add_description(lang, text, self.wd_page, overwrite=True)
+    def test_add_multiple_descriptions_no_descriptions(self):
+        """Test adding description when no descriptions present."""
+        self.wd_page.descriptions = {}
+        data = {'fi': 'fi_desc'}
+        self.wd_stuff.add_multiple_descriptions(data, self.wd_page)
         self.mock_edit_description.assert_called_once_with(
-            {lang: text},
+            {'fi': 'fi_desc'},
+            summary=u'Added [fi] description to [[-1]]'
+        )
+
+    def test_add_multiple_descriptions_no_language(self):
+        """Test adding description when language not present."""
+        data = {'fi': 'fi_desc'}
+        self.wd_stuff.add_multiple_descriptions(data, self.wd_page)
+        self.mock_edit_description.assert_called_once_with(
+            {'fi': 'fi_desc'},
+            summary=u'Added [fi] description to [[-1]]'
+        )
+
+    def test_add_multiple_descriptions_has_language(self):
+        """Test adding description when already present."""
+        data = {'sv': 'sv_new_desc'}
+        self.wd_stuff.add_multiple_descriptions(data, self.wd_page)
+        self.mock_edit_description.assert_not_called()
+
+    def test_add_multiple_descriptions_overwrite(self):
+        """Test overwriting description when already present."""
+        data = {'sv': 'sv_new_desc'}
+        self.wd_stuff.add_multiple_descriptions(
+            data, self.wd_page, overwrite=True)
+        self.mock_edit_description.assert_called_once_with(
+            {'sv': 'sv_new_desc'},
             summary=u'Added [sv] description to [[-1]]'
         )
 
-    def test_add_description_with_summary(self):
+    def test_add_multiple_descriptions_with_summary(self):
         """Test appending to the summary."""
-        lang = 'fi'
-        text = 'fi_desc'
-        self.wd_stuff.add_description(lang, text, self.wd_page, summary='TEXT')
+        data = {'fi': 'fi_desc'}
+        self.wd_stuff.add_multiple_descriptions(
+            data, self.wd_page, summary='TEXT')
         self.mock_edit_description.assert_called_once_with(
-            {lang: text},
+            {'fi': 'fi_desc'},
             summary=u'Added [fi] description to [[-1]], TEXT'
+        )
+
+    def test_add_multiple_descriptions_many_add_all(self):
+        """Test sending multiple where all are new."""
+        data = {
+            'fi': 'fi_desc',
+            'de': 'de_desc'
+        }
+        self.wd_stuff.add_multiple_descriptions(data, self.wd_page)
+        self.mock_edit_description.assert_called_once_with(
+            {'fi': 'fi_desc', 'de': 'de_desc'},
+            summary=u'Added [de, fi] description to [[-1]]'
+        )
+
+    def test_add_multiple_descriptions_many_add_some(self):
+        """Test sending multiple where only one is new."""
+        data = {
+            'fi': 'fi_desc',
+            'sv': 'sv_new_desc'
+        }
+        self.wd_stuff.add_multiple_descriptions(data, self.wd_page)
+        self.mock_edit_description.assert_called_once_with(
+            {'fi': 'fi_desc'},
+            summary=u'Added [fi] description to [[-1]]'
         )
 
 
@@ -128,6 +186,39 @@ class TestAddLabelOrAlias(BaseTest):
 
     def setUp(self):
         super(TestAddLabelOrAlias, self).setUp()
+
+        description_patcher = mock.patch(
+            'wikidataStuff.WikidataStuff.WikidataStuff.'
+            'add_multiple_label_or_alias')
+        self.mock_add_multiple_label_or_alias = description_patcher.start()
+        self.addCleanup(description_patcher.stop)
+
+    def test_add_description_send_to_add_multiple(self):
+        """Test add_multiple is called with right values and defaults."""
+        lang = 'fi'
+        text = 'fi_label'
+        self.wd_stuff.addLabelOrAlias(lang, text, self.wd_page)
+        self.mock_add_multiple_label_or_alias.assert_called_once_with(
+            {'fi': 'fi_label'}, self.wd_page, case_sensitive=False,
+            summary=None)
+
+    def test_add_description_send_all_params_to_add_multiple(self):
+        """Test add_multiple is called with all parameters."""
+        lang = 'fi'
+        text = 'fi_label'
+        self.wd_stuff.addLabelOrAlias(
+            lang, text, self.wd_page, 'test', True)
+        self.mock_add_multiple_label_or_alias.assert_called_once_with(
+            {'fi': 'fi_label'}, self.wd_page, case_sensitive=True,
+            summary='test')
+
+
+class TestAddMultipleLabelOrAlias(BaseTest):
+
+    """Test add_multiple_label_or_alias()."""
+
+    def setUp(self):
+        super(TestAddMultipleLabelOrAlias, self).setUp()
         # override loaded labels and aliases
         self.wd_page.labels = {'en': 'en_label', 'sv': 'sv_label'}
         self.wd_page.aliases = {'en': ['en_alias_1', ]}
@@ -141,77 +232,155 @@ class TestAddLabelOrAlias(BaseTest):
         self.addCleanup(alias_patcher.stop)
         self.addCleanup(label_patcher.stop)
 
-    def test_add_label_no_language(self):
+    def test_add_multiple_label_or_alias_empty(self):
+        """Test calling without data."""
+        data = {}
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
+        self.mock_edit_label.assert_not_called()
+        self.mock_edit_alias.assert_not_called()
+
+    def test_add_multiple_label_or_alias_no_language(self):
         """Test adding label when language not present."""
-        lang = 'fi'
-        text = 'fi_label'
-        self.wd_stuff.addLabelOrAlias(lang, text, self.wd_page)
+        self.wd_page.labels = None
+        self.wd_page.aliases = None
+        data = {'fi': 'fi_label'}
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
         self.mock_edit_label.assert_called_once_with(
-            {lang: text},
+            {'fi': 'fi_label'},
             summary='Added [fi] label to [[-1]]'
         )
         self.mock_edit_alias.assert_not_called()
 
-    def test_add_label_has_same_label(self):
-        lang = 'sv'
-        text = 'sv_label'
-        self.wd_stuff.addLabelOrAlias(lang, text, self.wd_page)
+    def test_add_multiple_label_or_alias_list_of_names(self):
+        """Test adding label when language not present."""
+        self.wd_page.labels = None
+        self.wd_page.aliases = None
+        data = {'fi': ['fi_label1', 'fi_label2', 'fi_label3']}
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
+        self.mock_edit_label.assert_called_once_with(
+            {'fi': 'fi_label1'},
+            summary='Added [fi] label to [[-1]]'
+        )
+        self.mock_edit_alias.assert_called_once_with(
+            {'fi': ['fi_label2', 'fi_label3']},
+            summary='Added [fi] alias to [[-1]]'
+        )
+
+    def test_add_multiple_label_or_alias_has_same_label(self):
+        data = {'sv': 'sv_label'}
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
         self.mock_edit_label.assert_not_called()
         self.mock_edit_alias.assert_not_called()
 
-    def test_add_label_has_other_label(self):
-        lang = 'sv'
-        text = 'sv_label_2'
-        self.wd_stuff.addLabelOrAlias(lang, text, self.wd_page)
+    def test_add_multiple_label_or_alias_has_other_label(self):
+        self.wd_page.aliases = None
+        data = {'sv': 'sv_label_2'}
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
         self.mock_edit_label.assert_not_called()
         self.mock_edit_alias.assert_called_once_with(
-            {lang: [text, ]},
+            {'sv': ['sv_label_2', ]},
             summary='Added [sv] alias to [[-1]]'
         )
 
-    def test_add_label_has_same_alias(self):
-        lang = 'en'
-        text = 'en_alias_1'
-        self.wd_stuff.addLabelOrAlias(lang, text, self.wd_page)
+    def test_add_multiple_label_or_alias_has_same_alias(self):
+        data = {'en': 'en_alias_1'}
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
         self.mock_edit_label.assert_not_called()
         self.mock_edit_alias.assert_not_called()
 
-    def test_add_label_has_other_alias(self):
-        lang = 'en'
-        text = 'en_alias_2'
-        self.wd_stuff.addLabelOrAlias(lang, text, self.wd_page)
+    def test_add_multiple_label_or_alias_has_other_alias(self):
+        data = {'en': 'en_alias_2'}
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
         self.mock_edit_label.assert_not_called()
         self.mock_edit_alias.assert_called_once_with(
-            {lang: ['en_alias_1', 'en_alias_2']},
+            {'en': ['en_alias_1', 'en_alias_2']},
             summary='Added [en] alias to [[-1]]'
         )
 
-    def test_add_label_not_case_sensitive(self):
-        lang = 'sv'
-        text = 'SV_label'
-        self.wd_stuff.addLabelOrAlias(lang, text, self.wd_page)
+    def test_add_multiple_label_or_alias_not_case_sensitive(self):
+        data = {'sv': 'SV_label'}
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
         self.mock_edit_label.assert_not_called()
         self.mock_edit_alias.assert_not_called()
 
-    def test_add_label_case_sensitive(self):
-        lang = 'sv'
-        text = 'SV_label'
-        self.wd_stuff.addLabelOrAlias(
-            lang, text, self.wd_page, caseSensitive=True)
+    def test_add_multiple_label_or_alias_case_sensitive(self):
+        self.wd_page.aliases = None
+        data = {'sv': 'SV_label'}
+        self.wd_stuff.add_multiple_label_or_alias(
+            data, self.wd_page, case_sensitive=True)
         self.mock_edit_label.assert_not_called()
         self.mock_edit_alias.assert_called_once_with(
-            {lang: [text, ]},
+            {'sv': ['SV_label', ]},
             summary='Added [sv] alias to [[-1]]'
         )
 
-    def test_add_label_with_summary(self):
-        lang = 'sv'
-        text = 'sv_label_2'
-        self.wd_stuff.addLabelOrAlias(lang, text, self.wd_page, summary='TEXT')
+    def test_add_multiple_label_or_alias_with_summary(self):
+        self.wd_page.aliases = None
+        data = {'sv': 'sv_label_2'}
+        self.wd_stuff.add_multiple_label_or_alias(
+            data, self.wd_page, summary='TEXT')
         self.mock_edit_label.assert_not_called()
         self.mock_edit_alias.assert_called_once_with(
-            {lang: [text, ]},
+            {'sv': ['sv_label_2', ]},
             summary='Added [sv] alias to [[-1]], TEXT'
+        )
+
+    def test_add_multiple_label_or_alias_many_add_all_labels(self):
+        """Test sending multiple where all are new."""
+        self.wd_page.labels = None
+        self.wd_page.aliases = None
+        data = {
+            'fi': 'fi_label',
+            'de': 'de_label'
+        }
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
+        self.mock_edit_label.assert_called_once_with(
+            {'fi': 'fi_label', 'de': 'de_label'},
+            summary=u'Added [de, fi] label to [[-1]]'
+        )
+
+    def test_add_multiple_label_or_alias_many_add_all_aliases(self):
+        """Test sending multiple where all are new."""
+        data = {
+            'en': 'en_alias_2',
+            'sv': 'sv_label_2'
+        }
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
+        self.mock_edit_alias.assert_called_once_with(
+            {'en': ['en_alias_1', 'en_alias_2'], 'sv': ['sv_label_2', ]},
+            summary=u'Added [en, sv] alias to [[-1]]'
+        )
+
+    def test_add_multiple_label_or_alias_many_add_mix(self):
+        """Test sending multiple where some are alias and some labels."""
+        self.wd_page.labels = {'sv': 'sv_label'}
+        self.wd_page.aliases = None
+
+        data = {
+            'fi': 'fi_label',
+            'sv': 'sv_label_2'
+        }
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
+        self.mock_edit_label.assert_called_once_with(
+            {'fi': 'fi_label', 'sv': 'sv_label'},
+            summary=u'Added [fi] label to [[-1]]'
+        )
+        self.mock_edit_alias.assert_called_once_with(
+            {'sv': ['sv_label_2', ]},
+            summary='Added [sv] alias to [[-1]]'
+        )
+
+    def test_add_multiple_label_or_alias_many_add_some(self):
+        """Test sending multiple where only one is new."""
+        self.wd_page.labels = {'sv': 'sv_label'}
+        data = {
+            'fi': 'fi_label',
+            'sv': 'sv_label'
+        }
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
+        self.mock_edit_label.assert_called_once_with(
+            {'fi': 'fi_label', 'sv': 'sv_label'},
+            summary=u'Added [fi] label to [[-1]]'
         )
 
 
