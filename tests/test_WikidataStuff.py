@@ -241,6 +241,8 @@ class TestAddMultipleLabelOrAlias(BaseTest):
 
     def test_add_multiple_label_or_alias_no_language(self):
         """Test adding label when language not present."""
+        self.wd_page.labels = None
+        self.wd_page.aliases = None
         data = {'fi': 'fi_label'}
         self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
         self.mock_edit_label.assert_called_once_with(
@@ -249,6 +251,21 @@ class TestAddMultipleLabelOrAlias(BaseTest):
         )
         self.mock_edit_alias.assert_not_called()
 
+    def test_add_multiple_label_or_alias_list_of_names(self):
+        """Test adding label when language not present."""
+        self.wd_page.labels = None
+        self.wd_page.aliases = None
+        data = {'fi': ['fi_label1', 'fi_label2', 'fi_label3']}
+        self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
+        self.mock_edit_label.assert_called_once_with(
+            {'fi': 'fi_label1'},
+            summary='Added [fi] label to [[-1]]'
+        )
+        self.mock_edit_alias.assert_called_once_with(
+            {'fi': ['fi_label2', 'fi_label3']},
+            summary='Added [fi] alias to [[-1]]'
+        )
+
     def test_add_multiple_label_or_alias_has_same_label(self):
         data = {'sv': 'sv_label'}
         self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
@@ -256,6 +273,7 @@ class TestAddMultipleLabelOrAlias(BaseTest):
         self.mock_edit_alias.assert_not_called()
 
     def test_add_multiple_label_or_alias_has_other_label(self):
+        self.wd_page.aliases = None
         data = {'sv': 'sv_label_2'}
         self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
         self.mock_edit_label.assert_not_called()
@@ -286,6 +304,7 @@ class TestAddMultipleLabelOrAlias(BaseTest):
         self.mock_edit_alias.assert_not_called()
 
     def test_add_multiple_label_or_alias_case_sensitive(self):
+        self.wd_page.aliases = None
         data = {'sv': 'SV_label'}
         self.wd_stuff.add_multiple_label_or_alias(
             data, self.wd_page, case_sensitive=True)
@@ -296,6 +315,7 @@ class TestAddMultipleLabelOrAlias(BaseTest):
         )
 
     def test_add_multiple_label_or_alias_with_summary(self):
+        self.wd_page.aliases = None
         data = {'sv': 'sv_label_2'}
         self.wd_stuff.add_multiple_label_or_alias(
             data, self.wd_page, summary='TEXT')
@@ -307,6 +327,8 @@ class TestAddMultipleLabelOrAlias(BaseTest):
 
     def test_add_multiple_label_or_alias_many_add_all_labels(self):
         """Test sending multiple where all are new."""
+        self.wd_page.labels = None
+        self.wd_page.aliases = None
         data = {
             'fi': 'fi_label',
             'de': 'de_label'
@@ -331,13 +353,16 @@ class TestAddMultipleLabelOrAlias(BaseTest):
 
     def test_add_multiple_label_or_alias_many_add_mix(self):
         """Test sending multiple where some are alias and some labels."""
+        self.wd_page.labels = {'sv': 'sv_label'}
+        self.wd_page.aliases = None
+
         data = {
-            'fi': 'fi_desc',
+            'fi': 'fi_label',
             'sv': 'sv_label_2'
         }
         self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
         self.mock_edit_label.assert_called_once_with(
-            {'fi': 'fi_desc'},
+            {'fi': 'fi_label', 'sv': 'sv_label'},
             summary=u'Added [fi] label to [[-1]]'
         )
         self.mock_edit_alias.assert_called_once_with(
@@ -347,13 +372,14 @@ class TestAddMultipleLabelOrAlias(BaseTest):
 
     def test_add_multiple_label_or_alias_many_add_some(self):
         """Test sending multiple where only one is new."""
+        self.wd_page.labels = {'sv': 'sv_label'}
         data = {
-            'fi': 'fi_desc',
+            'fi': 'fi_label',
             'sv': 'sv_label'
         }
         self.wd_stuff.add_multiple_label_or_alias(data, self.wd_page)
         self.mock_edit_label.assert_called_once_with(
-            {'fi': 'fi_desc'},
+            {'fi': 'fi_label', 'sv': 'sv_label'},
             summary=u'Added [fi] label to [[-1]]'
         )
 

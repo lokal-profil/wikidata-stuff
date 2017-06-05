@@ -265,10 +265,11 @@ class WikidataStuff(object):
         Adds the name as either a label (if none) or an alias in the
         given language.
 
-        If adding both an alias and a name in the same language (or multiple
-        aliases) multiple calls to the function are needed.
+        If adding both a label and an alias in the same language (or multiple
+        aliases) supply a list of names where the first will be used as label.
 
-        @param data: dictionary of language-name pairs
+        @param data: dictionary of language-name pairs. The name can be either
+            a single name or a list of names.
         @param item: the item to which the label/alias should be added
         @param summary: summary to append to auto-generated edit summary
         @param caseSensitive: if the comparison is case sensitive
@@ -281,35 +282,41 @@ class WikidataStuff(object):
         if summary:
             edit_summary = u'{0}, {1}'.format(edit_summary, summary)
 
-        new_labels = dict()
-        new_aliases = dict()
+        new_label_langs = []
+        labels = item.labels or dict()
+        new_alias_langs = []
+        aliases = item.aliases or dict()
 
-        for lang, name in data.items():
-            if not item.labels or \
-                    lang not in item.labels:
-                new_labels[lang] = name
-            elif (case_sensitive and name != item.labels[lang]) or \
-                    (not case_sensitive and
-                     name.lower() != item.labels[lang].lower()):
-                if not item.aliases or \
-                        lang not in item.aliases:
-                    new_aliases[lang] = [name, ]
-                elif (case_sensitive and name not in item.aliases[lang]) or \
+        for lang, names in data.items():
+            for name in listify(names):
+                if lang not in labels:
+                    labels[lang] = name
+                    new_label_langs.append(lang)
+                elif (case_sensitive and name != labels[lang]) or \
                         (not case_sensitive and
-                         name.lower() not in
-                            list_to_lower(item.aliases[lang])):
-                    new_aliases[lang] = item.aliases[lang] + [name, ]
+                         name.lower() != labels[lang].lower()):
+                    if lang not in aliases:
+                        aliases[lang] = [name, ]
+                        new_alias_langs.append(lang)
+                    elif (case_sensitive and name not in aliases[lang]) or \
+                            (not case_sensitive and
+                             name.lower() not in list_to_lower(aliases[lang])):
+                        aliases[lang].append(name)
+                        new_alias_langs.append(lang)
 
-        if new_labels:
+        new_label_langs = sorted(list(set(new_label_langs)))
+        new_alias_langs = sorted(list(set(new_alias_langs)))
+
+        if new_label_langs:
             label_summary = edit_summary.format(
-                lang=', '.join(sorted(new_labels.keys())), typ='label')
-            item.editLabels(new_labels, summary=label_summary)
+                lang=', '.join(new_label_langs), typ='label')
+            item.editLabels(labels, summary=label_summary)
             pywikibot.output(label_summary)
 
-        if new_aliases:
+        if new_alias_langs:
             alias_summary = edit_summary.format(
-                lang=', '.join(sorted(new_aliases.keys())), typ='alias')
-            item.editAliases(new_aliases, summary=alias_summary)
+                lang=', '.join(new_alias_langs), typ='alias')
+            item.editAliases(aliases, summary=alias_summary)
             pywikibot.output(alias_summary)
 
     # some more generic Wikidata methods
