@@ -243,7 +243,7 @@ class WikidataStuff(object):
             pywikibot.output(edit_summary)
 
     # @todo: deprecate in favour of add_label_or_alias
-    @deprecated_args(caseSensitive='case_sensitive')')
+    @deprecated_args(caseSensitive='case_sensitive')
     def addLabelOrAlias(self, lang, name, item, summary=None,
                         case_sensitive=False):
         """
