@@ -19,6 +19,12 @@ class WikidataStuff(object):
     repo = None
     edit_summary = None
 
+    # extend pywikibot.Claim with a __repr__ method
+    def new_repr(self):
+        """Override the normal representation of pywikibot.Claim."""
+        return 'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
+    pywikibot.Claim.__repr__ = new_repr
+
     class Reference(object):
         """
         A class for encoding the contents of a reference.
@@ -93,12 +99,26 @@ class WikidataStuff(object):
             @param itis: a valid claim target e.g. pywikibot.ItemPage
             @type itis: object
             """
-            self.prop = 'P%s' % P.lstrip('P')
+            self.prop = 'P%s' % str(P).lstrip('P')
             self.itis = itis
 
         def __repr__(self):
             """Return a more complete string representation."""
             return 'WD.Qualifier(%s, %s)' % (self.prop, self.itis)
+
+        def __eq__(self, other):
+            """Implement equality comparison."""
+            if isinstance(other, self.__class__):
+                return self.__dict__ == other.__dict__
+            return NotImplemented
+
+        def __ne__(self, other):
+            """Implement non-equality comparison."""
+            return not self.__eq__(other)
+
+        def __hash__(self):
+            """Implement hash to allow for e.g. sorting and sets."""
+            return hash((self.prop, self.itis))
 
     class Statement(object):
         """A class for the contents of a statement (value + qualifiers)."""
@@ -111,7 +131,7 @@ class WikidataStuff(object):
 
             @param itis: a valid claim target e.g. pywikibot.ItemPage
             @type itis: object
-            @param special: if itis is actually a snackvalue
+            @param special: if itis is actually a snakvalue
             @type special: bool
             """
             if special and itis not in ['somevalue', 'novalue']:
@@ -119,13 +139,13 @@ class WikidataStuff(object):
                     'You tried to create a special statement with a '
                     'non-allowed snakvalue: %s' % itis)
             self.itis = itis
-            self.quals = []
+            self._quals = set()
             self.special = special
             self.force = False
 
         def addQualifier(self, qual, force=False):
             """
-            Add qualifier to the statement if not None.
+            Add qualifier to the statement if not None or already present.
 
             Returns self to allow chaining.
 
@@ -146,7 +166,7 @@ class WikidataStuff(object):
                     'than a Qualifier|None object: %s' % qual)
 
             # register qualifier
-            self.quals.append(qual)
+            self._quals.add(qual)
             if force:
                 self.force = True
             return self
@@ -155,10 +175,25 @@ class WikidataStuff(object):
             """Test if Statement was created with itis=None."""
             return self.itis is None
 
+        @property
+        def quals(self):
+            """Return the list of qualifiers."""
+            return list(self._quals)
+
         def __repr__(self):
             """Return a more complete string representation."""
             return 'WD.Statement(itis:%s, quals:%s, special:%s, force:%s)' % (
                 self.itis, self.quals, self.special, self.force)
+
+        def __eq__(self, other):
+            """Two Statements are equal if same up to qualifier order."""
+            if isinstance(other, self.__class__):
+                return self.__dict__ == other.__dict__
+            return NotImplemented
+
+        def __ne__(self, other):
+            """Implement non-equality comparison."""
+            return not self.__eq__(other)
 
     def __init__(self, repo, edit_summary=None):
         """
@@ -181,11 +216,6 @@ class WikidataStuff(object):
         if self.onLabs:
             from wikidataStuff.WikidataStringSearch import WikidataStringSearch
             self.wdss = WikidataStringSearch()
-
-        # extend pywikibot.Claim with a __repr__ method
-        def new_repr(self):
-            return 'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
-        pywikibot.Claim.__repr__ = new_repr
 
     def searchGenerator(self, text, language):
         """Contruct generator for WikidataStringSearch."""
