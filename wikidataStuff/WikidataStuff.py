@@ -25,6 +25,12 @@ class WikidataStuff(object):
         return 'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
     pywikibot.Claim.__repr__ = new_repr
 
+    # Temporary implementation here until T167827 is resolved
+    def wb_hash(self):
+        """Add hashing capablity to all objects extending _WbRepresentation."""
+        return hash(frozenset(self.toWikibase().items()))
+    pywikibot._WbRepresentation.__hash__ = wb_hash
+
     class Reference(object):
         """
         A class for encoding the contents of a reference.
@@ -190,6 +196,11 @@ class WikidataStuff(object):
             if isinstance(other, self.__class__):
                 return self.__dict__ == other.__dict__
             return NotImplemented
+
+        def __hash__(self):
+            """Implement hash to allow for e.g. sorting and sets."""
+            return hash((self.itis, frozenset(self._quals),
+                         self.special, self.force))
 
         def __ne__(self, other):
             """Implement non-equality comparison."""
