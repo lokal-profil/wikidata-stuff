@@ -60,12 +60,21 @@ class TestStatement(unittest.TestCase):
 
     """Test Statement."""
 
+    def setUp(self):
+        wikidata = Site('test', 'wikidata')
+        self.q_1 = WD.Qualifier('P123', 'foo')
+        self.q_2 = WD.Qualifier('P123', 'bar')
+        claim = Claim(wikidata, 'P55')
+        claim.setTarget('foo')
+        self.ref = WD.Reference(source_test=[claim, ])
+
     def test_statement_init(self):
         s = WD.Statement('foo')
         self.assertFalse(s.force)
         self.assertFalse(s.special)
         self.assertEquals(s.quals, [])
         self.assertEquals(s.itis, 'foo')
+        self.assertEquals(s.ref, None)
 
     def test_statement_init_none(self):
         self.assertTrue(WD.Statement(None).isNone())
@@ -107,15 +116,13 @@ class TestStatement(unittest.TestCase):
 
     def test_statement_qualifier(self):
         s = WD.Statement('foo')
-        q_1 = WD.Qualifier('P123', 'bar')
-        q_2 = WD.Qualifier('P123', 'bar')
-        s.addQualifier(q_1)
-        self.assertEquals(s.quals, [q_1])
-        self.assertEquals(s._quals, set([q_1]))
+        s.addQualifier(self.q_1)
+        self.assertEquals(s.quals, [self.q_1])
+        self.assertEquals(s._quals, set([self.q_1]))
         self.assertEquals(s, s)
 
-        s.addQualifier(q_2)
-        self.assertEquals(s._quals, set([q_1, q_2]))
+        s.addQualifier(self.q_2)
+        self.assertEquals(s._quals, set([self.q_1, self.q_2]))
         self.assertEquals(s, s)
 
     def test_statement_none_qualifier(self):
@@ -128,40 +135,70 @@ class TestStatement(unittest.TestCase):
 
     def test_statement_qualifier_chaining(self):
         s = WD.Statement('foo')
-        q_1 = WD.Qualifier('P123', 'bar')
-        q_2 = WD.Qualifier('P123', 'bar')
-        s.addQualifier(q_1).addQualifier(q_2)
-        self.assertEquals(s._quals, set([q_1, q_2]))
+        s.addQualifier(self.q_1).addQualifier(self.q_2)
+        self.assertEquals(s._quals, set([self.q_1, self.q_2]))
 
     def test_statement_equality_qualifier_order(self):
         s_1 = WD.Statement('foo')
         s_2 = WD.Statement('foo')
         s_3 = WD.Statement('foo')
-        q_1 = WD.Qualifier('P123', 'foo')
-        q_2 = WD.Qualifier('P123', 'bar')
-        s_1.addQualifier(q_1).addQualifier(q_2)
-        s_2.addQualifier(q_2).addQualifier(q_1)
-        s_3.addQualifier(q_1)
+        s_1.addQualifier(self.q_1).addQualifier(self.q_2)
+        s_2.addQualifier(self.q_2).addQualifier(self.q_1)
+        s_3.addQualifier(self.q_1)
         self.assertEquals(s_1, s_2)
         self.assertNotEquals(s_1, s_3)
 
     def test_statement_qualifier_duplicates(self):
         s = WD.Statement('foo')
-        q = WD.Qualifier('P123', 'bar')
-        s.addQualifier(q)
-        s.addQualifier(q)
-        self.assertEquals(s.quals, [q])
+        s.addQualifier(self.q_1)
+        s.addQualifier(self.q_1)
+        self.assertEquals(s.quals, [self.q_1])
+
+    def test_statement_add_reference(self):
+        s = WD.Statement('foo')
+        s.add_reference(self.ref)
+        self.assertEquals(s.ref, self.ref)
+
+    def test_statement_add_chained_reference(self):
+        s = WD.Statement('foo').add_reference(self.ref)
+        self.assertEquals(s.ref, self.ref)
+
+    def test_statement_add_bad_reference_error(self):
+        s = WD.Statement('foo')
+        with self.assertRaises(pwbError) as cm:
+            s.add_reference('foo')
+        self.assertEqual(
+            str(cm.exception),
+            'add_reference was called with something other '
+            'than a Reference object: foo')
+
+    def test_statement_add_second_reference_error(self):
+        s = WD.Statement('foo').add_reference(self.ref)
+        with self.assertRaises(pwbError) as cm:
+            s.add_reference(self.ref)
+        self.assertEqual(
+            str(cm.exception),
+            'add_reference was called when the statement already had '
+            'a reference assigned to it.')
 
     def test_statement_repr(self):
         s = WD.Statement('foo')
-        q = WD.Qualifier('P123', 'bar')
         self.assertEqual(
             repr(s),
-            'WD.Statement(itis:foo, quals:[], special:False, force:False)')
-        s.addQualifier(q)
+            'WD.Statement('
+            'itis:foo, quals:[], ref:None, special:False, force:False)')
+        s.addQualifier(self.q_1)
         self.assertEqual(
             repr(s),
-            'WD.Statement(itis:foo, quals:[WD.Qualifier(P123, bar)], '
+            'WD.Statement('
+            'itis:foo, quals:[WD.Qualifier(P123, foo)], ref:None, '
+            'special:False, force:False)')
+        s.add_reference(self.ref)
+        self.assertEqual(
+            repr(s),
+            'WD.Statement('
+            'itis:foo, quals:[WD.Qualifier(P123, foo)], '
+            'ref:WD.Reference(test: [WD.Claim(P55: foo)], no_test: []), '
             'special:False, force:False)')
 
 

@@ -146,6 +146,7 @@ class WikidataStuff(object):
                     'non-allowed snakvalue: %s' % itis)
             self.itis = itis
             self._quals = set()
+            self.ref = None
             self.special = special
             self.force = False
 
@@ -177,6 +178,31 @@ class WikidataStuff(object):
                 self.force = True
             return self
 
+        def add_reference(self, ref):
+            """
+            Add a Reference to the statement.
+
+            Returns self to allow chaining.
+
+            @param ref: the reference to add
+            @type ref: Reference
+            @raises: pywikibot Error if a reference is already present or if
+                the provided value is not a Reference.
+            """
+            # test input
+            if self.ref is not None:
+                raise pywikibot.Error(
+                    'add_reference was called when the statement already had '
+                    'a reference assigned to it.')
+            elif not isinstance(ref, WikidataStuff.Reference):
+                raise pywikibot.Error(
+                    'add_reference was called with something other '
+                    'than a Reference object: %s' % ref)
+            else:
+                self.ref = ref
+
+            return self
+
         def isNone(self):
             """Test if Statement was created with itis=None."""
             return self.itis is None
@@ -188,8 +214,10 @@ class WikidataStuff(object):
 
         def __repr__(self):
             """Return a more complete string representation."""
-            return 'WD.Statement(itis:%s, quals:%s, special:%s, force:%s)' % (
-                self.itis, self.quals, self.special, self.force)
+            return ('WD.Statement('
+                    'itis:{}, quals:{}, ref:{}, special:{}, force:{})'.format(
+                        self.itis, self.quals, self.ref, self.special,
+                        self.force))
 
         def __eq__(self, other):
             """Two Statements are equal if same up to qualifier order."""
@@ -199,7 +227,7 @@ class WikidataStuff(object):
 
         def __hash__(self):
             """Implement hash to allow for e.g. sorting and sets."""
-            return hash((self.itis, frozenset(self._quals),
+            return hash((self.itis, frozenset(self._quals), self.ref,
                          self.special, self.force))
 
         def __ne__(self, other):
