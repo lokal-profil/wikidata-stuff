@@ -6,6 +6,7 @@ import unittest
 import mock
 
 from wikidataStuff.helpers import (
+    get_unit_q,
     is_number,
     is_int,
     is_pos_int,
@@ -241,3 +242,20 @@ class TestFillCache(unittest.TestCase):
         self.warning.assert_called_once_with(
             'fill_cache is deprecated. Use fill_cache_wdqs instead.')
         self.assertEqual(result, expected)
+
+
+class TestGetUnitQ(unittest.TestCase):
+
+    """Test get_unit_q()."""
+
+    def test_get_unit_q_empty(self):
+        self.assertEqual(get_unit_q(''), None)
+
+    def test_get_unit_q_match(self):
+        self.assertEqual(get_unit_q('km2'), 'Q712226')
+
+    def test_get_unit_q_no_match(self):
+        self.assertEqual(get_unit_q('foo'), None)
+
+    def test_get_unit_q_raised(self):
+        self.assertEqual(get_unit_q('km²'), 'Q712226')

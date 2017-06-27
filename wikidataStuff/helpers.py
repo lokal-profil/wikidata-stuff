@@ -501,6 +501,9 @@ def get_unit_q(unit):
     """
     Given a unit abbreviation return the appropriate qid.
 
+    Powers can be given as either a plain number or a raised number, e.g.
+    km2 or km².
+
     @param unit: the unit abbreviation to look up
     @type unit: str
     @return: Q-value of matching wikidata entry or None if not mapped
@@ -511,8 +514,13 @@ def get_unit_q(unit):
         'km': 'Q828224',
         'cm': 'Q174728',
         'mm': 'Q174789',
-        'km²': 'Q712226'
+        'km2': 'Q712226',
+        'ha': 'Q35852'
     }
+
+    # standardise input
+    unit = unit.replace('²', '2').replace('³', '3')
+
     return units.get(unit)
 
 
