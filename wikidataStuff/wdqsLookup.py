@@ -203,7 +203,7 @@ def list_of_dict_to_dict(data, key_key, value_key=None, allow_multiple=False):
 
 def make_select_wdqs_query(main_query, label=None, select_value=None,
                            qualifiers=None, optional_props=None,
-                           allow_multiple=False):
+                           allow_multiple=False, raw=False):
     """
     Put together a wdqs search query given a main query and any qualifiers.
 
@@ -223,6 +223,9 @@ def make_select_wdqs_query(main_query, label=None, select_value=None,
     @type allow_multiple: bool
     @param optional_props: list of other properties to optionally request
     @type optional_props: list of str
+    @param raw: whether to return the raw data instead of runing it through
+        process_query_results.
+    @rtype raw: bool
     """
     label = label or 'item'
     selects = []
@@ -271,8 +274,11 @@ def make_select_wdqs_query(main_query, label=None, select_value=None,
     else:
         output_type = 'dict'
 
-    return process_query_results(
-        data, label, output_type, value_key, allow_multiple)
+    if raw:
+        return data
+    else:
+        return process_query_results(
+            data, label, output_type, value_key, allow_multiple)
 
 
 def make_sparql_triple(prop, value=None, item_label=None, qualifier=False):
