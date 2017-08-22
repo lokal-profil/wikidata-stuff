@@ -83,7 +83,7 @@ def fill_cache_wdqs(pid, queryoverride=None, no_strip=False):
     @param queryoverride: Temporary compatibility parameter triggering error
     @type queryoverride: anything
     @param no_strip: Don't strip the Q prefix
-    @type nostrip: bool
+    @type no_strip: bool
     @return: Dictionary of IDno to Qno (without Q prefix)
     @rtype: dict
     """
