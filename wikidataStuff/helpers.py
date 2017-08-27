@@ -497,6 +497,38 @@ def dbpedia_2_wikidata(dbpedia):
     return None
 
 
+def convert_language_dict_to_json(data, typ):
+    """
+    Convert a description/label/alias dictionary to input formatted json.
+
+    The json format is needed during e.g. item creation.
+
+    @param data: a language-value dictionary where value is either a string
+        or list of strings.
+    @type data: dict
+    @param typ: the type of output. Must be one of 'descriptions', 'labels'
+        or 'aliases'
+    @type typ: str
+    @return: json formatted version of the input
+    @rtype: dict
+    """
+    if typ not in ('descriptions', 'labels', 'aliases'):
+        raise ValueError('"{0}" is not a valid type for '
+                         'convert_language_dict_to_json().'.format(typ))
+    allow_list = (typ == 'aliases')
+
+    json_data = dict()
+    for lang, val in data.items():
+        if not allow_list and isinstance(val, list):
+            if len(val) == 1:
+                val = val[0]
+            else:
+                raise ValueError('{0} must not have a list of values for '
+                                 'a single language.'.format(typ))
+        json_data[lang] = {'language': lang, 'value': val}
+    return json_data
+
+
 def get_unit_q(unit):
     """
     Given a unit abbreviation return the appropriate qid.

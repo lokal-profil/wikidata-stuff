@@ -12,7 +12,8 @@ from wikidataStuff.helpers import (
     is_pos_int,
     sig_fig_error,
     fill_cache_wdqs,
-    fill_cache
+    fill_cache,
+    convert_language_dict_to_json
 )
 
 
@@ -259,3 +260,89 @@ class TestGetUnitQ(unittest.TestCase):
 
     def test_get_unit_q_raised(self):
         self.assertEqual(get_unit_q('km²'), 'Q712226')
+
+
+class TestConvertLanguageDictToJson(unittest.TestCase):
+
+    """Test the convert_language_dict_to_json method."""
+
+    def test_convert_language_dict_to_json_empty(self):
+        self.assertEqual(
+            convert_language_dict_to_json({}, 'labels'),
+            {}
+        )
+
+    def test_convert_language_dict_to_json_single(self):
+        expected = {
+            'en': {
+                'language': 'en',
+                'value': 'foo'
+            }
+        }
+        data = {'en': 'foo'}
+        self.assertEqual(
+            convert_language_dict_to_json(data, 'labels'),
+            expected
+        )
+
+    def test_convert_language_dict_to_json_multiple(self):
+        expected = {
+            'en': {
+                'language': 'en',
+                'value': 'foo'
+            },
+            'sv': {
+                'language': 'sv',
+                'value': 'bar'
+            }
+        }
+        data = {'en': 'foo', 'sv': 'bar'}
+        self.assertEqual(
+            convert_language_dict_to_json(data, 'labels'),
+            expected
+        )
+
+    def test_convert_language_dict_to_json_alias_list(self):
+        expected = {
+            'en': {
+                'language': 'en',
+                'value': ['foo', 'bar']
+            }
+        }
+        data = {'en': ['foo', 'bar']}
+        self.assertEqual(
+            convert_language_dict_to_json(data, 'aliases'),
+            expected
+        )
+
+    def test_convert_language_dict_to_json_non_alias_list_one(self):
+        expected = {
+            'en': {
+                'language': 'en',
+                'value': 'foo'
+            }
+        }
+        data = {'en': ['foo', ]}
+        self.assertEqual(
+            convert_language_dict_to_json(data, 'labels'),
+            expected
+        )
+
+    def test_convert_language_dict_to_json_non_alias_list_multiple(self):
+        data = {'en': ['foo', 'bar']}
+        with self.assertRaises(ValueError) as cm:
+            convert_language_dict_to_json(data, 'labels')
+        self.assertEqual(
+            str(cm.exception),
+            'labels must not have a list of values for a single language.'
+        )
+        with self.assertRaises(ValueError) as cm:
+            convert_language_dict_to_json(data, 'descriptions')
+
+    def test_convert_language_dict_to_json_wrong_type(self):
+        with self.assertRaises(ValueError) as cm:
+            convert_language_dict_to_json({}, 'foo')
+        self.assertEqual(
+            str(cm.exception),
+            '"foo" is not a valid type for convert_language_dict_to_json().'
+        )
