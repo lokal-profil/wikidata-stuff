@@ -19,13 +19,18 @@ class PreviewItem(object):
         """
         Initialise the PreviewItem.
 
-        :param labels: dict holding the label/aliases per language code
-        :param descriptions: dict holding the descriptions per language code
-        :param protoclaims: dict of Statements per (P-prefixed) property-id
-        :param item: the pywikibot.ItemPage to which the data should be added
-            (None for a new item)
-        :param ref: a Reference which is attached to every single protoclaim,
+        @param labels: dict holding the label/aliases per language code
+        @type labels: dict
+        @param descriptions: dict holding the descriptions per language code
+        @type labels: dict
+        @param protoclaims: dict of Statements per (P-prefixed) property-id
+        @type labels: dict
+        @param item: the item to which the data should be added (None for a
+            new item)
+        @type labels: pywikibot.ItemPage|none
+        @param ref: a Reference which is attached to every single protoclaim,
             unless overridden on a per statement basis.
+        @type labels: Reference|None
         """
         # sort dicts by key to ensure consistent behaviour
         self.labels_dict = OrderedDict(
@@ -167,10 +172,13 @@ class PreviewItem(object):
         """
         Create a preview for the itis component of a Statement.
 
-        :param itis: a Statement or the itis component of a Statement or
+        @param itis: a Statement or the itis component of a Statement or
             Qualifier.
-        :param special: if it is a special type of value (i.e. novalue,
+        @type itis: Statement
+        @param special: if it is a special type of value (i.e. novalue,
             somevalue). Is set automatically if a Statement is passed to itis.
+        @type special: bool
+        @rtype: str
         """
         # handle the case where a Statement was passed
         if isinstance(itis, WdS.Statement):
@@ -200,7 +208,7 @@ class PreviewItem(object):
         The first label is italicised (to indicate it is the preferred label
         whereas the rest are aliases).
 
-        :return: string
+        @rtype: str
         """
         preview = ''
         for lang, labels in self.labels_dict.items():
@@ -215,7 +223,7 @@ class PreviewItem(object):
         """
         Create a descriptions(s) preview.
 
-        :return: string
+        @rtype: str
         """
         preview = ''
         for lang, description in self.desc_dict.items():
@@ -227,7 +235,7 @@ class PreviewItem(object):
         """
         Create an item preview.
 
-        :return: string
+        @rtype: str
         """
         if self.item:
             return PreviewItem.make_wikidata_template(self.item)
@@ -249,11 +257,13 @@ class PreviewItem(object):
         """
         Make a wikidata template for items and properties.
 
-        :param wd_entry: a Q/P prefixed item/property id or an
+        @param wd_entry: a Q/P prefixed item/property id or an
             ItemPage/PropertyPage
-        :param special: if it is a special type of value
+        @type wd_entry: pywikibot.ItemPage|pywikibot.PropertyPage|str
+        @param special: if it is a special type of value
             (i.e. novalue, somevalue)
-        :return: string
+        @type special: bool
+        @rtype: str
         """
         if isinstance(wd_entry, (pywikibot.ItemPage, pywikibot.PropertyPage)):
             wd_id = wd_entry.id
