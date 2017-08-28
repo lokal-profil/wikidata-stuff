@@ -775,7 +775,7 @@ class WikidataStuff(object):
         claim.setTarget(target)
         return claim
 
-    def make_new_item(self, data, summary):
+    def make_new_item(self, data, summary=None):
         """
         Make a new ItemPage given some data and an edit summary.
 
@@ -785,6 +785,8 @@ class WikidataStuff(object):
         @type summary: basestring
         @rtype: pywikibot.ItemPage
         """
+        summary = summary or self.edit_summary
+
         identification = dict()  # If empty this defaults to creating an entity
         result = self.repo.editEntity(identification, data, summary=summary)
         pywikibot.output(summary)  # afterwards in case an error is raised
@@ -792,7 +794,7 @@ class WikidataStuff(object):
         # return the new item
         return self.QtoItemPage(result.get('entity').get('id'))
 
-    def make_new_item_from_page(self, page, summary):
+    def make_new_item_from_page(self, page, summary=None):
         """
         Make a new ItemPage given a Page object and an edit summary.
 
@@ -805,6 +807,8 @@ class WikidataStuff(object):
         @type summary: basestring
         @rtype: pywikibot.ItemPage
         """
+        summary = summary or self.edit_summary
+
         result = self.repo.createNewItemFromPage(page, summary)
         pywikibot.output(summary)  # afterwards in case an error is raised
 
