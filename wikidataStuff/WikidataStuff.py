@@ -121,7 +121,7 @@ class WikidataStuff(object):
             return hash((self.prop, self.itis))
 
     class Statement(object):
-        """A class for the contents of a statement (value + qualifiers)."""
+        """A representation of a statement (value, qualifiers, references)."""
 
         def __init__(self, itis, special=False):
             """
