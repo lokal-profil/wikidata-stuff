@@ -228,7 +228,7 @@ class WikidataStuff(object):
             """Implement non-equality comparison."""
             return not self.__eq__(other)
 
-    def __init__(self, repo, edit_summary=None):
+    def __init__(self, repo, edit_summary=None, no_wdss=False):
         """
         Initialise the WikidataStuff object with a data repository.
 
@@ -237,15 +237,21 @@ class WikidataStuff(object):
         @param edit_summary: optional string to append to all automatically
             generated edit summaries
         @type edit_summary: basestring|None
+        @param no_wdss: if WikidataStringSearch should be disabled even if
+            running on Labs. Default: False.
+        @type no_wdss: bool
         """
         self.repo = repo
         if edit_summary:
             self.edit_summary = edit_summary
 
         # check if I am running on labs, for WikidataStringSearch
-        self.onLabs = os.path.isfile(
-            os.path.expanduser("~") +
-            "/replica.my.cnf")
+        if no_wdss:
+            self.onLabs = False
+        else:
+            self.onLabs = os.path.isfile(
+                os.path.expanduser("~") +
+                "/replica.my.cnf")
         if self.onLabs:
             from wikidataStuff.WikidataStringSearch import WikidataStringSearch
             self.wdss = WikidataStringSearch()
