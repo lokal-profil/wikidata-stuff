@@ -117,7 +117,7 @@ class TestIsNumber(unittest.TestCase):
         self.assertEqual(result, True)
 
     def test_is_number_valid_negative_float_succeed(self):
-        s = '123.456'
+        s = '-123.456'
         result = is_number(s)
         self.assertEqual(result, True)
 
