@@ -10,6 +10,7 @@ from wikidataStuff.helpers import (
     is_number,
     is_int,
     is_pos_int,
+    listify,
     sig_fig_error,
     fill_cache_wdqs,
     fill_cache,
@@ -346,3 +347,24 @@ class TestConvertLanguageDictToJson(unittest.TestCase):
             str(cm.exception),
             '"foo" is not a valid type for convert_language_dict_to_json().'
         )
+
+
+class TestListify(unittest.TestCase):
+
+    """Test listify()."""
+
+    def test_listify_none(self):
+        self.assertEqual(listify(None), None)
+
+    def test_listify_empty_list(self):
+        self.assertEqual(listify([]), [])
+
+    def test_listify_list(self):
+        input_value = ['a', 'c']
+        expected = ['a', 'c']
+        self.assertEqual(listify(input_value), expected)
+
+    def test_listify_string(self):
+        input_value = 'a string'
+        expected = ['a string']
+        self.assertEqual(listify(input_value), expected)

@@ -10,27 +10,9 @@ import unittest
 import pywikibot
 
 from wikidataStuff import WikidataStuff as WD
-
-
-class TestListify(unittest.TestCase):
-
-    """Test listify()."""
-
-    def test_listify_none(self):
-        self.assertEqual(WD.listify(None), None)
-
-    def test_listify_empty_list(self):
-        self.assertEqual(WD.listify([]), [])
-
-    def test_listify_list(self):
-        input_value = ['a', 'c']
-        expected = ['a', 'c']
-        self.assertEqual(WD.listify(input_value), expected)
-
-    def test_listify_string(self):
-        input_value = 'a string'
-        expected = ['a string']
-        self.assertEqual(WD.listify(input_value), expected)
+from wikidataStuff.reference import Reference  # replace with mocks
+from wikidataStuff.statement import Statement  # replace with mocks
+from wikidataStuff.qualifier import Qualifier  # replace with mocks
 
 
 class BaseTest(unittest.TestCase):
@@ -487,11 +469,11 @@ class TestHasQualifier(BaseTest):
         self.claim_two_quals_same_p = self.wd_page.claims['P174'][5]
 
         # load three claims to use when making references
-        self.qual_1 = WD.WikidataStuff.Qualifier('P174', 'A qualifier')
-        self.qual_2 = WD.WikidataStuff.Qualifier('P664', 'Another qualifier')
-        self.qual_3 = WD.WikidataStuff.Qualifier('P174', 'Another qualifier')
-        self.unmatched_val = WD.WikidataStuff.Qualifier('P174', 'Unmatched')
-        self.unmatched_p = WD.WikidataStuff.Qualifier('P0', 'A qualifier')
+        self.qual_1 = Qualifier('P174', 'A qualifier')
+        self.qual_2 = Qualifier('P664', 'Another qualifier')
+        self.qual_3 = Qualifier('P174', 'Another qualifier')
+        self.unmatched_val = Qualifier('P174', 'Unmatched')
+        self.unmatched_p = Qualifier('P0', 'A qualifier')
 
     def test_has_qualifier_no_qualifier(self):
         self.assertFalse(
@@ -551,9 +533,9 @@ class TestHasAllQualifiers(BaseTest):
         self.claim = self.wd_page.claims['P174'][4]
 
         # load qualifiers
-        self.qual_1 = WD.WikidataStuff.Qualifier('P174', 'A qualifier')
-        self.qual_2 = WD.WikidataStuff.Qualifier('P664', 'Another qualifier')
-        self.unmatched = WD.WikidataStuff.Qualifier('P174', 'Unmatched')
+        self.qual_1 = Qualifier('P174', 'A qualifier')
+        self.qual_2 = Qualifier('P664', 'Another qualifier')
+        self.unmatched = Qualifier('P174', 'Unmatched')
 
     def test_has_all_qualifiers_none(self):
         with self.assertRaises(TypeError):
@@ -621,7 +603,7 @@ class TestAddReference(BaseTest):
         self.mock_add_sources.assert_not_called()
 
     def test_add_reference_test_no_prior(self):
-        reference = WD.WikidataStuff.Reference(source_test=self.ref_1)
+        reference = Reference(source_test=self.ref_1)
         self.assertTrue(
             self.wd_stuff.addReference(
                 item=self.wd_page,
@@ -631,7 +613,7 @@ class TestAddReference(BaseTest):
             [self.ref_1], summary=None)
 
     def test_add_reference_notest_no_prior(self):
-        reference = WD.WikidataStuff.Reference(source_notest=self.ref_1)
+        reference = Reference(source_notest=self.ref_1)
         self.assertTrue(
             self.wd_stuff.addReference(
                 item=self.wd_page,
@@ -641,7 +623,7 @@ class TestAddReference(BaseTest):
             [self.ref_1], summary=None)
 
     def test_add_reference_has_ref_and_one_more(self):
-        reference = WD.WikidataStuff.Reference(source_test=self.ref_1)
+        reference = Reference(source_test=self.ref_1)
         self.assertFalse(
             self.wd_stuff.addReference(
                 item=self.wd_page,
@@ -650,7 +632,7 @@ class TestAddReference(BaseTest):
         self.mock_add_sources.assert_not_called()
 
     def test_add_reference_has_both(self):
-        reference = WD.WikidataStuff.Reference(
+        reference = Reference(
             source_test=self.ref_1, source_notest=self.ref_2)
         self.assertFalse(
             self.wd_stuff.addReference(
@@ -660,7 +642,7 @@ class TestAddReference(BaseTest):
         self.mock_add_sources.assert_not_called()
 
     def test_add_reference_has_test_only(self):
-        reference = WD.WikidataStuff.Reference(
+        reference = Reference(
             source_test=self.ref_1, source_notest=self.unmatched_ref)
         self.assertFalse(
             self.wd_stuff.addReference(
@@ -670,7 +652,7 @@ class TestAddReference(BaseTest):
         self.mock_add_sources.assert_not_called()
 
     def test_add_reference_has_notest_only(self):
-        reference = WD.WikidataStuff.Reference(
+        reference = Reference(
             source_test=self.unmatched_ref, source_notest=self.ref_2)
         self.assertTrue(
             self.wd_stuff.addReference(
@@ -681,7 +663,7 @@ class TestAddReference(BaseTest):
             [self.unmatched_ref, self.ref_2], summary=None)
 
     def test_add_reference_with_summary(self):
-        reference = WD.WikidataStuff.Reference(source_test=self.ref_1)
+        reference = Reference(source_test=self.ref_1)
         self.assertTrue(
             self.wd_stuff.addReference(
                 item=self.wd_page,
@@ -692,7 +674,7 @@ class TestAddReference(BaseTest):
             [self.ref_1], summary='test_me')
 
     def test_add_reference_detect_when_multple_sources(self):
-        reference = WD.WikidataStuff.Reference(source_test=self.ref_1)
+        reference = Reference(source_test=self.ref_1)
         self.assertFalse(
             self.wd_stuff.addReference(
                 item=self.wd_page,
@@ -701,7 +683,7 @@ class TestAddReference(BaseTest):
         self.mock_add_sources.assert_not_called()
 
     def test_add_reference_add_when_multple_sources(self):
-        reference = WD.WikidataStuff.Reference(source_test=self.ref_2)
+        reference = Reference(source_test=self.ref_2)
         self.assertTrue(
             self.wd_stuff.addReference(
                 item=self.wd_page,
@@ -718,7 +700,7 @@ class TestAddQualifier(BaseTest):
     def setUp(self):
         super(TestAddQualifier, self).setUp()
         self.claim = self.wd_page.claims['P174'][2]
-        self.qual = WD.WikidataStuff.Qualifier('P174', 'A qualifier')
+        self.qual = Qualifier('P174', 'A qualifier')
 
         qualifier_patcher = mock.patch(
             'wikidataStuff.WikidataStuff.pywikibot.Claim.addQualifier')
@@ -812,11 +794,11 @@ class TestAddNewClaim(BaseTest):
         self.ref = None
         self.prop = 'P509'  # an unused property of type string
         self.value = 'A statement'
-        self.qual_1 = WD.WikidataStuff.Qualifier('P174', 'A qualifier')
-        self.qual_2 = WD.WikidataStuff.Qualifier('P664', 'Another qualifier')
+        self.qual_1 = Qualifier('P174', 'A qualifier')
+        self.qual_2 = Qualifier('P664', 'Another qualifier')
 
     def test_add_new_claim_new_property(self):
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
         self.mock_add_claim.assert_called_once()
@@ -825,7 +807,7 @@ class TestAddNewClaim(BaseTest):
 
     def test_add_new_claim_old_property_new_value(self):
         self.prop = 'P174'
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
         self.mock_add_claim.assert_called_once()
@@ -835,7 +817,7 @@ class TestAddNewClaim(BaseTest):
     def test_add_new_claim_old_property_old_value(self):
         self.prop = 'P174'
         self.value = 'A string'
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         expected_claim = 'Q27399$3f62d521-4efe-e8de-8f2d-0d8a10e024cf'
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
@@ -849,7 +831,7 @@ class TestAddNewClaim(BaseTest):
             expected_claim)
 
     def test_add_new_claim_new_property_with_quals(self):
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         statement.addQualifier(self.qual_1).addQualifier(self.qual_2)
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
@@ -859,7 +841,7 @@ class TestAddNewClaim(BaseTest):
 
     def test_add_new_claim_old_property_new_value_with_quals(self):
         self.prop = 'P174'
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         statement.addQualifier(self.qual_1).addQualifier(self.qual_2)
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
@@ -870,7 +852,7 @@ class TestAddNewClaim(BaseTest):
     def test_add_new_claim_old_property_old_value_without_quals(self):
         self.prop = 'P174'
         self.value = 'A string'
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         statement.addQualifier(self.qual_1).addQualifier(self.qual_2)
         expected_claim = 'Q27399$3f62d521-4efe-e8de-8f2d-0d8a10e024cf'
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
@@ -885,7 +867,7 @@ class TestAddNewClaim(BaseTest):
     def test_add_new_claim_old_property_old_value_with_different_quals(self):
         self.prop = 'P174'
         self.value = 'A string entry with a qualifier'
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         statement.addQualifier(self.qual_1).addQualifier(self.qual_2)
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
@@ -896,7 +878,7 @@ class TestAddNewClaim(BaseTest):
     def test_add_new_claim_old_property_old_value_with_same_quals(self):
         self.prop = 'P174'
         self.value = 'A string entry with many qualifiers'
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         statement.addQualifier(self.qual_1).addQualifier(self.qual_2)
         expected_claim = 'Q27399$b48a2630-4fbb-932d-4f01-eefcf1e73f59'
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
@@ -911,9 +893,9 @@ class TestAddNewClaim(BaseTest):
     def test_add_new_claim_edit_correct_qualified_claim(self):
         self.prop = 'P664'
         self.value = 'Duplicate_string'
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         statement.addQualifier(
-            WD.WikidataStuff.Qualifier('P174', 'qualifier'))
+            Qualifier('P174', 'qualifier'))
         expected_claim = 'Q27399$a9b83de1-49d7-d033-939d-f430a232ffd0'
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
@@ -927,9 +909,9 @@ class TestAddNewClaim(BaseTest):
     def test_add_new_claim_edit_correct_qualified_claim_with_ref(self):
         self.prop = 'P664'
         self.value = 'Duplicate_string_with_ref'
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         statement.addQualifier(
-            WD.WikidataStuff.Qualifier('P174', 'qualifier'))
+            Qualifier('P174', 'qualifier'))
         expected_claim = 'Q27399$e63f47a3-45ea-e2fc-1363-8f6062205084'
         self.wd_stuff.addNewClaim(self.prop, statement, self.wd_page, self.ref)
 
@@ -942,7 +924,7 @@ class TestAddNewClaim(BaseTest):
 
     def test_add_new_claim_call_special_has_claim(self):
         value = 'somevalue'
-        statement = WD.WikidataStuff.Statement(value, special=True)
+        statement = Statement(value, special=True)
         function = 'wikidataStuff.WikidataStuff.WikidataStuff.has_special_claim'
 
         with mock.patch(function, autospec=True) as mock_has_special_claim:
@@ -952,7 +934,7 @@ class TestAddNewClaim(BaseTest):
                 self.wd_stuff, self.prop, value, self.wd_page)
 
     def test_add_new_claim_raise_error_on_bad_ref(self):
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         with self.assertRaises(pywikibot.Error) as e:
             self.wd_stuff.addNewClaim(
                 self.prop, statement, self.wd_page, 'Not a ref')
@@ -963,7 +945,7 @@ class TestAddNewClaim(BaseTest):
     def test_add_new_claim_warning_on_duplicate_matching_claim(self):
         self.prop = 'P84'
         self.value = pywikibot.ItemPage(self.repo, 'Q505')
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         self.wd_stuff.addNewClaim(
             self.prop, statement, self.wd_page, self.ref)
         self.mock_warning.assert_called_once_with(
@@ -996,8 +978,8 @@ class TestMatchClaim(BaseTest):
         self.two_qual_no_ref = self.wd_page.claims['P174'][5]
 
         # load two qualifier
-        self.matched_qualifier = self.wd_stuff.Qualifier('P174', 'A qualifier')
-        self.unmatched_qualifier = self.wd_stuff.Qualifier('P174', 'Unmatched')
+        self.matched_qualifier = Qualifier('P174', 'A qualifier')
+        self.unmatched_qualifier = Qualifier('P174', 'Unmatched')
 
     def test_match_claim_empty_claim(self):
         # 0. no claims: None selected
