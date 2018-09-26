@@ -585,7 +585,7 @@ class WikidataStuff(object):
         @param prop: property id, with "P" prefix
         @type prop: basestring
         @param statement: target statement for the claim
-        @param statement: Statement
+        @type statement: Statement
         @param item: the item being checked
         @type item: pywikibot.ItemPage
         @param ref: reference to add to the claim
