@@ -8,7 +8,7 @@
 from __future__ import unicode_literals
 from builtins import object
 
-from pywikibot.tools import deprecated
+from pywikibot.tools import deprecated_args
 
 
 class Qualifier(object):
@@ -22,16 +22,17 @@ class Qualifier(object):
            retire in favor of pywikibot.Claim
     """
 
-    def __init__(self, P, itis):
+    @deprecated_args(P='prop', since='0.4')
+    def __init__(self, prop, itis):
         """
         Make a correctly formatted qualifier object for claims.
 
-        @param P: the property (with or without "P")
-        @type P: basestring
+        @param prop: the property (with or without "P")
+        @type prop: basestring
         @param itis: a valid claim target e.g. pywikibot.ItemPage
         @type itis: object
         """
-        self.prop = 'P%s' % str(P).lstrip('P')
+        self.prop = 'P%s' % str(prop).lstrip('P')
         self.itis = itis
 
     def __repr__(self):

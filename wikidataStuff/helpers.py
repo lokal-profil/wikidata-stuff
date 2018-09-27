@@ -16,6 +16,7 @@ import time  # for dbpedia_2_wikidata
 from datetime import datetime  # for today_as_WbTime
 
 import pywikibot
+from pywikibot.tools import deprecated, deprecated_args
 from pywikibot import pagegenerators
 from pywikibot.tools import deprecated
 
@@ -112,7 +113,8 @@ def fill_cache_wdqs(pid, queryoverride=None, no_strip=False):
     return result
 
 
-def today_as_WbTime():
+@deprecated('today_as_WbTime', since='0.4')
+def today_as_wbtime():
     """
     Get todays date as a WbTime object.
 
@@ -126,7 +128,8 @@ def today_as_WbTime():
     return date
 
 
-def iso_to_WbTime(date):
+@deprecated('iso_to_WbTime', since='0.4')
+def iso_to_wbtime(date):
     """
     Convert ISO date string into WbTime object.
 
@@ -387,14 +390,15 @@ def reorder_names(name):
         return None
 
 
-def find_files(path, fileExts, subdir=True):
+@deprecated_args(fileExts='file_exts', since='0.4')
+def find_files(path, file_exts, subdir=True):
     """
     Identify all files with a given extension in a given directory.
 
     @param path: Path to directory to look in
     @type path: basestring
-    @param fileExts: Allowed file extensions (case insensitive)
-    @type fileExts: tuple (of basestring)
+    @param file_exts: Allowed file extensions (case insensitive)
+    @type file_exts: tuple (of basestring)
     @param subdir: Whether subdirs should also be searched, default=True
     @return: Paths to found files
     @rtype: list (of basestring)
@@ -402,13 +406,13 @@ def find_files(path, fileExts, subdir=True):
     files = []
     subdirs = []
     for filename in os.listdir(path):
-        if os.path.splitext(filename)[1].lower() in fileExts:
+        if os.path.splitext(filename)[1].lower() in file_exts:
             files.append(os.path.join(path, filename))
         elif os.path.isdir(os.path.join(path, filename)):
             subdirs.append(os.path.join(path, filename))
     if subdir:
         for subdir in subdirs:
-            files += find_files(path=subdir, fileExts=fileExts)
+            files += find_files(path=subdir, fileExts=file_exts)
     return files
 
 

@@ -50,10 +50,11 @@ class WikidataStuff(object):
             from wikidataStuff.WikidataStringSearch import WikidataStringSearch
             self.wdss = WikidataStringSearch()
 
-    def searchGenerator(self, text, language):
+    @deprecated('searchGenerator', since='0.4')
+    def search_generator(self, text, language):
         """Contruct generator for WikidataStringSearch."""
         for q in self.wdss.search(text, language=language):
-            yield self.QtoItemPage(q)
+            yield self.q_to_itempage(q)
 
     def add_description(self, lang, description, item, overwrite=False,
                         summary=None):
@@ -106,9 +107,11 @@ class WikidataStuff(object):
             pywikibot.output(edit_summary)
 
     # @todo: deprecate in favour of add_label_or_alias
+
+    @deprecated('addLabelOrAlias', since='0.4')
     @deprecated_args(caseSensitive='case_sensitive', since='<0.4')
-    def addLabelOrAlias(self, lang, name, item, summary=None,
-                        case_sensitive=False):
+    def add_label_or_alias(self, lang, name, item, summary=None,
+                           case_sensitive=False):
         """
         Add a name as either label (if none) or alias in the given language.
 
@@ -185,7 +188,8 @@ class WikidataStuff(object):
             pywikibot.output(alias_summary)
 
     # some more generic Wikidata methods
-    def hasRef(self, prop, itis, claim):
+    @deprecated('hasRef', since='0.4')
+    def has_ref(self, prop, itis, claim):
         """
         Check if a given reference is already present at the given claim.
 
@@ -197,11 +201,12 @@ class WikidataStuff(object):
             for i, source in enumerate(claim.sources):
                 if prop in source:
                     for s in source[prop]:
-                        if self.bypassRedirect(s.getTarget()) == itis:
+                        if self.bypass_redirect(s.getTarget()) == itis:
                             return True
         return False
 
-    def addReference(self, item, claim, ref, summary=None):
+    @deprecated('addReference', since='0.4')
+    def add_reference(self, item, claim, ref, summary=None):
         """
         Add a reference if not already present.
 
@@ -218,7 +223,7 @@ class WikidataStuff(object):
         if ref is None:
             return False
 
-        if any(self.hasRef(source.getID(), source.getTarget(), claim)
+        if any(self.has_ref(source.getID(), source.getTarget(), claim)
                 for source in ref.source_test):
             return False
 
@@ -255,7 +260,7 @@ class WikidataStuff(object):
         has_all = False
         exact_match = False
         for qual in quals:
-            if not self.hasQualifier(qual, claim):
+            if not self.has_qualifier(qual, claim):
                 return (exact_match, has_all)
         has_all = True
 
@@ -265,7 +270,8 @@ class WikidataStuff(object):
 
         return (exact_match, has_all)
 
-    def hasQualifier(self, qual, claim):
+    @deprecated('hasQualifier', since='0.4')
+    def has_qualifier(self, qual, claim):
         """
         Check if qualifier is already present.
 
@@ -276,13 +282,14 @@ class WikidataStuff(object):
         """
         if claim.qualifiers and qual.prop in claim.qualifiers:
             for s in claim.qualifiers[qual.prop]:
-                if self.bypassRedirect(s.getTarget()) == qual.itis:
+                if self.bypass_redirect(s.getTarget()) == qual.itis:
                     return True
                 # else:
                 #    pywikibot.output(s.getTarget())
         return False
 
-    def addQualifier(self, item, claim, qual, summary=None):
+    @deprecated('addQualifier', since='0.4')
+    def add_qualifier(self, item, claim, qual, summary=None):
         """
         Check if a qualifier is present at the given claim, otherwise add it.
 
@@ -296,15 +303,15 @@ class WikidataStuff(object):
         """
         if not qual:
             raise pywikibot.Error(
-                'Cannot call addQualifier() without a qualifier.')
+                'Cannot call add_qualifier() without a qualifier.')
         # check if already present
-        if self.hasQualifier(qual, claim):
+        if self.has_qualifier(qual, claim):
             return False
 
-        qClaim = self.make_simple_claim(qual.prop, qual.itis)
+        q_claim = self.make_simple_claim(qual.prop, qual.itis)
 
         try:
-            claim.addQualifier(qClaim, summary=summary)  # writes to database
+            claim.addQualifier(q_claim, summary=summary)  # writes to database
             pywikibot.output('Adding qualifier %s to %s in %s' %
                              (qual.prop, claim.getID(), item))
             return True
@@ -340,9 +347,9 @@ class WikidataStuff(object):
             for claim in item.claims[prop]:
                 if isinstance(itis, pywikibot.WbTime):
                     # WbTime compared differently
-                    if self.compareWbTimeClaim(claim.getTarget(), itis):
+                    if self.compare_wbtime_claim(claim.getTarget(), itis):
                         hits.append(claim)
-                elif self.bypassRedirect(claim.getTarget()) == itis:
+                elif self.bypass_redirect(claim.getTarget()) == itis:
                     hits.append(claim)
         return hits
 
@@ -368,7 +375,8 @@ class WikidataStuff(object):
                     hits.append(claim)
         return hits
 
-    def addNewClaim(self, prop, statement, item, ref, summary=None):
+    @deprecated('addNewClaim', since='0.4')
+    def add_new_claim(self, prop, statement, item, ref, summary=None):
         """
         Add a claim or source it if already existing.
 
@@ -419,16 +427,17 @@ class WikidataStuff(object):
 
         if matching_claim:
             for qual in statement.quals:
-                self.addQualifier(item, matching_claim, qual, summary=summary)
-            self.addReference(item, matching_claim, ref, summary=summary)
+                self.add_qualifier(item, matching_claim, qual, summary=summary)
+            self.add_reference(item, matching_claim, ref, summary=summary)
         else:
             item.addClaim(claim, summary=summary)
             pywikibot.output('Adding %s claim to %s' % (prop, item))
             for qual in statement.quals:
-                self.addQualifier(item, claim, qual, summary=summary)
-            self.addReference(item, claim, ref, summary=summary)
+                self.add_qualifier(item, claim, qual, summary=summary)
+            self.add_reference(item, claim, ref, summary=summary)
 
-    def bypassRedirect(self, item):
+    @deprecated('bypassRedirect', since='0.4')
+    def bypass_redirect(self, item):
         """
         Check if an item is a Redirect, and if so returns the target item.
 
@@ -509,7 +518,8 @@ class WikidataStuff(object):
         else:
             return None
 
-    def compareWbTimeClaim(self, target, itis):
+    @deprecated('compareWbTimeClaim', since='0.4')
+    def compare_wbtime_claim(self, target, itis):
         """
         Compare if two WbTime claims are the same (regarding precision).
 
@@ -554,17 +564,19 @@ class WikidataStuff(object):
                             return False
         return True
 
-    def QtoItemPage(self, Q):
+    @deprecated_args(Q='qid', since='0.4')
+    @deprecated('QtoItemPage', since='0.4')
+    def q_to_itempage(self, qid):
         """
         Make a pywikibot.ItemPage given a Q-value.
 
-        @param Q: the Q-id of the item (with or without "Q")
-        @type Q: basestring|int
+        @param qid: the Q-id of the item (with or without "Q")
+        @type qid: basestring|int
         @rtype pywikibot.ItemPage
         """
         return pywikibot.ItemPage(
             self.repo,
-            'Q%s' % str(Q).lstrip('Q'))
+            'Q%s' % str(qid).lstrip('Q'))
 
     def make_simple_claim(self, prop, target):
         """
@@ -597,7 +609,7 @@ class WikidataStuff(object):
         pywikibot.output(summary)  # afterwards in case an error is raised
 
         # return the new item
-        return self.QtoItemPage(result.get('entity').get('id'))
+        return self.q_to_itempage(result.get('entity').get('id'))
 
     def make_new_item_from_page(self, page, summary=None):
         """

@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 from builtins import object
 
 import pywikibot
-from pywikibot.tools import deprecated
+from pywikibot.tools import deprecated, deprecated_args
 
 import wikidataStuff.helpers as helpers
 from wikidataStuff.reference import Reference
@@ -40,7 +40,8 @@ class Statement(object):
         self.special = special
         self.force = False
 
-    def addQualifier(self, qual, force=False):
+    @deprecated('addQualifier', since='0.4')
+    def add_qualifier(self, qual, force=False):
         """
         Add qualifier to the statement if not None or already present.
 
@@ -59,7 +60,7 @@ class Statement(object):
             return self
         elif not isinstance(qual, Qualifier):
             raise pywikibot.Error(
-                'addQualifier was called with something other '
+                'add_qualifier was called with something other '
                 'than a Qualifier|None object: %s' % qual)
 
         # register qualifier
@@ -93,7 +94,8 @@ class Statement(object):
 
         return self
 
-    def isNone(self):
+    @deprecated('isNone', since='0.4')
+    def is_none(self):
         """Test if Statement was created with itis=None."""
         return self.itis is None
 
@@ -126,36 +128,37 @@ class Statement(object):
 
 
 @deprecated('wikidataStuff.helpers.add_start_end_qualifiers', since='0.4')
-def add_start_end_qualifiers(statement, startVal, endVal):
+@deprecated_args(startVal='start_val', endVal='end_val', since='0.4')
+def add_start_end_qualifiers(statement, start_val, end_val):
     """
     Add start/end qualifiers to a statement if non-None, or return None.
 
     @param statement: The statement to decorate
     @type statement: Statement
-    @param startVal: An ISO date string for the starting point
-    @type startVal: basestring or None
-    @param endVal: An ISO date string for the end point
-    @type endVal: basestring or None
+    @param start_val: An ISO date string for the starting point
+    @type start_val: basestring or None
+    @param end_val: An ISO date string for the end point
+    @type end_val: basestring or None
     @return: A statement decorated with start/end qualifiers
     @rtype: Statement, or None
     """
     if not isinstance(statement, Statement):
         raise pywikibot.Error('Non-statement recieved: %s' % statement)
-    if statement.isNone():
+    if statement.is_none():
         return None
 
     # add qualifiers
     quals = []
-    if startVal:
+    if start_val:
         quals.append(
             Qualifier(
                 P=helpers.START_P,
-                itis=helpers.iso_to_WbTime(startVal)))
-    if endVal:
+                itis=helpers.iso_to_WbTime(start_val)))
+    if end_val:
         quals.append(
             Qualifier(
                 P=helpers.END_P,
-                itis=helpers.iso_to_WbTime(endVal)))
+                itis=helpers.iso_to_WbTime(end_val)))
     for q in quals:
-        statement.addQualifier(q)
+        statement.add_qualifier(q)
     return statement

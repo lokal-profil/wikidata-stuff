@@ -36,8 +36,8 @@ class TestStatement(unittest.TestCase):
         self.assertEquals(s.ref, None)
 
     def test_statement_init_none(self):
-        self.assertTrue(Statement(None).isNone())
-        self.assertFalse(Statement('foo').isNone())
+        self.assertTrue(Statement(None).is_none())
+        self.assertFalse(Statement('foo').is_none())
 
     def test_statement_init_special(self):
         self.assertTrue(
@@ -75,42 +75,42 @@ class TestStatement(unittest.TestCase):
 
     def test_statement_qualifier(self):
         s = Statement('foo')
-        s.addQualifier(self.q_1)
+        s.add_qualifier(self.q_1)
         self.assertEquals(s.quals, [self.q_1])
         self.assertEquals(s._quals, set([self.q_1]))
         self.assertEquals(s, s)
 
-        s.addQualifier(self.q_2)
+        s.add_qualifier(self.q_2)
         self.assertEquals(s._quals, set([self.q_1, self.q_2]))
         self.assertEquals(s, s)
 
     def test_statement_none_qualifier(self):
         s = Statement('foo')
-        s.addQualifier(None)
+        s.add_qualifier(None)
         self.assertEquals(s.quals, [])
 
-        s.addQualifier(None, force=True)
+        s.add_qualifier(None, force=True)
         s.force = False
 
     def test_statement_qualifier_chaining(self):
         s = Statement('foo')
-        s.addQualifier(self.q_1).addQualifier(self.q_2)
+        s.add_qualifier(self.q_1).add_qualifier(self.q_2)
         self.assertEquals(s._quals, set([self.q_1, self.q_2]))
 
     def test_statement_equality_qualifier_order(self):
         s_1 = Statement('foo')
         s_2 = Statement('foo')
         s_3 = Statement('foo')
-        s_1.addQualifier(self.q_1).addQualifier(self.q_2)
-        s_2.addQualifier(self.q_2).addQualifier(self.q_1)
-        s_3.addQualifier(self.q_1)
+        s_1.add_qualifier(self.q_1).add_qualifier(self.q_2)
+        s_2.add_qualifier(self.q_2).add_qualifier(self.q_1)
+        s_3.add_qualifier(self.q_1)
         self.assertEquals(s_1, s_2)
         self.assertNotEquals(s_1, s_3)
 
     def test_statement_qualifier_duplicates(self):
         s = Statement('foo')
-        s.addQualifier(self.q_1)
-        s.addQualifier(self.q_1)
+        s.add_qualifier(self.q_1)
+        s.add_qualifier(self.q_1)
         self.assertEquals(s.quals, [self.q_1])
 
     def test_statement_add_reference(self):
@@ -146,7 +146,7 @@ class TestStatement(unittest.TestCase):
             repr(s),
             'WD.Statement('
             'itis:foo, quals:[], ref:None, special:False, force:False)')
-        s.addQualifier(self.q_1)
+        s.add_qualifier(self.q_1)
         self.assertEqual(
             repr(s),
             'WD.Statement('
