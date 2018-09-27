@@ -112,7 +112,7 @@ class WikidataStuff(object):
             pywikibot.output(edit_summary)
 
     # @todo: deprecate in favour of add_label_or_alias
-    @deprecated_args(caseSensitive='case_sensitive')
+    @deprecated_args(caseSensitive='case_sensitive', since='<0.4')
     def addLabelOrAlias(self, lang, name, item, summary=None,
                         case_sensitive=False):
         """
@@ -325,7 +325,7 @@ class WikidataStuff(object):
                     'Something went very wrong trying to add a qualifier: %s' %
                     e)
 
-    @deprecated('hasClaim')
+    @deprecated('hasClaim', since='<0.4')
     def has_claim(self, prop, itis, item):
         """
         Check if the claim already exists, if so returns any matching claim.

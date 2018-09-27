@@ -9,10 +9,12 @@ from __future__ import unicode_literals
 from builtins import object
 
 import pywikibot
+from pywikibot.tools import deprecated
 
 import wikidataStuff.helpers as helpers
 
 
+@deprecated('wikidataStuff.WikidataStuff.Reference', since='0.4')
 class Reference(object):
     """
     A class for encoding the contents of a reference.

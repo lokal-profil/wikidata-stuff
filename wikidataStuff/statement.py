@@ -9,12 +9,14 @@ from __future__ import unicode_literals
 from builtins import object
 
 import pywikibot
+from pywikibot.tools import deprecated
 
 import wikidataStuff.helpers as helpers
 from wikidataStuff.reference import Reference
 from wikidataStuff.qualifier import Qualifier
 
 
+@deprecated('wikidataStuff.WikidataStuff.Statement', since='0.4')
 class Statement(object):
     """A representation of a statement (value, qualifiers, references)."""
 
@@ -124,6 +126,7 @@ class Statement(object):
         return not self.__eq__(other)
 
 
+@deprecated('wikidataStuff.helpers.add_start_end_qualifiers', since='0.4')
 def add_start_end_qualifiers(statement, startVal, endVal):
     """
     Add start/end qualifiers to a statement if non-None, or return None.

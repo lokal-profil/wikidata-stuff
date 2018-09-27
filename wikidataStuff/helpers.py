@@ -17,6 +17,7 @@ from datetime import datetime  # for today_as_WbTime
 
 import pywikibot
 from pywikibot import pagegenerators
+from pywikibot.tools import deprecated
 
 START_P = 'P580'  # start date
 END_P = 'P582'  # end date
@@ -547,6 +548,7 @@ def sig_fig_error(digits):
         return pow(10, to_the) / 2.0
 
 
+@deprecated('wikidataStuff.WikidataStuff.listify', since='0.4')
 def listify(value):
     """
     Turn the given value, which might or might not be a list, into a list.
@@ -562,6 +564,7 @@ def listify(value):
         return [value, ]
 
 
+@deprecated('wikidataStuff.WikidataStuff.list_to_lower', since='0.4')
 def list_to_lower(string_list):
     """
     Convert every string in a list to lower case.
