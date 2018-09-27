@@ -16,6 +16,7 @@ from wikidataStuff.reference import Reference
 from wikidataStuff.qualifier import Qualifier
 
 
+@deprecated('wikidataStuff.WikidataStuff.Statement', since='0.4')
 class Statement(object):
     """A representation of a statement (value, qualifiers, references)."""
 

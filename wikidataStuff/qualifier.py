@@ -11,6 +11,7 @@ from builtins import object
 from pywikibot.tools import deprecated
 
 
+@deprecated('wikidataStuff.WikidataStuff.Qualifier', since='0.4')
 class Qualifier(object):
     """
     A class for encoding the contents of a qualifier.
