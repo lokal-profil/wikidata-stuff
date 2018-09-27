@@ -22,12 +22,6 @@ class WikidataStuff(object):
     repo = None
     edit_summary = None
 
-    # extend pywikibot.Claim with a __repr__ method
-    def new_repr(self):
-        """Override the normal representation of pywikibot.Claim."""
-        return 'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
-    pywikibot.Claim.__repr__ = new_repr
-
     def __init__(self, repo, edit_summary=None, no_wdss=False):
         """
         Initialise the WikidataStuff object with a data repository.
