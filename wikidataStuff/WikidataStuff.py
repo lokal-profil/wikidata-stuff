@@ -588,7 +588,8 @@ class WikidataStuff(object):
         @type statement: Statement
         @param item: the item being checked
         @type item: pywikibot.ItemPage
-        @param ref: reference to add to the claim
+        @param ref: reference to add to the claim, overrides ref embedded in
+            statement.
         @type ref: Reference|None
         @param summary: summary to append to auto-generated edit summary
         @type summary: basestring|None
@@ -603,6 +604,10 @@ class WikidataStuff(object):
         else:
             claim.setTarget(statement.itis)
             prior_claims = self.has_claim(prop, statement.itis, item)
+
+        # use ref embedded in statement unless external is explicitly provided
+        if not ref and statement.ref:
+            ref = statement.ref
 
         # test reference (must be a Reference or explicitly missing)
         if not isinstance(ref, WikidataStuff.Reference) and ref is not None:

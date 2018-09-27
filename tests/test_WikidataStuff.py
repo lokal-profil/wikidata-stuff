@@ -814,6 +814,8 @@ class TestAddNewClaim(BaseTest):
         self.value = 'A statement'
         self.qual_1 = WD.WikidataStuff.Qualifier('P174', 'A qualifier')
         self.qual_2 = WD.WikidataStuff.Qualifier('P664', 'Another qualifier')
+        self.mock_ref_1 = mock.create_autospec(WD.WikidataStuff.Reference)
+        self.mock_ref_2 = mock.create_autospec(WD.WikidataStuff.Reference)
 
     def test_add_new_claim_new_property(self):
         statement = WD.WikidataStuff.Statement(self.value)
@@ -950,6 +952,26 @@ class TestAddNewClaim(BaseTest):
                 self.prop, statement, self.wd_page, self.ref)
             mock_has_special_claim.assert_called_once_with(
                 self.wd_stuff, self.prop, value, self.wd_page)
+
+    def test_add_new_claim_embedded_ref_used(self):
+        statement = WD.WikidataStuff.Statement(self.value)
+        statement.add_reference(self.mock_ref_2)
+        self.wd_stuff.addNewClaim(
+            self.prop, statement, self.wd_page, None)
+        self.mock_add_reference.assert_called_once()
+        self.assertEqual(
+            self.mock_add_reference.call_args[0][2],
+            self.mock_ref_2)
+
+    def test_add_new_claim_provided_ref_overrides_embedded_ref(self):
+        statement = WD.WikidataStuff.Statement(self.value)
+        statement.add_reference(self.mock_ref_2)
+        self.wd_stuff.addNewClaim(
+            self.prop, statement, self.wd_page, self.mock_ref_1)
+        self.mock_add_reference.assert_called_once()
+        self.assertEqual(
+            self.mock_add_reference.call_args[0][2],
+            self.mock_ref_1)
 
     def test_add_new_claim_raise_error_on_bad_ref(self):
         statement = WD.WikidataStuff.Statement(self.value)
