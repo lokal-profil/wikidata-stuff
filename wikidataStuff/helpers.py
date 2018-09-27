@@ -86,7 +86,7 @@ def fill_cache_wdqs(pid, queryoverride=None, no_strip=False):
     @return: Dictionary of IDno to Qno (without Q prefix)
     @rtype: dict
     """
-    import wikidataStuff.WdqToWdqs as wdq_backport  # to avoid cyclical import
+    import wikidataStuff.wdq_to_wdqs as wdq_backport  # to avoid cyclical import
     pid = pid.lstrip('P')  # standardise input
     result = dict()
     if queryoverride:
