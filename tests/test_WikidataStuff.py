@@ -938,7 +938,7 @@ class TestAddNewClaim(BaseTest):
     def test_add_new_claim_embedded_ref_used(self):
         statement = Statement(self.value)
         statement.add_reference(self.mock_ref_2)
-        self.wd_stuff.addNewClaim(
+        self.wd_stuff.add_new_claim(
             self.prop, statement, self.wd_page, None)
         self.mock_add_reference.assert_called_once()
         self.assertEqual(
@@ -948,7 +948,7 @@ class TestAddNewClaim(BaseTest):
     def test_add_new_claim_provided_ref_overrides_embedded_ref(self):
         statement = Statement(self.value)
         statement.add_reference(self.mock_ref_2)
-        self.wd_stuff.addNewClaim(
+        self.wd_stuff.add_new_claim(
             self.prop, statement, self.wd_page, self.mock_ref_1)
         self.mock_add_reference.assert_called_once()
         self.assertEqual(
