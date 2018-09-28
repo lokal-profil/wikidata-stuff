@@ -90,7 +90,7 @@ class WikidataStringSearch(object):
             # Check each is correctly formatted
             if not all(e.startswith('Q') and
                        helpers.is_str(e) and
-                       WikidataStringSearch.is_int(e[1:])
+                       helpers.is_int(e[1:])
                        for e in entities):
                 self._print('Each entity must be a string like Q<integer>')
                 return False
@@ -215,19 +215,3 @@ class WikidataStringSearch(object):
         """
         string_format = ', '.join(['%s'] * len(l))
         return '(%s)' % string_format
-
-    @staticmethod
-    def is_int(s):
-        """
-        Check if value is an int.
-
-        @param s: value to test
-        @type s: any
-        @return: if value can be interpreted as an integer
-        @rtype: bool
-        """
-        try:
-            int(s)
-            return True
-        except (ValueError, TypeError):
-            return False

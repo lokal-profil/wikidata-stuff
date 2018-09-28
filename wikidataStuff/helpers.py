@@ -344,7 +344,8 @@ def is_int(value):
 
     @param value: The value to check
     @type value: str, or int
-    @return bool
+    @return: if value can be interpreted as an integer
+    @rtype: bool
     """
     try:
         int(value)
