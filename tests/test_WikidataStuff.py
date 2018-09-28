@@ -936,7 +936,7 @@ class TestAddNewClaim(BaseTest):
                 self.wd_stuff, self.prop, value, self.wd_page)
 
     def test_add_new_claim_embedded_ref_used(self):
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         statement.add_reference(self.mock_ref_2)
         self.wd_stuff.addNewClaim(
             self.prop, statement, self.wd_page, None)
@@ -946,7 +946,7 @@ class TestAddNewClaim(BaseTest):
             self.mock_ref_2)
 
     def test_add_new_claim_provided_ref_overrides_embedded_ref(self):
-        statement = WD.WikidataStuff.Statement(self.value)
+        statement = Statement(self.value)
         statement.add_reference(self.mock_ref_2)
         self.wd_stuff.addNewClaim(
             self.prop, statement, self.wd_page, self.mock_ref_1)
