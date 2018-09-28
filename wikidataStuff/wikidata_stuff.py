@@ -47,7 +47,7 @@ class WikidataStuff(object):
                 os.path.expanduser("~") +
                 "/replica.my.cnf")
         if self.onLabs:
-            from wikidataStuff.WikidataStringSearch import WikidataStringSearch
+            from wikidataStuff.wikidata_string_search import WikidataStringSearch
             self.wdss = WikidataStringSearch()
 
     @deprecated('searchGenerator', since='0.4')
