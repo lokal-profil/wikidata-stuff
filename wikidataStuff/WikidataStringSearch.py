@@ -6,7 +6,7 @@ labels, aliases and descriptions of items.
 """
 from __future__ import unicode_literals
 from builtins import object
-import MySQLdb
+import pymysql
 
 from pywikibot import output
 import wikidataStuff.helpers as helpers
@@ -24,7 +24,7 @@ class WikidataStringSearch(object):
         @type verbose: bool
         """
         # Make one d/b connection for all queries - more efficient I believe
-        self.conn = MySQLdb.connect(read_default_file="~/replica.my.cnf",
+        self.conn = pymysql.connect(read_default_file="~/replica.my.cnf",
                                     host="wikidatawiki.labsdb",
                                     db="wikidatawiki_p",
                                     charset='utf8'

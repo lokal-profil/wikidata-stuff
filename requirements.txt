@@ -1,4 +1,4 @@
 future
-mysqlclient
+PyMySQL
 requests
 git+https://github.com/wikimedia/pywikibot-core.git
