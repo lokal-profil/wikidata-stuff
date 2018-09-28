@@ -6,7 +6,7 @@ labels, aliases and descriptions of items.
 """
 from __future__ import unicode_literals
 from builtins import object
-import MySQLdb
+import pymysql
 
 from pywikibot import output
 import wikidataStuff.helpers as helpers
@@ -24,7 +24,7 @@ class WikidataStringSearch(object):
         @type verbose: bool
         """
         # Make one d/b connection for all queries - more efficient I believe
-        self.conn = MySQLdb.connect(read_default_file="~/replica.my.cnf",
+        self.conn = pymysql.connect(read_default_file="~/replica.my.cnf",
                                     host="wikidatawiki.labsdb",
                                     db="wikidatawiki_p",
                                     charset='utf8'
@@ -90,7 +90,7 @@ class WikidataStringSearch(object):
             # Check each is correctly formatted
             if not all(e.startswith('Q') and
                        helpers.is_str(e) and
-                       WikidataStringSearch.is_int(e[1:])
+                       helpers.is_int(e[1:])
                        for e in entities):
                 self._print('Each entity must be a string like Q<integer>')
                 return False
@@ -215,19 +215,3 @@ class WikidataStringSearch(object):
         """
         string_format = ', '.join(['%s'] * len(l))
         return '(%s)' % string_format
-
-    @staticmethod
-    def is_int(s):
-        """
-        Check if value is an int.
-
-        @param s: value to test
-        @type s: any
-        @return: if value can be interpreted as an integer
-        @rtype: bool
-        """
-        try:
-            int(s)
-            return True
-        except (ValueError, TypeError):
-            return False
