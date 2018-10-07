@@ -76,12 +76,12 @@ class WikidataStringSearch(object):
 
         # test language
         if language and language not in self.languages:
-            self._print('%s is not a recognised language' % language)
+            self._print('{} is not a recognised language'.format(language))
             return False
 
         # test term_type
         if term_type and term_type not in self.term_types:
-            self._print('%s is not a recognised term_type' % term_type)
+            self._print('{} is not a recognised term_type'.format(term_type))
             return False
 
         # test list of entities
@@ -221,5 +221,4 @@ class WikidataStringSearch(object):
         @return: sql compatible list of args
         @rtype: string
         """
-        string_format = ', '.join(['%s'] * len(l))
-        return '(%s)' % string_format
+        return '({})'.format(', '.join(['%s'] * len(l)))

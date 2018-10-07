@@ -58,8 +58,8 @@ def wdq_to_wdqs(wdq_query):
         main_claim = wdq_query[len('CLAIM['):wdq_query.find(']')]
         if ',' in main_claim:
             raise NotImplementedError(
-                "Please Implement a method for wdq_queries of type: %s" %
-                wdq_query)
+                "Please Implement a method for wdq_queries of type: {}".format(
+                    wdq_query))
         prop, sep, item = main_claim.partition(':')
         item = item or None
 
@@ -70,14 +70,14 @@ def wdq_to_wdqs(wdq_query):
                 qual_sparql = make_claim_qualifiers_sparql(prop, qualifiers)
             else:
                 raise NotImplementedError(
-                    "Please Implement a method for wdq_queries of type: %s" %
-                    wdq_query)
+                    "Please Implement a method for wdq_queries of "
+                    "type: {}".format(wdq_query))
 
         data = make_claim_wdqs_search(prop, q_value=item,
                                       qualifiers=qual_sparql)
     else:
         raise NotImplementedError("Please Implement a method for wdq_queries "
-                                  "of type: %s" % wdq_query)
+                                  "of type: {}".format(wdq_query))
 
     # format data to WDQ output
     return sanitize_to_wdq_result(data)
@@ -189,9 +189,9 @@ def make_tree_sparql(item_1, prop_2, prop_3, item_label=None):
     """
     # standardise inout
     label = item_label or 'item'
-    item_1 = 'Q%s' % str(item_1).lstrip('Q')
-    prop_2 = 'P%s' % str(prop_2).lstrip('P') if prop_2 else None
-    prop_3 = 'P%s' % str(prop_3).lstrip('P') if prop_3 else None
+    item_1 = 'Q{}'.format(str(item_1).lstrip('Q'))
+    prop_2 = 'P{}'.format(str(prop_2).lstrip('P')) if prop_2 else None
+    prop_3 = 'P{}'.format(str(prop_3).lstrip('P')) if prop_3 else None
 
     query = "SELECT ?{item} WHERE ".format(item=label)
     query += "{ "
@@ -277,7 +277,7 @@ def make_claim_qualifiers_sparql(main_prop, qualifiers):
     @return: sparql code for (all) qualifiers
     @rtype: str
     """
-    main_prop = 'P%s' % str(main_prop).lstrip('P')
+    main_prop = 'P{}'.format(str(main_prop).lstrip('P'))
     qualifier_sparqls = []
 
     for qualifier in [q.strip() for q in qualifiers.strip('{}').split(' OR ')]:
@@ -296,7 +296,7 @@ def make_claim_qualifiers_sparql(main_prop, qualifiers):
                 "Please implement a method for non CLAIM/NOCLAIM/STRING "
                 "qualifiers.")
 
-        qualifier = qualifier[len('%s[' % typ):-len(']')]
+        qualifier = qualifier[len('{}['.format(typ)):-len(']')]
         for qual in [q.strip() for q in qualifier.split(',')]:
             prop, sep, val = qual.partition(':')
             qualifier_sparqls.append(func(prop, val, qualifier=True))
@@ -339,9 +339,9 @@ def make_claim_sparql(prop, q_value=None, item_label=None, value_label=None,
 
     # handle value
     if q_value:
-        value = 'wd:Q%s' % str(q_value).lstrip('Q')  # standardise input
+        value = 'wd:Q{}'.format(str(q_value).lstrip('Q'))  # standardise input
     else:
-        value = '?%s' % value_label if value_label else None
+        value = '?{}'.format(value_label) if value_label else None
 
     return make_sparql_triple(prop, value, item_label, qualifier)
 

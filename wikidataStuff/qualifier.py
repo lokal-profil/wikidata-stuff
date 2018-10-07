@@ -32,12 +32,12 @@ class Qualifier(object):
         @param itis: a valid claim target e.g. pywikibot.ItemPage
         @type itis: object
         """
-        self.prop = 'P%s' % str(prop).lstrip('P')
+        self.prop = 'P{}'.format(str(prop).lstrip('P'))
         self.itis = itis
 
     def __repr__(self):
         """Return a more complete string representation."""
-        return 'WD.Qualifier(%s, %s)' % (self.prop, self.itis)
+        return 'WD.Qualifier({0}, {1})'.format(self.prop, self.itis)
 
     def __eq__(self, other):
         """Implement equality comparison."""

@@ -64,5 +64,5 @@ class Reference(object):
 
     def __repr__(self):
         """Return a more complete string representation."""
-        return 'WD.Reference(test: %s, no_test: %s)' % (
+        return 'WD.Reference(test: {0}, no_test: {1})'.format(
             self.source_test, self.source_notest)
