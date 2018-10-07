@@ -16,9 +16,8 @@ import time  # for dbpedia_2_wikidata
 from datetime import datetime  # for today_as_WbTime
 
 import pywikibot
-from pywikibot.tools import deprecated, deprecated_args
 from pywikibot import pagegenerators
-from pywikibot.tools import deprecated
+from pywikibot.tools import deprecated, deprecated_args
 
 START_P = 'P580'  # start date
 END_P = 'P582'  # end date
