@@ -9,7 +9,7 @@ from collections import OrderedDict
 import pywikibot
 
 import wikidataStuff.helpers as helpers
-from wikidataStuff.WikidataStuff import WikidataStuff as WdS
+from wikidataStuff.statement import Statement
 
 
 class PreviewItem(object):
@@ -183,7 +183,7 @@ class PreviewItem(object):
         @rtype: str
         """
         # handle the case where a Statement was passed
-        if isinstance(itis, WdS.Statement):
+        if isinstance(itis, Statement):
             special = itis.special
             itis = itis.itis
 

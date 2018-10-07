@@ -17,9 +17,8 @@ from datetime import datetime  # for today_as_WbTime
 
 import pywikibot
 from pywikibot import pagegenerators
+from pywikibot.tools import deprecated
 
-import wikidataStuff.WikidataStuff as WikidataStuff
-from wikidataStuff.WikidataStuff import WikidataStuff as WD
 START_P = 'P580'  # start date
 END_P = 'P582'  # end date
 INSTANCE_OF_P = 'P31'
@@ -167,41 +166,6 @@ def iso_to_WbTime(date):
 
     # once here all interpretations have failed
     raise pywikibot.Error('An invalid ISO-date string received: ' % date)
-
-
-def add_start_end_qualifiers(statement, startVal, endVal):
-    """
-    Add start/end qualifiers to a statement if non-None, or return None.
-
-    @param statement: The statement to decorate
-    @type statement: WD.Statement
-    @param startVal: An ISO date string for the starting point
-    @type startVal: basestring or None
-    @param endVal: An ISO date string for the end point
-    @type endVal: basestring or None
-    @return: A statement decorated with start/end qualifiers
-    @rtype: WD.Statement, or None
-    """
-    if not isinstance(statement, WD.Statement):
-        raise pywikibot.Error('Non-statement recieved: %s' % statement)
-    if statement.isNone():
-        return None
-
-    # add qualifiers
-    quals = []
-    if startVal:
-        quals.append(
-            WD.Qualifier(
-                P=START_P,
-                itis=iso_to_WbTime(startVal)))
-    if endVal:
-        quals.append(
-            WD.Qualifier(
-                P=END_P,
-                itis=iso_to_WbTime(endVal)))
-    for q in quals:
-        statement.addQualifier(q)
-    return statement
 
 
 def match_name(name, typ, wd, limit=75):
@@ -585,13 +549,29 @@ def sig_fig_error(digits):
         return pow(10, to_the) / 2.0
 
 
-# generic methods which are needed in WikidataStuff.py are defined there to
-# avoid a cyclical import
+@deprecated('wikidataStuff.WikidataStuff.listify', since='0.4')
 def listify(value):
-    """Redirect to WikidataStuff instance of the method."""
-    return WikidataStuff.listify(value)
+    """
+    Turn the given value, which might or might not be a list, into a list.
+
+    @param value: The value to listify
+    @rtype: list|None
+    """
+    if value is None:
+        return None
+    elif isinstance(value, list):
+        return value
+    else:
+        return [value, ]
 
 
+@deprecated('wikidataStuff.WikidataStuff.list_to_lower', since='0.4')
 def list_to_lower(string_list):
-    """Redirect to WikidataStuff instance of the method."""
-    return WikidataStuff.list_to_lower(string_list)
+    """
+    Convert every string in a list to lower case.
+
+    @param string_list: list of strings to convert
+    @type string_list: list (of basestring)
+    @rtype: list (of basestring)
+    """
+    return [s.lower() for s in string_list]
