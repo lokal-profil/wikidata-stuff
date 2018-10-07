@@ -215,8 +215,8 @@ class PreviewItem(object):
         preview = ''
         for lang, labels in self.labels_dict.items():
             if labels:
-                labels = [PreviewItem.make_text_italics(labels[0])] + \
-                    labels[1:]
+                labels = ([PreviewItem.make_text_italics(labels[0])] +
+                          labels[1:])
                 preview += '* {}: {}\n'.format(
                     PreviewItem.make_text_bold(lang), ' | '.join(labels))
         return preview
