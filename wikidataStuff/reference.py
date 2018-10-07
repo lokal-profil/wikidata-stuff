@@ -9,7 +9,6 @@ from __future__ import unicode_literals
 from builtins import object
 
 import pywikibot
-from pywikibot.tools import deprecated
 
 import wikidataStuff.helpers as helpers
 
