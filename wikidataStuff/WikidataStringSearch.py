@@ -9,6 +9,8 @@ from builtins import object
 import pymysql
 
 from pywikibot import output
+from pywikibot.tools import deprecated
+
 import wikidataStuff.helpers as helpers
 
 
@@ -50,7 +52,8 @@ class WikidataStringSearch(object):
         """Close database connection."""
         self.conn.close()
 
-    def testInput(self, text, language=None, term_type=None, entities=None):
+    @deprecated('testInput', since='0.4')
+    def test_input(self, text, language=None, term_type=None, entities=None):
         """
         Test that the user input is valid.
 
@@ -110,7 +113,9 @@ class WikidataStringSearch(object):
                                  entities=None,
                                  term_type=term_type)
 
-    def searchInEntities(self, text, entities, language='sv', term_type=None):
+    @deprecated('searchInEntities', since='0.4')
+    def search_in_entities(self, text, entities, language='sv',
+                           term_type=None):
         """
         search() but limit results to a provided list of entities.
 
@@ -142,7 +147,7 @@ class WikidataStringSearch(object):
         @rtype: list (of str)
         """
         # validate input
-        if not self.testInput(text, language, term_type, entities):
+        if not self.test_input(text, language, term_type, entities):
             return None
 
         # set default term_type
@@ -201,7 +206,9 @@ class WikidataStringSearch(object):
     @staticmethod
     def _type_fixed_row(row):
         """Ensure byte strings are converted to str, unicode as appropriate."""
-        return tuple([el.decode('utf-8') if isinstance(el, bytes) else el for el in row])
+        return tuple([el.decode('utf-8')
+                     if isinstance(el, bytes)
+                     else el for el in row])
 
     @staticmethod
     def sql_in_format(l):

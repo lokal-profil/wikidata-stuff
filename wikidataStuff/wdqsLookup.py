@@ -62,7 +62,7 @@ def make_simple_wdqs_query(query, verbose=False):
                     entry[hook] = None
             data.append(entry.copy())
     except:
-        raise pywikibot.Error('Shit went wronq with the wdqs query:\n'
+        raise pywikibot.Error('Shit went wrong with the wdqs query:\n'
                               '%s' % query)
     return data
 

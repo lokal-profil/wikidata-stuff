@@ -8,7 +8,7 @@ The results are also formatted as WDQ reults.
        https://tools.wmflabs.org/wdq2sparql/w2s.php?wdq=<wdq_query>
 """
 from __future__ import unicode_literals
-from builtins import dict, str
+from builtins import str
 import pywikibot
 
 from wikidataStuff.wdqsLookup import (

@@ -92,7 +92,7 @@ class PreviewItem(object):
                 continue
             prop = PreviewItem.make_wikidata_template(prop)
             for statement in helpers.listify(statements):
-                if (statement is None) or (statement.isNone()):
+                if (statement is None) or (statement.is_none()):
                     continue
                 quals = ''
                 if statement.quals:
