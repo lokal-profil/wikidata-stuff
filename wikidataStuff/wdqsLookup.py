@@ -16,8 +16,8 @@ import pywikibot
 import wikidataStuff.helpers as helpers
 
 
-BASE_URL = 'https://query.wikidata.org/bigdata/namespace/wdq/sparql?' \
-           'format=json&query='
+BASE_URL = ('https://query.wikidata.org/bigdata/namespace/wdq/sparql?'
+            'format=json&query=')
 
 
 # @todo: add tests
@@ -35,12 +35,12 @@ def make_simple_wdqs_query(query, verbose=False):
     @return: results in the format [entry{hook:value}, ]
     @rtype: list of dicts
     """
-    prefix = "" \
-        "PREFIX wd: <http://www.wikidata.org/entity/>\n" \
-        "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n" \
-        "PREFIX p: <http://www.wikidata.org/prop/>\n" \
-        "PREFIX pq: <http://www.wikidata.org/prop/qualifier/>\n" \
-        "PREFIX pr: <http://www.wikidata.org/prop/reference/>\n"
+    prefix = (
+        "PREFIX wd: <http://www.wikidata.org/entity/>\n"
+        "PREFIX wdt: <http://www.wikidata.org/prop/direct/>\n"
+        "PREFIX p: <http://www.wikidata.org/prop/>\n"
+        "PREFIX pq: <http://www.wikidata.org/prop/qualifier/>\n"
+        "PREFIX pr: <http://www.wikidata.org/prop/reference/>\n")
 
     # perform query
     if verbose:

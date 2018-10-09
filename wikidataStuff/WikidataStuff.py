@@ -95,9 +95,9 @@ class WikidataStuff(object):
         new_descriptions = dict()
 
         for lang, desc in data.items():
-            if not item.descriptions or \
-                    lang not in item.descriptions or \
-                    overwrite:
+            if (not item.descriptions or
+                    lang not in item.descriptions or
+                    overwrite):
                 new_descriptions[lang] = desc
 
         if new_descriptions:
@@ -160,15 +160,18 @@ class WikidataStuff(object):
                 if lang not in labels:
                     labels[lang] = name
                     new_label_langs.append(lang)
-                elif (case_sensitive and name != labels[lang]) or \
+                elif (
+                        (case_sensitive and name != labels[lang]) or
                         (not case_sensitive and
-                         name.lower() != labels[lang].lower()):
+                            name.lower() != labels[lang].lower())):
                     if lang not in aliases:
                         aliases[lang] = [name, ]
                         new_alias_langs.append(lang)
-                    elif (case_sensitive and name not in aliases[lang]) or \
+                    elif (
+                            (case_sensitive and name not in aliases[lang]) or
                             (not case_sensitive and
-                             name.lower() not in helpers.list_to_lower(aliases[lang])):
+                                name.lower() not in helpers.list_to_lower(
+                                    aliases[lang]))):
                         aliases[lang].append(name)
                         new_alias_langs.append(lang)
 
@@ -559,8 +562,8 @@ class WikidataStuff(object):
                     if itis.precision >= PRECISION['minute']:
                         if itis.minute != target.minute:
                             return False
-                        if itis.precision >= PRECISION['second'] and \
-                                itis.second != target.second:
+                        if (itis.precision >= PRECISION['second'] and
+                                itis.second != target.second):
                             return False
         return True
 

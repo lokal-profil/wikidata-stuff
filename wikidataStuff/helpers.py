@@ -156,8 +156,8 @@ def iso_to_wbtime(date):
     elif len(date) == 1 and is_int(date[0][:len('YYYY')]):
         # 1921Z
         return pywikibot.WbTime(year=int(date[0][:len('YYYY')]))
-    elif len(date) == 2 and \
-            all(is_int(x) for x in (date[0], date[1][:len('MM')])):
+    elif (len(date) == 2 and
+            all(is_int(x) for x in (date[0], date[1][:len('MM')]))):
         # 1921-09Z
         m = int(date[1][:len('MM')])
         if m == 0:
@@ -278,8 +278,8 @@ def match_name_off_labs(name, types, wd, limit):
             # remove any matches (since incomplete) and exit loop
             return []  # avoids keeping a partial list
 
-        if name in obj.get().get('labels').values() or \
-                name in obj.get().get('aliases').values():
+        if (name in obj.get().get('labels').values() or
+                name in obj.get().get('aliases').values()):
             filter_on_types(obj, types, matches)
     return matches
 
@@ -429,10 +429,11 @@ def dbpedia_2_wikidata(dbpedia):
     @return: Q-value of matching wikidata entry
     @rtype: str
     """
-    url = 'http://dbpedia.org/sparql?' + \
-          'default-graph-uri=http%3A%2F%2Fdbpedia.org&query=DESCRIBE+%3C' + \
-          requests.utils.quote(dbpedia.encode('utf-8')) + \
-          '%3E&output=application%2Fld%2Bjson'
+    url = (
+        'http://dbpedia.org/sparql?'
+        'default-graph-uri=http%3A%2F%2Fdbpedia.org&query=DESCRIBE+%3C{}'
+        '%3E&output=application%2Fld%2Bjson').format(
+            requests.utils.quote(dbpedia.encode('utf-8')))
 
     try:
         r = requests.get(url)
@@ -458,8 +459,8 @@ def dbpedia_2_wikidata(dbpedia):
         for g in json_data.get('@graph'):
             if g.get('http://www.w3.org/2002/07/owl#sameAs'):
                 for same in g.get('http://www.w3.org/2002/07/owl#sameAs'):
-                    if is_str(same) and \
-                            same.startswith('http://wikidata.org/entity/'):
+                    if (is_str(same) and
+                            same.startswith('http://wikidata.org/entity/')):
                         return same[len('http://wikidata.org/entity/'):]
                 return None
     return None

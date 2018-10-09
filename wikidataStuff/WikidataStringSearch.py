@@ -165,22 +165,23 @@ class WikidataStringSearch(object):
 
         # construct query
         params = []
-        query = "SELECT CONCAT('Q',term_entity_id), term_text, term_type " \
-                "FROM wb_terms " \
-                "WHERE term_entity_type='item' "
+        query = (
+            "SELECT CONCAT('Q',term_entity_id), term_text, term_type "
+            "FROM wb_terms "
+            "WHERE term_entity_type='item' ")
         params += term_type
-        query += "AND term_type IN %s " % \
-                 WikidataStringSearch.sql_in_format(term_type)
+        query += "AND term_type IN {} ".format(
+            WikidataStringSearch.sql_in_format(term_type))
         if language:
             params.append(language)
             query += "AND term_language=%s "
         if entities:
             params += entities
-            query += "AND term_entity_id IN %s " % \
-                     WikidataStringSearch.sql_in_format(entities)
+            query += "AND term_entity_id IN {} ".format(
+                WikidataStringSearch.sql_in_format(entities))
         params.append(text)
-        query += "AND term_text LIKE %s " \
-                 "LIMIT 100;"
+        query += ("AND term_text LIKE %s "
+                  "LIMIT 100;")
 
         # execute query
         self.cursor.execute(query, tuple(params))
