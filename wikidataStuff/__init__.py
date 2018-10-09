@@ -13,7 +13,7 @@ import pywikibot
 # extend pywikibot.Claim with a __repr__ method
 def new_repr(self):
     """Override the normal representation of pywikibot.Claim."""
-    return 'WD.Claim(%s: %s)' % (self.getID(), self.getTarget())
+    return 'WD.Claim({0}: {1})'.format(self.getID(), self.getTarget())
 
 
 pywikibot.Claim.__repr__ = new_repr

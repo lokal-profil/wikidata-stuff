@@ -93,17 +93,17 @@ def fill_cache_wdqs(pid, queryoverride=None, no_strip=False):
         query = queryoverride
         raise NotImplementedError('querryoverride has not been implemented')
     else:
-        query = 'CLAIM[%s]' % pid  # for error
+        query = 'CLAIM[{}]'.format(pid)  # for error
         item_ids = wdq_backport.make_claim_wdqs_search(
-            'P%s' % pid, get_values=True, allow_multiple=True)
+            'P{}'.format(pid), get_values=True, allow_multiple=True)
 
     # invert and check existence and uniqueness
     for q_id, values in item_ids.items():
         for value in values:
             if value in result:
                 pywikibot.output(
-                    'Double ids in Wikidata: %s, %s (%s)' %
-                    (q_id, result[value], query))
+                    'Double ids in Wikidata: {0}, {1} ({2})'.format(
+                        q_id, result[value], query))
             if no_strip:
                 result[value] = q_id
             else:
@@ -217,7 +217,7 @@ def match_name(name, typ, wd, limit=75):
         matchedNames[typ][name] = item  # store for later reuse
         return item
     elif len(matches) > 1:
-        pywikibot.log('Possible duplicates: %s' % matches)
+        pywikibot.log('Possible duplicates: {}'.format(matches))
 
     # getting here means no hits so store that for later reuse
     matchedNames[typ][name] = None
@@ -378,14 +378,14 @@ def reorder_names(name):
     """
     if name.find(',') > 0 and len(name.split(',')) == 2:
         p = name.split(',')
-        name = '%s %s' % (p[1].strip(), p[0].strip())
+        name = '{first} {last}'.format(first=p[1].strip(), last=p[0].strip())
         return name
     elif name.find(',') == -1:
         # no comma means just a nickname e.g. Michelangelo
         return name
     else:
         # e.g. more than 1 comma
-        pywikibot.output('unexpectedly formatted name: %s' % name)
+        pywikibot.output('unexpectedly formatted name: {}'.format(name))
         return None
 
 
@@ -445,14 +445,14 @@ def dbpedia_2_wikidata(dbpedia):
             r = requests.get(url)
             r.raise_for_status()
         except:
-            pywikibot.output('dbpedia is still complaining about %s, '
-                             'skipping' % dbpedia)
+            pywikibot.output('dbpedia is still complaining about {}, '
+                             'skipping'.format(dbpedia))
             raise  # raise for now to see what sort of issue are manageable
 
     try:
         json_data = json.loads(r.text)
     except ValueError as e:
-        pywikibot.output('dbpedia-skip: %s, %s' % (dbpedia, e))
+        pywikibot.output('dbpedia-skip: {0}, {1}'.format(dbpedia, e))
         return None
 
     if json_data.get('@graph'):
@@ -544,7 +544,7 @@ def sig_fig_error(digits):
     """
     integral, _, fractional = digits.partition(".")
     if fractional:
-        num = '0.%s5' % ('0' * len(fractional))
+        num = '0.{}5'.format('0' * len(fractional))
         return float(num)
     elif int(integral) == 0:
         return 0.5

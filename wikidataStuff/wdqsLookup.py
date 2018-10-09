@@ -62,8 +62,8 @@ def make_simple_wdqs_query(query, verbose=False):
                     entry[hook] = None
             data.append(entry.copy())
     except:
-        raise pywikibot.Error('Shit went wrong with the wdqs query:\n'
-                              '%s' % query)
+        raise pywikibot.Error(
+            'Shit went wrong with the wdqs query:\n{}'.format(query))
     return data
 
 
@@ -131,8 +131,9 @@ def sanitize_wdqs_result(data):
             new_data[k.split('/')[-1]] = v
         return new_data
     else:
-        raise pywikibot.Error('sanitize_wdqs_result() requires a string, dict '
-                              'or a list of strings. Not a %s' % type(data))
+        raise pywikibot.Error(
+            'sanitize_wdqs_result() requires a string, dict or a list of '
+            'strings. Not a {}'.format(type(data)))
 
 
 def list_of_dict_to_list(data, key):
@@ -194,8 +195,8 @@ def list_of_dict_to_dict(data, key_key, value_key=None, allow_multiple=False):
         elif key in results and value != results[key]:
             # two hits corresponding to different values
             raise pywikibot.Error(
-                'Double ids in Wikidata (%s): %s, %s' %
-                (key, value, results[key]))
+                'Double ids in Wikidata ({0}): {1}, {2}'.format(
+                    key, value, results[key]))
         else:
             results[key] = value
     return results
@@ -237,7 +238,7 @@ def make_select_wdqs_query(main_query, label=None, select_value=None,
     if optional_props:
         # standardise input
         for k, v in enumerate(optional_props):
-            optional_props[k] = 'P%s' % str(v).lstrip('P')
+            optional_props[k] = 'P{}'.format(str(v).lstrip('P'))
 
         selects += optional_props
 
@@ -247,7 +248,7 @@ def make_select_wdqs_query(main_query, label=None, select_value=None,
     # add qualifiers
     if qualifiers:
         query += " "  # ensure at least one blank space
-        query += qualifiers % ("?%s" % label)
+        query += qualifiers % ("?{}".format(label))
 
     # add OPTIONALs
     if optional_props:
@@ -301,12 +302,12 @@ def make_sparql_triple(prop, value=None, item_label=None, qualifier=False):
     @return: sparql code for the CLAIM (incl. qualifiers)
     @rtype: str
     """
-    prop = 'P%s' % str(prop).lstrip('P')  # standardise input
+    prop = 'P{}'.format(str(prop).lstrip('P'))  # standardise input
     item = item_label or ('item' if not qualifier else 'dummy0')
-    obj = value or ('?value' if not qualifier else '?%s_value' % item)
+    obj = value or ('?value' if not qualifier else '?{}_value'.format(item))
     pred = 'wdt' if not qualifier else 'pq'
 
-    sparql = "?%s %s:%s %s . " % (item, pred, prop, obj)
+    sparql = "?{0} {1}:{2} {3} . ".format(item, pred, prop, obj)
 
     if qualifier:
         sparql = '{ %s }' % sparql.strip()

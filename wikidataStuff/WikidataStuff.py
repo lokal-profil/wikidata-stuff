@@ -233,17 +233,19 @@ class WikidataStuff(object):
         try:
             # writes to database
             claim.addSources(ref.get_all_sources(), summary=summary)
-            pywikibot.output('Adding reference claim to %s in %s' %
-                             (claim.getID(), item))
+            pywikibot.output('Adding reference claim to {0} in {1}'.format(
+                claim.getID(), item))
             return True
         except pywikibot.data.api.APIError as e:
             if e.code == 'modification-failed':
-                pywikibot.output('modification-failed error: '
-                                 'ref to %s in %s' % (claim.getID(), item))
+                pywikibot.output(
+                    'modification-failed error: ref to {0} in {1}'.format(
+                        claim.getID(), item))
                 return False
             else:
                 raise pywikibot.Error(
-                    'Something went very wrong trying to add a source: %s' % e)
+                    'Something went very wrong trying to add '
+                    'a source: {}'.format(e))
 
     def has_all_qualifiers(self, quals, claim):
         """
@@ -315,19 +317,20 @@ class WikidataStuff(object):
 
         try:
             claim.addQualifier(q_claim, summary=summary)  # writes to database
-            pywikibot.output('Adding qualifier %s to %s in %s' %
-                             (qual.prop, claim.getID(), item))
+            pywikibot.output('Adding qualifier {0} to {1} in {2}'.format(
+                qual.prop, claim.getID(), item))
             return True
         except pywikibot.data.api.APIError as e:
             if e.code == 'modification-failed':
-                pywikibot.output('modification-failed error: '
-                                 'qualifier to %s to %s in %s' %
-                                 (qual.prop, claim.getID(), item))
+                pywikibot.output(
+                    'modification-failed error: '
+                    'qualifier to {0} to {1} in {2}'.format(
+                        qual.prop, claim.getID(), item))
                 return False
             else:
                 raise pywikibot.Error(
-                    'Something went very wrong trying to add a qualifier: %s' %
-                    e)
+                    'Something went very wrong trying to '
+                    'add a qualifier: {}'.format(e))
 
     @deprecated('hasClaim', since='<0.4')
     def has_claim(self, prop, itis, item):
@@ -425,7 +428,7 @@ class WikidataStuff(object):
                 prior_claims, statement.quals, statement.force)
         except pywikibot.Error as e:
             pywikibot.warning(
-                "Problem adding %s claim to %s: %s" % (prop, item, e))
+                "Problem adding {0} claim to {1}: {2}".format(prop, item, e))
             return
 
         if matching_claim:
@@ -434,7 +437,7 @@ class WikidataStuff(object):
             self.add_reference(item, matching_claim, ref, summary=summary)
         else:
             item.addClaim(claim, summary=summary)
-            pywikibot.output('Adding %s claim to %s' % (prop, item))
+            pywikibot.output('Adding {0} claim to {1}'.format(prop, item))
             for qual in statement.quals:
                 self.add_qualifier(item, claim, qual, summary=summary)
             self.add_reference(item, claim, ref, summary=summary)
@@ -579,7 +582,7 @@ class WikidataStuff(object):
         """
         return pywikibot.ItemPage(
             self.repo,
-            'Q%s' % str(qid).lstrip('Q'))
+            'Q{}'.format(str(qid).lstrip('Q')))
 
     def make_simple_claim(self, prop, target):
         """
@@ -591,7 +594,7 @@ class WikidataStuff(object):
         @type target: object
         @rtype: pywikibot.Claim
         """
-        claim = pywikibot.Claim(self.repo, 'P%s' % str(prop).lstrip('P'))
+        claim = pywikibot.Claim(self.repo, 'P{}'.format(str(prop).lstrip('P')))
         claim.setTarget(target)
         return claim
 

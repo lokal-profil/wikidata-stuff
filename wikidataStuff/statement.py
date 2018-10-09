@@ -33,7 +33,7 @@ class Statement(object):
         if special and itis not in ['somevalue', 'novalue']:
             raise pywikibot.Error(
                 'You tried to create a special statement with a '
-                'non-allowed snakvalue: %s' % itis)
+                'non-allowed snakvalue: {}'.format(itis))
         self.itis = itis
         self._quals = set()
         self.ref = None
@@ -61,7 +61,7 @@ class Statement(object):
         elif not isinstance(qual, Qualifier):
             raise pywikibot.Error(
                 'add_qualifier was called with something other '
-                'than a Qualifier|None object: %s' % qual)
+                'than a Qualifier|None object: {}'.format(qual))
 
         # register qualifier
         self._quals.add(qual)
@@ -88,7 +88,7 @@ class Statement(object):
         elif not isinstance(ref, Reference):
             raise pywikibot.Error(
                 'add_reference was called with something other '
-                'than a Reference object: %s' % ref)
+                'than a Reference object: {}'.format(ref))
         else:
             self.ref = ref
 
@@ -143,7 +143,7 @@ def add_start_end_qualifiers(statement, start_val, end_val):
     @rtype: Statement, or None
     """
     if not isinstance(statement, Statement):
-        raise pywikibot.Error('Non-statement recieved: %s' % statement)
+        raise pywikibot.Error('Non-statement recieved: {}'.format(statement))
     if statement.is_none():
         return None
 
