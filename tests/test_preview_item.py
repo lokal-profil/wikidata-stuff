@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 import pywikibot
 
-from wikidataStuff.PreviewItem import PreviewItem
+from wikidataStuff.preview_item import PreviewItem
 from wikidataStuff.qualifier import Qualifier  # replace with mocks
 from wikidataStuff.statement import Statement  # replace with mocks
 from wikidataStuff.reference import Reference  # replace with mocks
@@ -26,7 +26,7 @@ class BasicFormatMocker(unittest.TestCase):
             return 'bold_{}'.format(val)
 
         bold_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.make_text_bold')
+            'wikidataStuff.preview_item.PreviewItem.make_text_bold')
         self.mock_bold = bold_patcher.start()
         self.mock_bold.side_effect = bold_side_effect
 
@@ -35,7 +35,7 @@ class BasicFormatMocker(unittest.TestCase):
             return 'italics_{}'.format(val)
 
         italics_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.make_text_italics')
+            'wikidataStuff.preview_item.PreviewItem.make_text_italics')
         self.mock_italics = italics_patcher.start()
         self.mock_italics.side_effect = italics_side_effect
 
@@ -44,7 +44,7 @@ class BasicFormatMocker(unittest.TestCase):
 
         # patch wikidata_template
         wd_template_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.make_wikidata_template')
+            'wikidataStuff.preview_item.PreviewItem.make_wikidata_template')
         self.mock_wd_template = wd_template_patcher.start()
         self.mock_wd_template.side_effect = ['wd_template_{}'.format(i)
                                              for i in range(1, 5)]
@@ -229,7 +229,7 @@ class TestFormatItis(BasicFormatMocker):
     def setUp(self):
         super(TestFormatItis, self).setUp()
         timestring_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.pywikibot.WbTime.toTimestr')
+            'wikidataStuff.preview_item.pywikibot.WbTime.toTimestr')
         self.mock_format_timestring = timestring_patcher.start()
         self.mock_format_timestring.return_value = 'formatted_WbTime'
         self.addCleanup(timestring_patcher.stop)
@@ -326,7 +326,7 @@ class TestFormatClaim(BasicFormatMocker):
     def setUp(self):
         super(TestFormatClaim, self).setUp()
         itis_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.format_itis')
+            'wikidataStuff.preview_item.PreviewItem.format_itis')
         self.mock_format_itis = itis_patcher.start()
         self.mock_format_itis.return_value = 'formatted_itis'
         self.addCleanup(itis_patcher.stop)
@@ -355,7 +355,7 @@ class TestFormatReference(BasicFormatMocker):
     def setUp(self):
         super(TestFormatReference, self).setUp()
         claim_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.format_claim')
+            'wikidataStuff.preview_item.PreviewItem.format_claim')
         self.mock_format_claim = claim_patcher.start()
         self.mock_format_claim.side_effect = ['formatted_claim_{}'.format(i)
                                               for i in range(1, 5)]
@@ -426,7 +426,7 @@ class TestFormatQual(BasicFormatMocker):
     def setUp(self):
         super(TestFormatQual, self).setUp()
         itis_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.format_itis')
+            'wikidataStuff.preview_item.PreviewItem.format_itis')
         self.mock_format_itis = itis_patcher.start()
         self.mock_format_itis.return_value = 'formatted_itis'
         self.addCleanup(itis_patcher.stop)
@@ -446,21 +446,21 @@ class TestFormatProtoclaims(TestPreviewItemBase):
     def setUp(self):
         super(TestFormatProtoclaims, self).setUp()
         itis_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.format_itis')
+            'wikidataStuff.preview_item.PreviewItem.format_itis')
         self.mock_format_itis = itis_patcher.start()
         self.mock_format_itis.side_effect = ['formatted_itis_{}'.format(i)
                                              for i in range(1, 5)]
         self.addCleanup(itis_patcher.stop)
 
         qual_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.format_qual')
+            'wikidataStuff.preview_item.PreviewItem.format_qual')
         self.mock_format_qual = qual_patcher.start()
         self.mock_format_qual.side_effect = ['formatted_qual_{}'.format(i)
                                              for i in range(1, 5)]
         self.addCleanup(qual_patcher.stop)
 
         ref_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.format_reference')
+            'wikidataStuff.preview_item.PreviewItem.format_reference')
         self.mock_format_ref = ref_patcher.start()
         self.mock_format_ref.side_effect = ['formatted_reference_{}'.format(i)
                                             for i in range(1, 5)]
@@ -721,31 +721,31 @@ class TestMakePreviewPage(TestPreviewItemBase):
     def setUp(self):
         super(TestMakePreviewPage, self).setUp()
         label_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.format_labels')
+            'wikidataStuff.preview_item.PreviewItem.format_labels')
         self.mock_format_label = label_patcher.start()
         self.mock_format_label.return_value = 'formatted_label'
         self.addCleanup(label_patcher.stop)
 
         description_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.format_descriptions')
+            'wikidataStuff.preview_item.PreviewItem.format_descriptions')
         self.mock_format_description = description_patcher.start()
         self.mock_format_description.return_value = 'formatted_description'
         self.addCleanup(description_patcher.stop)
 
         item_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.format_item')
+            'wikidataStuff.preview_item.PreviewItem.format_item')
         self.mock_format_item = item_patcher.start()
         self.mock_format_item.return_value = 'formatted_item'
         self.addCleanup(item_patcher.stop)
 
         reference_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.format_reference')
+            'wikidataStuff.preview_item.PreviewItem.format_reference')
         self.mock_format_reference = reference_patcher.start()
         self.mock_format_reference.return_value = 'formatted_reference'
         self.addCleanup(reference_patcher.stop)
 
         protoclaim_patcher = mock.patch(
-            'wikidataStuff.PreviewItem.PreviewItem.format_protoclaims')
+            'wikidataStuff.preview_item.PreviewItem.format_protoclaims')
         self.mock_format_protoclaim = protoclaim_patcher.start()
         self.mock_format_protoclaim.return_value = 'formatted_protoclaim'
         self.addCleanup(protoclaim_patcher.stop)

@@ -9,7 +9,7 @@ import unittest
 
 import pywikibot
 
-from wikidataStuff import WikidataStuff as WD
+from wikidataStuff import wikidata_stuff
 from wikidataStuff.reference import Reference  # replace with mocks
 from wikidataStuff.statement import Statement  # replace with mocks
 from wikidataStuff.qualifier import Qualifier  # replace with mocks
@@ -28,13 +28,13 @@ class BaseTest(unittest.TestCase):
             self.wd_page._content = json.load(f).get('entities').get('Q27399')
         self.wd_page._content['id'] = '-1'  # override id used in demo file
         self.wd_page.get()
-        self.wd_stuff = WD.WikidataStuff(self.repo)
+        self.wd_stuff = wikidata_stuff.WikidataStuff(self.repo)
 
         # silence output
         output_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.pywikibot.output')
+            'wikidataStuff.wikidata_stuff.pywikibot.output')
         warning_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.pywikibot.warning')
+            'wikidataStuff.wikidata_stuff.pywikibot.warning')
         self.mock_output = output_patcher.start()
         self.mock_warning = warning_patcher.start()
         self.addCleanup(output_patcher.stop)
@@ -49,7 +49,7 @@ class TestAddDescription(BaseTest):
         super(TestAddDescription, self).setUp()
 
         description_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.WikidataStuff.'
+            'wikidataStuff.wikidata_stuff.WikidataStuff.'
             'add_multiple_descriptions')
         self.mock_add_multiple_descriptions = description_patcher.start()
         self.addCleanup(description_patcher.stop)
@@ -82,7 +82,7 @@ class TestAddMultipleDescriptions(BaseTest):
         self.wd_page.descriptions = {u'en': u'en_desc', u'sv': u'sv_desc'}
 
         description_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.pywikibot.ItemPage.editDescriptions')
+            'wikidataStuff.wikidata_stuff.pywikibot.ItemPage.editDescriptions')
         self.mock_edit_description = description_patcher.start()
         self.addCleanup(description_patcher.stop)
 
@@ -170,7 +170,7 @@ class TestAddLabelOrAlias(BaseTest):
         super(TestAddLabelOrAlias, self).setUp()
 
         description_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.WikidataStuff.'
+            'wikidataStuff.wikidata_stuff.WikidataStuff.'
             'add_multiple_label_or_alias')
         self.mock_add_multiple_label_or_alias = description_patcher.start()
         self.addCleanup(description_patcher.stop)
@@ -206,9 +206,9 @@ class TestAddMultipleLabelOrAlias(BaseTest):
         self.wd_page.aliases = {'en': ['en_alias_1', ]}
 
         alias_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.pywikibot.ItemPage.editAliases')
+            'wikidataStuff.wikidata_stuff.pywikibot.ItemPage.editAliases')
         label_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.pywikibot.ItemPage.editLabels')
+            'wikidataStuff.wikidata_stuff.pywikibot.ItemPage.editLabels')
         self.mock_edit_alias = alias_patcher.start()
         self.mock_edit_label = label_patcher.start()
         self.addCleanup(alias_patcher.stop)
@@ -420,7 +420,7 @@ class TestHasClaim(BaseTest):
     def test_has_claim_match_wbtime_type(self):
         prop = 'P74'
         itis = pywikibot.WbTime(year=2016, month=11, day=22, site=self.repo)
-        function = 'wikidataStuff.WikidataStuff.WikidataStuff.compare_wbtime_claim'
+        function = 'wikidataStuff.wikidata_stuff.WikidataStuff.compare_wbtime_claim'
 
         with mock.patch(function, autospec=True) as mock_compare_WbTime:
             self.wd_stuff.has_claim(prop, itis, self.wd_page)
@@ -593,7 +593,7 @@ class TestAddReference(BaseTest):
         self.unmatched_ref.setTarget('Unmatched_ref')
 
         sources_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.pywikibot.Claim.addSources')
+            'wikidataStuff.wikidata_stuff.pywikibot.Claim.addSources')
         self.mock_add_sources = sources_patcher.start()
         self.addCleanup(sources_patcher.stop)
 
@@ -703,11 +703,11 @@ class TestAddQualifier(BaseTest):
         self.qual = Qualifier('P174', 'A qualifier')
 
         qualifier_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.pywikibot.Claim.addQualifier')
+            'wikidataStuff.wikidata_stuff.pywikibot.Claim.addQualifier')
         make_claim_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.WikidataStuff.make_simple_claim')
+            'wikidataStuff.wikidata_stuff.WikidataStuff.make_simple_claim')
         has_qualifier_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.WikidataStuff.has_qualifier')
+            'wikidataStuff.wikidata_stuff.WikidataStuff.has_qualifier')
         self.mock_add_qualifier = qualifier_patcher.start()
         self.mock_make_simple_claim = make_claim_patcher.start()
         self.mock_has_qualifier = has_qualifier_patcher.start()
@@ -778,11 +778,11 @@ class TestAddNewClaim(BaseTest):
 
         # mock all writing calls
         add_qualifier_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.WikidataStuff.add_qualifier')
+            'wikidataStuff.wikidata_stuff.WikidataStuff.add_qualifier')
         add_reference_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.WikidataStuff.add_reference')
+            'wikidataStuff.wikidata_stuff.WikidataStuff.add_reference')
         add_claim_patcher = mock.patch(
-            'wikidataStuff.WikidataStuff.pywikibot.ItemPage.addClaim')
+            'wikidataStuff.wikidata_stuff.pywikibot.ItemPage.addClaim')
         self.mock_add_qualifier = add_qualifier_patcher.start()
         self.mock_add_reference = add_reference_patcher.start()
         self.mock_add_claim = add_claim_patcher.start()
@@ -927,7 +927,7 @@ class TestAddNewClaim(BaseTest):
     def test_add_new_claim_call_special_has_claim(self):
         value = 'somevalue'
         statement = Statement(value, special=True)
-        function = 'wikidataStuff.WikidataStuff.WikidataStuff.has_special_claim'
+        function = 'wikidataStuff.wikidata_stuff.WikidataStuff.has_special_claim'
 
         with mock.patch(function, autospec=True) as mock_has_special_claim:
             self.wd_stuff.add_new_claim(
