@@ -7,7 +7,7 @@ import mock
 
 import pywikibot
 
-from wikidataStuff.wdqs_lookup import (
+from wikidatastuff.wdqs_lookup import (
     make_sparql_triple,
     make_select_wdqs_query,
     list_of_dict_to_list,
@@ -74,11 +74,11 @@ class TestMakeSelectWdqsQuery(unittest.TestCase):
     """Test the make_select_wdqs_query method."""
 
     def setUp(self):
-        patcher = mock.patch('wikidataStuff.wdqs_lookup.make_simple_wdqs_query')
+        patcher = mock.patch('wikidatastuff.wdqs_lookup.make_simple_wdqs_query')
         self.mock_simple_wdqs_query = patcher.start()
         self.mock_simple_wdqs_query.return_value = 'wdqs_reply'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.wdqs_lookup.process_query_results')
+        patcher = mock.patch('wikidatastuff.wdqs_lookup.process_query_results')
         self.mock_process_query_results = patcher.start()
         self.mock_process_query_results.return_value = 'processed_data'
         self.addCleanup(patcher.stop)
@@ -221,7 +221,7 @@ class TestListOfDictToDict(unittest.TestCase):
         self.assertCountEqual(result, expected)
 
     def test_list_of_dict_to_dict_allowed_duplicates_wo_value_key(self):
-        patcher = mock.patch('wikidataStuff.wdqs_lookup.pywikibot.warning')
+        patcher = mock.patch('wikidatastuff.wdqs_lookup.pywikibot.warning')
         self.mock_warning = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -313,15 +313,15 @@ class TestProcessQueryResults(unittest.TestCase):
     """Test the process_query_results method."""
 
     def setUp(self):
-        patcher = mock.patch('wikidataStuff.wdqs_lookup.list_of_dict_to_list')
+        patcher = mock.patch('wikidatastuff.wdqs_lookup.list_of_dict_to_list')
         self.mock_dict_to_list = patcher.start()
         self.mock_dict_to_list.return_value = 'processed_data_list'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.wdqs_lookup.list_of_dict_to_dict')
+        patcher = mock.patch('wikidatastuff.wdqs_lookup.list_of_dict_to_dict')
         self.mock_dict_to_dict = patcher.start()
         self.mock_dict_to_dict.return_value = 'processed_data_dict'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.wdqs_lookup.sanitize_wdqs_result')
+        patcher = mock.patch('wikidatastuff.wdqs_lookup.sanitize_wdqs_result')
         self.mock_sanitize_wdqs_result = patcher.start()
         self.mock_sanitize_wdqs_result.return_value = 'sanitized_data'
         self.addCleanup(patcher.stop)

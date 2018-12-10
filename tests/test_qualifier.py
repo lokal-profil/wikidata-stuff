@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 import unittest
 
-from wikidataStuff.qualifier import Qualifier
+from wikidatastuff.qualifier import Qualifier
 
 
 class TestQualifier(unittest.TestCase):

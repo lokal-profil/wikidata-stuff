@@ -10,7 +10,7 @@ from pywikibot import (
     Claim as Claim
 )
 
-from wikidataStuff.reference import Reference
+from wikidatastuff.reference import Reference
 
 
 class TestReference(unittest.TestCase):

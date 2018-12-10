@@ -3,8 +3,8 @@
 """Backwards compatibility shim."""
 from __future__ import unicode_literals
 
-import wikidataStuff.wdqs_lookup
+import wikidatastuff.wdqs_lookup
 import wikidataStuff.deprecator
 
 wikidataStuff.deprecator.deprecate_all_functions(
-    __name__, wikidataStuff.wdqs_lookup)
+    __name__, wikidatastuff.wdqs_lookup)

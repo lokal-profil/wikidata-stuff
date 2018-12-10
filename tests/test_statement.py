@@ -10,9 +10,9 @@ from pywikibot import (
     Claim as Claim
 )
 
-from wikidataStuff.statement import Statement
-from wikidataStuff.qualifier import Qualifier  # replace with mocks
-from wikidataStuff.reference import Reference  # replace with mocks
+from wikidatastuff.statement import Statement
+from wikidatastuff.qualifier import Qualifier  # replace with mocks
+from wikidatastuff.reference import Reference  # replace with mocks
 
 
 class TestStatement(unittest.TestCase):
