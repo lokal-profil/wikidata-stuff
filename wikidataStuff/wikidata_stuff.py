@@ -685,11 +685,11 @@ class WikidataStuff(object):
 
 @deprecated('wikidataStuff.helpers.listify', since='0.4')
 def listify(value):
-    """DEPRECATED use helpers.listify."""
+    """DEPRECATED."""
     return helpers.listify(value)
 
 
 @deprecated('wikidataStuff.helpers.list_to_lower', since='0.4')
 def list_to_lower(string_list):
-    """DEPRECATED use helpers.list_to_lower."""
+    """DEPRECATED."""
     return helpers.list_to_lower(string_list)
