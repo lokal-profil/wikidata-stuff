@@ -67,7 +67,7 @@ def load_json_file(filename, force_path=None):
 def fill_cache(pid, queryoverride=None, cache_max_age=0):
     """DEPRECATED. Cannot use @deprecated due to differing args."""
     pywikibot.warning(
-        'fill_cache is deprecated since >0.4. Use fill_cache_wdqs instead.')
+        'fill_cache is deprecated since <0.4. Use fill_cache_wdqs instead.')
     return fill_cache_wdqs(pid, queryoverride=queryoverride)
 
 
