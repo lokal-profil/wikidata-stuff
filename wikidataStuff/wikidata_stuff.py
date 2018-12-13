@@ -19,6 +19,28 @@ from wikidataStuff.reference import Reference
 class WikidataStuff(object):
     """Useful methods for interacting with Wikidata using pywikibot."""
 
+    # A hack to trigger deprecation warnings for a subclass is to defined
+    # a static method with the same name
+    @staticmethod
+    @deprecated('wikidatastuff.reference.Reference', since='0.4')
+    def Reference(*args, **kwargs):
+        """DEPRECATED."""
+        return Reference(*args, **kwargs)
+
+    @staticmethod
+    @deprecated('wikidatastuff.qualifier.Qualifier', since='0.4')
+    def Qualifier(*args, **kwargs):
+        """DEPRECATED."""
+        from wikidatastuff.qualifier import Qualifier
+        return Qualifier(*args, **kwargs)
+
+    @staticmethod
+    @deprecated('wikidatastuff.statement.Statement', since='0.4')
+    def Statement(*args, **kwargs):
+        """DEPRECATED."""
+        from wikidatastuff.statement import Statement
+        return Statement(*args, **kwargs)
+
     repo = None
     edit_summary = None
 
