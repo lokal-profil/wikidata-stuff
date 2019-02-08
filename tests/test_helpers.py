@@ -243,12 +243,8 @@ class TestFillCache(unittest.TestCase):
         self.mock_fill_cache_wdqs.assert_called_once_with(
             'P123', queryoverride='override')
         self.warning.assert_called_once_with(
-<<<<<<< f2f91e7dd435b1216c3672683038850ed6ed2be6
-            'fill_cache is deprecated since <0.4. Use fill_cache_wdqs instead.')
-=======
             'fill_cache is deprecated since < 0.4. '
             'Use fill_cache_wdqs instead.')
->>>>>>> Rename package per PEP8
         self.assertEqual(result, expected)
 
 
