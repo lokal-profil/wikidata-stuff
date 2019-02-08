@@ -40,7 +40,11 @@ class Statement(object):
         self.special = special
         self.force = False
 
-    @deprecated('addQualifier', since='0.4')
+    @deprecated('add_qualifier', since='0.4')
+    def addQualifier(self, qual, force=False):
+        """DEPRECATED. Use add_qualifier()."""
+        return self.add_qualifier(qual, force)
+
     def add_qualifier(self, qual, force=False):
         """
         Add qualifier to the statement if not None or already present.
@@ -94,7 +98,11 @@ class Statement(object):
 
         return self
 
-    @deprecated('isNone', since='0.4')
+    @deprecated('is_none', since='0.4')
+    def isNone(self):
+        """DEPRECATED. Use is_none()."""
+        return self.is_none()
+
     def is_none(self):
         """Test if Statement was created with itis=None."""
         return self.itis is None
@@ -127,8 +135,6 @@ class Statement(object):
         return not self.__eq__(other)
 
 
-@deprecated('wikidataStuff.helpers.add_start_end_qualifiers', since='0.4')
-@deprecated_args(startVal='start_val', endVal='end_val', since='0.4')
 def add_start_end_qualifiers(statement, start_val, end_val):
     """
     Add start/end qualifiers to a statement if non-None, or return None.

@@ -65,9 +65,9 @@ def load_json_file(filename, force_path=None):
 
 
 def fill_cache(pid, queryoverride=None, cache_max_age=0):
-    """Deprecated. Cannot use @deprecated due to differing args."""
+    """DEPRECATED. Cannot use @deprecated due to differing args."""
     pywikibot.warning(
-        'fill_cache is deprecated. Use fill_cache_wdqs instead.')
+        'fill_cache is deprecated since <0.4. Use fill_cache_wdqs instead.')
     return fill_cache_wdqs(pid, queryoverride=queryoverride)
 
 
@@ -112,7 +112,12 @@ def fill_cache_wdqs(pid, queryoverride=None, no_strip=False):
     return result
 
 
-@deprecated('today_as_WbTime', since='0.4')
+@deprecated('today_as_wbtime', since='0.4')
+def today_as_WbTime():
+    """DEPRECATED."""
+    return today_as_wbtime()
+
+
 def today_as_wbtime():
     """
     Get todays date as a WbTime object.
@@ -127,7 +132,12 @@ def today_as_wbtime():
     return date
 
 
-@deprecated('iso_to_WbTime', since='0.4')
+@deprecated('iso_to_wbtime', since='0.4')
+def iso_to_WbTime(date):
+    """DEPRECATED."""
+    return iso_to_wbtime(date)
+
+
 def iso_to_wbtime(date):
     """
     Convert ISO date string into WbTime object.
@@ -168,6 +178,14 @@ def iso_to_wbtime(date):
 
     # once here all interpretations have failed
     raise pywikibot.Error('An invalid ISO-date string received: ' % date)
+
+
+@deprecated('wikidataStuff.statement.add_start_end_qualifiers', since='0.4')
+@deprecated_args(startVal='start_val', endVal='end_val', since='<0.4')
+def add_start_end_qualifiers(statement, start_val, end_val):
+    """DEPRECATED."""
+    from wikidataStuff.statement import add_start_end_qualifiers as aseq_new
+    return aseq_new(statement, start_val, end_val)
 
 
 def match_name(name, typ, wd, limit=75):
@@ -553,7 +571,6 @@ def sig_fig_error(digits):
         return pow(10, to_the) / 2.0
 
 
-@deprecated('wikidataStuff.WikidataStuff.listify', since='0.4')
 def listify(value):
     """
     Turn the given value, which might or might not be a list, into a list.
@@ -569,7 +586,6 @@ def listify(value):
         return [value, ]
 
 
-@deprecated('wikidataStuff.WikidataStuff.list_to_lower', since='0.4')
 def list_to_lower(string_list):
     """
     Convert every string in a list to lower case.

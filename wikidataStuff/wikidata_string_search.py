@@ -52,7 +52,11 @@ class WikidataStringSearch(object):
         """Close database connection."""
         self.conn.close()
 
-    @deprecated('testInput', since='0.4')
+    @deprecated('test_input', since='0.4')
+    def testInput(self, text, language=None, term_type=None, entities=None):
+        """DEPRECATED. Use test_input()."""
+        return self.test_input(text, language, term_type, entities)
+
     def test_input(self, text, language=None, term_type=None, entities=None):
         """
         Test that the user input is valid.
@@ -113,7 +117,11 @@ class WikidataStringSearch(object):
                                  entities=None,
                                  term_type=term_type)
 
-    @deprecated('searchInEntities', since='0.4')
+    @deprecated('search_in_entities', since='0.4')
+    def searchInEntities(self, text, entities, language='sv', term_type=None):
+        """DEPRECATED. Use search_in_entities()."""
+        return self.search_in_entities(text, entities, language, term_type)
+
     def search_in_entities(self, text, entities, language='sv',
                            term_type=None):
         """
