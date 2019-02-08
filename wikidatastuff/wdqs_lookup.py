@@ -13,7 +13,7 @@ from builtins import dict, str
 import requests
 import pywikibot
 
-import wikidataStuff.helpers as helpers
+import wikidatastuff.helpers as helpers
 
 
 BASE_URL = ('https://query.wikidata.org/bigdata/namespace/wdq/sparql?'

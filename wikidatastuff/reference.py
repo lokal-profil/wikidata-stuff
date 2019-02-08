@@ -10,7 +10,7 @@ from builtins import object
 
 import pywikibot
 
-import wikidataStuff.helpers as helpers
+import wikidatastuff.helpers as helpers
 
 
 class Reference(object):

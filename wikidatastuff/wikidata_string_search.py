@@ -11,7 +11,7 @@ import pymysql
 from pywikibot import output
 from pywikibot.tools import deprecated
 
-import wikidataStuff.helpers as helpers
+import wikidatastuff.helpers as helpers
 
 
 class WikidataStringSearch(object):

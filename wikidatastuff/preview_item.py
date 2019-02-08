@@ -8,8 +8,8 @@ from collections import OrderedDict
 
 import pywikibot
 
-import wikidataStuff.helpers as helpers
-from wikidataStuff.statement import Statement
+import wikidatastuff.helpers as helpers
+from wikidatastuff.statement import Statement
 
 
 class PreviewItem(object):

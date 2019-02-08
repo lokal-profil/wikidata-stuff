@@ -6,12 +6,12 @@ repo = 'wikidata-stuff'
 
 setup(
     name='wikidataStuff',
-    packages=['wikidataStuff'],
+    packages=['wikidatastuff', 'wikidataStuff'],
     install_requires=[
         'pywikibot==3.0-dev',
         'requests',
         'future',
-        'mysqlclient'
+        'PyMySQL'
     ],
     dependency_links=['git+https://github.com/wikimedia/pywikibot-core.git#egg=pywikibot-3.0-dev'],
     version=version,

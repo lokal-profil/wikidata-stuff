@@ -12,8 +12,8 @@ import os.path  # Needed for WikidataStringSearch
 import pywikibot
 from pywikibot.tools import deprecated, deprecated_args
 
-import wikidataStuff.helpers as helpers
-from wikidataStuff.reference import Reference
+import wikidatastuff.helpers as helpers
+from wikidatastuff.reference import Reference
 
 
 class WikidataStuff(object):
@@ -69,7 +69,7 @@ class WikidataStuff(object):
                 os.path.expanduser("~") +
                 "/replica.my.cnf")
         if self.onLabs:
-            from wikidataStuff.wikidata_string_search import WikidataStringSearch
+            from wikidatastuff.wikidata_string_search import WikidataStringSearch
             self.wdss = WikidataStringSearch()
 
     @deprecated('search_generator', since='0.4')
@@ -705,13 +705,13 @@ class WikidataStuff(object):
         return result
 
 
-@deprecated('wikidataStuff.helpers.listify', since='0.4')
+@deprecated('wikidatastuff.helpers.listify', since='0.4')
 def listify(value):
     """DEPRECATED."""
     return helpers.listify(value)
 
 
-@deprecated('wikidataStuff.helpers.list_to_lower', since='0.4')
+@deprecated('wikidatastuff.helpers.list_to_lower', since='0.4')
 def list_to_lower(string_list):
     """DEPRECATED."""
     return helpers.list_to_lower(string_list)

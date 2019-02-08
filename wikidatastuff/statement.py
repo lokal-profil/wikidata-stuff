@@ -11,9 +11,9 @@ from builtins import object
 import pywikibot
 from pywikibot.tools import deprecated, deprecated_args
 
-import wikidataStuff.helpers as helpers
-from wikidataStuff.reference import Reference
-from wikidataStuff.qualifier import Qualifier
+import wikidatastuff.helpers as helpers
+from wikidatastuff.reference import Reference
+from wikidatastuff.qualifier import Qualifier
 
 
 class Statement(object):

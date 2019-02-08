@@ -3,8 +3,8 @@
 """Backwards compatibility shim."""
 from __future__ import unicode_literals
 
-import wikidataStuff.preview_item
+import wikidatastuff.preview_item
 import wikidataStuff.deprecator
 
 wikidataStuff.deprecator.deprecate_single_class(
-    __name__, wikidataStuff.preview_item, 'PreviewItem')
+    __name__, wikidatastuff.preview_item, 'PreviewItem')
