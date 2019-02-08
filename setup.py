@@ -6,7 +6,7 @@ repo = 'wikidata-stuff'
 
 setup(
     name='wikidataStuff',
-    packages=['wikidatastuff', 'wikidataStuff'],
+    packages=['wikidatastuff'],
     install_requires=[
         'pywikibot==3.0-dev',
         'requests',
