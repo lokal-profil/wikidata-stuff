@@ -9,7 +9,6 @@ from __future__ import unicode_literals
 from builtins import object
 
 import pywikibot
-from pywikibot.tools import deprecated, deprecated_args
 
 import wikidatastuff.helpers as helpers
 from wikidatastuff.reference import Reference
@@ -39,11 +38,6 @@ class Statement(object):
         self.ref = None
         self.special = special
         self.force = False
-
-    @deprecated('add_qualifier', since='0.4')
-    def addQualifier(self, qual, force=False):
-        """DEPRECATED. Use add_qualifier()."""
-        return self.add_qualifier(qual, force)
 
     def add_qualifier(self, qual, force=False):
         """
@@ -97,11 +91,6 @@ class Statement(object):
             self.ref = ref
 
         return self
-
-    @deprecated('is_none', since='0.4')
-    def isNone(self):
-        """DEPRECATED. Use is_none()."""
-        return self.is_none()
 
     def is_none(self):
         """Test if Statement was created with itis=None."""

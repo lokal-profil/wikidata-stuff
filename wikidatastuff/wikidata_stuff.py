@@ -10,7 +10,6 @@ from builtins import dict, str, object
 import os.path  # Needed for WikidataStringSearch
 
 import pywikibot
-from pywikibot.tools import deprecated, deprecated_args
 
 import wikidatastuff.helpers as helpers
 from wikidatastuff.reference import Reference
@@ -18,28 +17,6 @@ from wikidatastuff.reference import Reference
 
 class WikidataStuff(object):
     """Useful methods for interacting with Wikidata using pywikibot."""
-
-    # A hack to trigger deprecation warnings for a subclass is to defined
-    # a static method with the same name
-    @staticmethod
-    @deprecated('wikidatastuff.reference.Reference', since='0.4')
-    def Reference(*args, **kwargs):
-        """DEPRECATED."""
-        return Reference(*args, **kwargs)
-
-    @staticmethod
-    @deprecated('wikidatastuff.qualifier.Qualifier', since='0.4')
-    def Qualifier(*args, **kwargs):
-        """DEPRECATED."""
-        from wikidatastuff.qualifier import Qualifier
-        return Qualifier(*args, **kwargs)
-
-    @staticmethod
-    @deprecated('wikidatastuff.statement.Statement', since='0.4')
-    def Statement(*args, **kwargs):
-        """DEPRECATED."""
-        from wikidatastuff.statement import Statement
-        return Statement(*args, **kwargs)
 
     repo = None
     edit_summary = None
@@ -71,11 +48,6 @@ class WikidataStuff(object):
         if self.onLabs:
             from wikidatastuff.wikidata_string_search import WikidataStringSearch
             self.wdss = WikidataStringSearch()
-
-    @deprecated('search_generator', since='0.4')
-    def searchGenerator(self, text, language):
-        """DEPRECATED."""
-        return self.search_generator(text, language)
 
     def search_generator(self, text, language):
         """Contruct generator for WikidataStringSearch."""
@@ -131,14 +103,6 @@ class WikidataStuff(object):
                 lang=', '.join(sorted(new_descriptions.keys())))
             item.editDescriptions(new_descriptions, summary=edit_summary)
             pywikibot.output(edit_summary)
-
-    @deprecated('add_label_or_alias', since='0.4')
-    @deprecated_args(caseSensitive='case_sensitive', since='<0.4')
-    def addLabelOrAlias(self, lang, name, item, summary=None,
-                        case_sensitive=False):
-        """DEPRECATED."""
-        return self.add_label_or_alias(
-            lang, name, item, summary, case_sensitive)
 
     def add_label_or_alias(self, lang, name, item, summary=None,
                            case_sensitive=False):
@@ -221,11 +185,6 @@ class WikidataStuff(object):
             pywikibot.output(alias_summary)
 
     # some more generic Wikidata methods
-    @deprecated('has_ref', since='0.4')
-    def hasRef(self, prop, itis, claim):
-        """DEPRECATED."""
-        return self.has_ref(prop, itis, claim)
-
     def has_ref(self, prop, itis, claim):
         """
         Check if a given reference is already present at the given claim.
@@ -241,11 +200,6 @@ class WikidataStuff(object):
                         if self.bypass_redirect(s.getTarget()) == itis:
                             return True
         return False
-
-    @deprecated('add_reference', since='0.4')
-    def addReference(self, item, claim, ref, summary=None):
-        """DEPRECATED."""
-        return self.add_reference(item, claim, ref, summary)
 
     def add_reference(self, item, claim, ref, summary=None):
         """
@@ -313,11 +267,6 @@ class WikidataStuff(object):
 
         return (exact_match, has_all)
 
-    @deprecated('has_qualifier', since='0.4')
-    def hasQualifier(self, qual, claim):
-        """DEPRECATED."""
-        return self.has_qualifier(qual, claim)
-
     def has_qualifier(self, qual, claim):
         """
         Check if qualifier is already present.
@@ -334,11 +283,6 @@ class WikidataStuff(object):
                 # else:
                 #    pywikibot.output(s.getTarget())
         return False
-
-    @deprecated('add_qualifier', since='0.4')
-    def addQualifier(self, item, claim, qual, summary=None):
-        """DEPRECATED."""
-        return self.add_qualifier(item, claim, qual, summary)
 
     def add_qualifier(self, item, claim, qual, summary=None):
         """
@@ -377,11 +321,6 @@ class WikidataStuff(object):
                 raise pywikibot.Error(
                     'Something went very wrong trying to '
                     'add a qualifier: {}'.format(e))
-
-    @deprecated('has_claim', since='<0.4')
-    def hasClaim(self, prop, itis, item):
-        """DEPRECATED."""
-        return self.has_claim(prop, itis, item)
 
     def has_claim(self, prop, itis, item):
         """
@@ -430,11 +369,6 @@ class WikidataStuff(object):
                 if claim.getSnakType() == snaktype:
                     hits.append(claim)
         return hits
-
-    @deprecated('add_new_claim', since='0.4')
-    def addNewClaim(self, prop, statement, item, ref, summary=None):
-        """DEPRECATED."""
-        return self.add_new_claim(prop, statement, item, ref, summary)
 
     def add_new_claim(self, prop, statement, item, ref, summary=None):
         """
@@ -495,11 +429,6 @@ class WikidataStuff(object):
             for qual in statement.quals:
                 self.add_qualifier(item, claim, qual, summary=summary)
             self.add_reference(item, claim, ref, summary=summary)
-
-    @deprecated('bypass_redirect', since='0.4')
-    def bypassRedirect(self, item):
-        """DEPRECATED."""
-        return self.bypass_redirect(item)
 
     def bypass_redirect(self, item):
         """
@@ -582,11 +511,6 @@ class WikidataStuff(object):
         else:
             return None
 
-    @deprecated('compare_wbtime_claim', since='0.4')
-    def compareWbTimeClaim(self, target, itis):
-        """DEPRECATED."""
-        return self.compare_wbtime_claim(target, itis)
-
     def compare_wbtime_claim(self, target, itis):
         """
         Compare if two WbTime claims are the same (regarding precision).
@@ -631,12 +555,6 @@ class WikidataStuff(object):
                                 itis.second != target.second):
                             return False
         return True
-
-    @deprecated_args(Q='qid', since='0.4')
-    @deprecated('q_to_itempage', since='0.4')
-    def QtoItemPage(self, qid):
-        """DEPRECATED."""
-        return self.q_to_itempage(qid)
 
     def q_to_itempage(self, qid):
         """
@@ -703,15 +621,3 @@ class WikidataStuff(object):
 
         # return the new item
         return result
-
-
-@deprecated('wikidatastuff.helpers.listify', since='0.4')
-def listify(value):
-    """DEPRECATED."""
-    return helpers.listify(value)
-
-
-@deprecated('wikidatastuff.helpers.list_to_lower', since='0.4')
-def list_to_lower(string_list):
-    """DEPRECATED."""
-    return helpers.list_to_lower(string_list)

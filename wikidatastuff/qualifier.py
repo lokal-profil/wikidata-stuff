@@ -8,8 +8,6 @@
 from __future__ import unicode_literals
 from builtins import object
 
-from pywikibot.tools import deprecated_args
-
 
 class Qualifier(object):
     """
@@ -22,7 +20,6 @@ class Qualifier(object):
            retire in favor of pywikibot.Claim
     """
 
-    @deprecated_args(P='prop', since='0.4')
     def __init__(self, prop, itis):
         """
         Make a correctly formatted qualifier object for claims.
