@@ -9,6 +9,9 @@ env:
  - TOX_ENV=py27
  - TOX_ENV=py3
 install:
+ - pip install codecov
  - pip install tox-travis
 script:
  - tox -e $TOX_ENV
+after_success:
+ - codecov
