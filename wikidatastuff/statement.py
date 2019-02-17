@@ -158,12 +158,12 @@ def add_start_end_qualifiers(statement, start_val, end_val):
     if start_val:
         quals.append(
             Qualifier(
-                P=helpers.START_P,
+                prop=helpers.START_P,
                 itis=helpers.iso_to_WbTime(start_val)))
     if end_val:
         quals.append(
             Qualifier(
-                P=helpers.END_P,
+                prop=helpers.END_P,
                 itis=helpers.iso_to_WbTime(end_val)))
     for q in quals:
         statement.add_qualifier(q)
