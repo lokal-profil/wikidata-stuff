@@ -429,7 +429,7 @@ def find_files(path, file_exts, subdir=True):
             subdirs.append(os.path.join(path, filename))
     if subdir:
         for subdir in subdirs:
-            files += find_files(path=subdir, fileExts=file_exts)
+            files += find_files(path=subdir, file_exts=file_exts)
     return files
 
 
