@@ -5,11 +5,12 @@ from __future__ import unicode_literals
 import unittest
 import mock
 
-from wikidataStuff.helpers import (
+from wikidatastuff.helpers import (
     get_unit_q,
     is_number,
     is_int,
     is_pos_int,
+    listify,
     sig_fig_error,
     fill_cache_wdqs,
     fill_cache,
@@ -162,14 +163,15 @@ class TestFillCacheWdqs(unittest.TestCase):
     """Test fill_cache_wdqs()."""
 
     def setUp(self):
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_claim_wdqs_search')
+        patcher = mock.patch(
+            'wikidatastuff.wdq_to_wdqs.make_claim_wdqs_search')
         self.mock_wdqs_search = patcher.start()
         self.mock_wdqs_search.return_value = {
             'Q123': ['abc', 'def'],
             'Q456': ['ghi']
         }
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.helpers.pywikibot.output')
+        patcher = mock.patch('wikidatastuff.helpers.pywikibot.output')
         self.mock_output = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -227,11 +229,11 @@ class TestFillCache(unittest.TestCase):
     """Test fill_cache()."""
 
     def setUp(self):
-        patcher = mock.patch('wikidataStuff.helpers.fill_cache_wdqs')
+        patcher = mock.patch('wikidatastuff.helpers.fill_cache_wdqs')
         self.mock_fill_cache_wdqs = patcher.start()
         self.mock_fill_cache_wdqs.return_value = 'fill_cache_wdqs return value'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.helpers.pywikibot.warning')
+        patcher = mock.patch('wikidatastuff.helpers.pywikibot.warning')
         self.warning = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -241,7 +243,8 @@ class TestFillCache(unittest.TestCase):
         self.mock_fill_cache_wdqs.assert_called_once_with(
             'P123', queryoverride='override')
         self.warning.assert_called_once_with(
-            'fill_cache is deprecated. Use fill_cache_wdqs instead.')
+            'fill_cache is deprecated since < 0.4. '
+            'Use fill_cache_wdqs instead.')
         self.assertEqual(result, expected)
 
 
@@ -346,3 +349,24 @@ class TestConvertLanguageDictToJson(unittest.TestCase):
             str(cm.exception),
             '"foo" is not a valid type for convert_language_dict_to_json().'
         )
+
+
+class TestListify(unittest.TestCase):
+
+    """Test listify()."""
+
+    def test_listify_none(self):
+        self.assertEqual(listify(None), None)
+
+    def test_listify_empty_list(self):
+        self.assertEqual(listify([]), [])
+
+    def test_listify_list(self):
+        input_value = ['a', 'c']
+        expected = ['a', 'c']
+        self.assertEqual(listify(input_value), expected)
+
+    def test_listify_string(self):
+        input_value = 'a string'
+        expected = ['a string']
+        self.assertEqual(listify(input_value), expected)

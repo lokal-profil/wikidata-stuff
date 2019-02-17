@@ -7,7 +7,7 @@ import mock
 
 import pywikibot
 
-from wikidataStuff.WdqToWdqs import (
+from wikidatastuff.wdq_to_wdqs import (
     make_noclaim_sparql,
     make_string_sparql,
     make_claim_sparql,
@@ -27,7 +27,7 @@ class TestWDQFormatBase(unittest.TestCase):
     """Test base for various WDQ formatting methods."""
 
     def setUp(self):
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_sparql_triple')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_sparql_triple')
         self.mock_sparql_triple = patcher.start()
         self.mock_sparql_triple.return_value = 'sparql_triple'
         self.addCleanup(patcher.stop)
@@ -153,15 +153,15 @@ class TestMakeClaimQualifiersSparql(unittest.TestCase):
     """Test the make_claim_qualifiers_sparql method."""
 
     def setUp(self):
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_claim_sparql')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_claim_sparql')
         self.mock_claim_sparql = patcher.start()
         self.mock_claim_sparql.return_value = 'sparql'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_string_sparql')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_string_sparql')
         self.mock_string_sparql = patcher.start()
         self.mock_string_sparql.return_value = 'sparql'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_noclaim_sparql')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_noclaim_sparql')
         self.mock_noclaim_sparql = patcher.start()
         self.mock_noclaim_sparql.return_value = 'sparql'
         self.addCleanup(patcher.stop)
@@ -245,11 +245,11 @@ class TestMakeClaimWdqsSearch(unittest.TestCase):
     """Test the make_claim_wdqs_search method."""
 
     def setUp(self):
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_claim_sparql')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_claim_sparql')
         self.mock_claim_sparql = patcher.start()
         self.mock_claim_sparql.return_value = 'claim_sparql'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_select_wdqs_query')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_select_wdqs_query')
         self.mock_select_wdqs_query = patcher.start()
         self.mock_select_wdqs_query.return_value = 'query data'
         self.addCleanup(patcher.stop)
@@ -350,15 +350,15 @@ class TestMakeTreeWdqsSearch(unittest.TestCase):
     """Test the make_tree_wdqs_search method."""
 
     def setUp(self):
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_tree_sparql')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_tree_sparql')
         self.mock_tree_sparql = patcher.start()
         self.mock_tree_sparql.return_value = 'sparql'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_simple_wdqs_query')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_simple_wdqs_query')
         self.mock_simple_wdqs_query = patcher.start()
         self.mock_simple_wdqs_query.return_value = 'query_data'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.process_query_results')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.process_query_results')
         self.mock_process_query_results = patcher.start()
         self.mock_process_query_results.return_value = 'processed_data'
         self.addCleanup(patcher.stop)
@@ -385,11 +385,11 @@ class TestMakeStringWdqsSearch(unittest.TestCase):
     """Test the make_string_wdqs_search method."""
 
     def setUp(self):
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_string_sparql')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_string_sparql')
         self.mock_string_sparql = patcher.start()
         self.mock_string_sparql.return_value = 'sparql'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_select_wdqs_query')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_select_wdqs_query')
         self.mock_select_wdqs_query = patcher.start()
         self.mock_select_wdqs_query.return_value = 'processed_data'
         self.addCleanup(patcher.stop)
@@ -424,23 +424,23 @@ class TestWdqToWdqs(unittest.TestCase):
     """Test the wdq_to_wdqs method."""
 
     def setUp(self):
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_string_wdqs_search')  # noqa E501
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_string_wdqs_search')  # noqa E501
         self.mock_string_wdqs_search = patcher.start()
         self.mock_string_wdqs_search.return_value = 'string_result'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_tree_wdqs_search')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_tree_wdqs_search')
         self.mock_tree_wdqs_search = patcher.start()
         self.mock_tree_wdqs_search.return_value = 'tree_result'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_claim_wdqs_search')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_claim_wdqs_search')
         self.mock_claim_wdqs_search = patcher.start()
         self.mock_claim_wdqs_search.return_value = 'claim_result'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.make_claim_qualifiers_sparql')  # noqa E501
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.make_claim_qualifiers_sparql')  # noqa E501
         self.mock_claim_qualifiers_sparql = patcher.start()
         self.mock_claim_qualifiers_sparql.return_value = 'claim_qualifier'
         self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidataStuff.WdqToWdqs.sanitize_to_wdq_result')
+        patcher = mock.patch('wikidatastuff.wdq_to_wdqs.sanitize_to_wdq_result')
         self.mock_sanitize_to_wdq_result = patcher.start()
         self.mock_sanitize_to_wdq_result.return_value = 'sanitized_data'
         self.addCleanup(patcher.stop)

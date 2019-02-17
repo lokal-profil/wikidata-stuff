@@ -13,24 +13,24 @@ following decision tree (any added statement includes the source):
    * The value is the same and (relevant parts of) the source are the same. No
      information is added.
 
-For details on how qualifiers are handled, see `WikidataStuff.WikidataStuff.match_claim()`.
+For details on how qualifiers are handled, see `wikidatastuff.wikidata_stuff.WikidataStuff.match_claim()`.
 
-For details on how sources are compared, see `WikidataStuff.Reference`.
+For details on how sources are compared, see `wikidatastuff.reference`.
 
 ## Components
 
-* `WikidataStuff.py`:
+* `wikidata_stuff.py`:
   * A set of generally useful functions for interacting with Wikidata using pywikibot.
-  * `Reference`: A class representing the source claims.
-  * `Qualifier`: A class representing qualifier claims.
-  * `Statement`: A class representing a statement (i.e. value, qualifiers and references).
-* `WikidataStringSearch.py`: A database hookup (to be run from Toolforge) for
+* `reference.py`: A class representing the source claims.
+* `qualifier.py`: A class representing qualifier claims.
+* `statement.py`: A class representing a statement (i.e. value, qualifiers and references).
+* `wikidata_string_search.py`: A database hookup (to be run from Toolforge) for
 doing text string searches (SQL LIKE style) in labels, aliases and
 descriptions of items.
-* `wdqsLookup.py`: A module for doing [WDQS](http://query.wikidata.org/) look-ups
+* `wdqs_lookup.py`: A module for doing [WDQS](http://query.wikidata.org/) look-ups
 and for converting (some) [WDQ](http://wdq.wmflabs.org/) queries to WDQS
 queries.
-* `PreviewItem.py`: Allows for the visualisation of a prepared new/updated Wikidata
+* `preview_item.py`: Allows for the visualisation of a prepared new/updated Wikidata
 item candidate. An item candidate consists of a dict of label/aliases (per language
 code), a dict of descriptions (per language code), a dict of `Statement`s (per
 P-prefixed property-id), an optional `Reference` (used whenever one is not included
@@ -41,6 +41,8 @@ in a `Statement`) and the `itemPage` to which the information should be written
 ## Usage example:
 For usage examples see [lokal-profil/wikidata_batches](https://github.com/lokal-profil/wikidata_batches).
 
+Note that these may be using older versions of the repo.
+
 ## Running as a different user:
 
 To run as a different user to your standard pywikibot simply place a
@@ -48,6 +50,12 @@ modified `user-config.py`-file in the top directory.
 
 To use a different user for a particular mass import place the `user-config.py`
 in the subdirectory and run the script with `-dir:<sub-directory>`.
+
+## Deprecations
+Deprecated functions, classes and arguments may be dropped at any major
+version change. To display the deprecation warnings run your script using
+the pywikibot `-debug` flag (you must be making use of
+`pywikibot.handleArgs()`) or add the `-Wd` option to your python call.
 
 ## Requirements
 * [pywikibot](https://github.com/wikimedia/pywikibot-core)
