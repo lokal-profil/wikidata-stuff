@@ -9,7 +9,6 @@ from builtins import object
 import pymysql
 
 from pywikibot import output
-from pywikibot.tools import deprecated
 
 import wikidatastuff.helpers as helpers
 
@@ -51,11 +50,6 @@ class WikidataStringSearch(object):
     def close_connection(self):
         """Close database connection."""
         self.conn.close()
-
-    @deprecated('test_input', since='0.4')
-    def testInput(self, text, language=None, term_type=None, entities=None):
-        """DEPRECATED. Use test_input()."""
-        return self.test_input(text, language, term_type, entities)
 
     def test_input(self, text, language=None, term_type=None, entities=None):
         """
@@ -116,11 +110,6 @@ class WikidataStringSearch(object):
                                  language=language,
                                  entities=None,
                                  term_type=term_type)
-
-    @deprecated('search_in_entities', since='0.4')
-    def searchInEntities(self, text, entities, language='sv', term_type=None):
-        """DEPRECATED. Use search_in_entities()."""
-        return self.search_in_entities(text, entities, language, term_type)
 
     def search_in_entities(self, text, entities, language='sv',
                            term_type=None):

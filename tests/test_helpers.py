@@ -13,7 +13,6 @@ from wikidatastuff.helpers import (
     listify,
     sig_fig_error,
     fill_cache_wdqs,
-    fill_cache,
     convert_language_dict_to_json
 )
 
@@ -222,30 +221,6 @@ class TestFillCacheWdqs(unittest.TestCase):
             fill_cache_wdqs('123', queryoverride='A')
         self.mock_wdqs_search.assert_not_called()
         self.mock_output.assert_not_called()
-
-
-class TestFillCache(unittest.TestCase):
-
-    """Test fill_cache()."""
-
-    def setUp(self):
-        patcher = mock.patch('wikidatastuff.helpers.fill_cache_wdqs')
-        self.mock_fill_cache_wdqs = patcher.start()
-        self.mock_fill_cache_wdqs.return_value = 'fill_cache_wdqs return value'
-        self.addCleanup(patcher.stop)
-        patcher = mock.patch('wikidatastuff.helpers.pywikibot.warning')
-        self.warning = patcher.start()
-        self.addCleanup(patcher.stop)
-
-    def test_fill_cache_redirects_and_warns(self):
-        expected = 'fill_cache_wdqs return value'
-        result = fill_cache('P123', 'override', 'max_age')
-        self.mock_fill_cache_wdqs.assert_called_once_with(
-            'P123', queryoverride='override')
-        self.warning.assert_called_once_with(
-            'fill_cache is deprecated since < 0.4. '
-            'Use fill_cache_wdqs instead.')
-        self.assertEqual(result, expected)
 
 
 class TestGetUnitQ(unittest.TestCase):

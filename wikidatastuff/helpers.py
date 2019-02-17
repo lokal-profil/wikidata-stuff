@@ -17,7 +17,6 @@ from datetime import datetime  # for today_as_WbTime
 
 import pywikibot
 from pywikibot import pagegenerators
-from pywikibot.tools import deprecated, deprecated_args
 
 START_P = 'P580'  # start date
 END_P = 'P582'  # end date
@@ -64,13 +63,6 @@ def load_json_file(filename, force_path=None):
         return json.load(f)
 
 
-def fill_cache(pid, queryoverride=None, cache_max_age=0):
-    """DEPRECATED. Cannot use @deprecated due to differing args."""
-    pywikibot.warning(
-        'fill_cache is deprecated since < 0.4. Use fill_cache_wdqs instead.')
-    return fill_cache_wdqs(pid, queryoverride=queryoverride)
-
-
 # @todo: Move to wdqs since import here is cyclical?
 # @todo: skip going via WdqToWdqs?
 def fill_cache_wdqs(pid, queryoverride=None, no_strip=False):
@@ -112,12 +104,6 @@ def fill_cache_wdqs(pid, queryoverride=None, no_strip=False):
     return result
 
 
-@deprecated('today_as_wbtime', since='0.4')
-def today_as_WbTime():
-    """DEPRECATED."""
-    return today_as_wbtime()
-
-
 def today_as_wbtime():
     """
     Get todays date as a WbTime object.
@@ -130,12 +116,6 @@ def today_as_wbtime():
                             month=today.month,
                             day=today.day)
     return date
-
-
-@deprecated('iso_to_wbtime', since='0.4')
-def iso_to_WbTime(date):
-    """DEPRECATED."""
-    return iso_to_wbtime(date)
 
 
 def iso_to_wbtime(date):
@@ -178,14 +158,6 @@ def iso_to_wbtime(date):
 
     # once here all interpretations have failed
     raise pywikibot.Error('An invalid ISO-date string received: ' % date)
-
-
-@deprecated('wikidatastuff.statement.add_start_end_qualifiers', since='0.4')
-@deprecated_args(startVal='start_val', endVal='end_val', since='<0.4')
-def add_start_end_qualifiers(statement, start_val, end_val):
-    """DEPRECATED."""
-    from wikidatastuff.statement import add_start_end_qualifiers as aseq_new
-    return aseq_new(statement, start_val, end_val)
 
 
 def match_name(name, typ, wd, limit=75):
@@ -407,7 +379,6 @@ def reorder_names(name):
         return None
 
 
-@deprecated_args(fileExts='file_exts', since='0.4')
 def find_files(path, file_exts, subdir=True):
     """
     Identify all files with a given extension in a given directory.
