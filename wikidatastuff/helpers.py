@@ -78,7 +78,7 @@ def fill_cache_wdqs(pid, queryoverride=None, no_strip=False):
     @return: Dictionary of IDno to Qno (without Q prefix)
     @rtype: dict
     """
-    import wikidatastuff.wdq_to_wdqs as wdq_backport  # to avoid cyclical import
+    import wikidatastuff.wdq_to_wdqs as wdq_backport  # to avoid cyclic import
     pid = pid.lstrip('P')  # standardise input
     result = dict()
     if queryoverride:
@@ -427,16 +427,16 @@ def dbpedia_2_wikidata(dbpedia):
     try:
         r = requests.get(url)
         r.raise_for_status()
-    except:
+    except Exception:
         pywikibot.output('dbpedia is complaining so sleeping for 10s')
         time.sleep(10)
         try:
             r = requests.get(url)
             r.raise_for_status()
-        except:
+        except Exception as e:
             pywikibot.output('dbpedia is still complaining about {}, '
                              'skipping'.format(dbpedia))
-            raise  # raise for now to see what sort of issue are manageable
+            raise e  # raise for now to see what sort of issue are manageable
 
     try:
         json_data = json.loads(r.text)
