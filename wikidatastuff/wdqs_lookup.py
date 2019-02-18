@@ -237,8 +237,7 @@ def make_select_wdqs_query(main_query, label=None, select_value=None,
     # Standardise optional_props and add to selects
     if optional_props:
         # standardise input
-        for k, v in enumerate(optional_props):
-            optional_props[k] = 'P{}'.format(str(v).lstrip('P'))
+        optional_props = [helpers.std_p(pid) for pid in optional_props]
 
         selects += optional_props
 
@@ -302,7 +301,7 @@ def make_sparql_triple(prop, value=None, item_label=None, qualifier=False):
     @return: sparql code for the CLAIM (incl. qualifiers)
     @rtype: str
     """
-    prop = 'P{}'.format(str(prop).lstrip('P'))  # standardise input
+    prop = helpers.std_p(prop)  # standardise input
     item = item_label or ('item' if not qualifier else 'dummy0')
     obj = value or ('?value' if not qualifier else '?{}_value'.format(item))
     pred = 'wdt' if not qualifier else 'pq'

@@ -566,3 +566,30 @@ def list_to_lower(string_list):
     @rtype: list (of basestring)
     """
     return [s.lower() for s in string_list]
+
+
+def _std_val(value, prefix):
+    """Ensure a value is always given a specific prefix."""
+    return '{}{}'.format(prefix, str(value).lstrip(prefix))
+
+
+def std_p(pid):
+    """
+    Standardise Property id to start with a P.
+
+    @param pid: item id (with or without "P"-prefix)
+    @type pid: str or int
+    @rtype: str
+    """
+    return _std_val(pid, 'P')
+
+
+def std_q(qid):
+    """
+    Standardise Item id to start with a Q.
+
+    @param qid: item id (with or without "Q"-prefix)
+    @type qid: str or int
+    @rtype: str
+    """
+    return _std_val(qid, 'Q')
