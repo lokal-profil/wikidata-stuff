@@ -8,7 +8,7 @@
 from __future__ import unicode_literals
 from builtins import object
 
-from wikidataStuff.helpers import std_p
+from wikidatastuff.helpers import std_p
 
 
 class Qualifier(object):

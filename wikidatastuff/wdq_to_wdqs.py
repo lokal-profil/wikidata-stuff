@@ -11,7 +11,7 @@ from __future__ import unicode_literals
 from builtins import str
 import pywikibot
 
-from wikidataStuff.helpers import std_p, std_q
+from wikidatastuff.helpers import std_p, std_q
 from wikidatastuff.wdqs_lookup import (
     make_select_wdqs_query,
     make_simple_wdqs_query,
