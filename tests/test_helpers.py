@@ -354,13 +354,13 @@ class TestStdVal(unittest.TestCase):
 
     """Test _std_val(), std_p, std_q."""
 
-    # tmp
     def test_std_val_none(self):
-        self.assertEqual(_std_val(None, 'A'), 'ANone')
+        with self.assertRaises(ValueError):
+            _std_val(None, 'A')
 
-    # tmp
     def test_std_val_empty_string(self):
-        self.assertEqual(_std_val('', 'A'), 'A')
+        with self.assertRaises(ValueError):
+            _std_val('', 'A')
 
     def test_std_val_int(self):
         self.assertEqual(_std_val(11, 'A'), 'A11')
@@ -371,13 +371,17 @@ class TestStdVal(unittest.TestCase):
     def test_std_val_prefixed_string(self):
         self.assertEqual(_std_val('A13', 'A'), 'A13')
 
-    # tmp
-    def test_std_val_other_string(self):
-        self.assertEqual(_std_val('Foo', 'A'), 'AFoo')
+    def test_std_val_negative_int(self):
+        with self.assertRaises(ValueError):
+            _std_val(-14, 'A')
 
-    # tmp
+    def test_std_val_other_string(self):
+        with self.assertRaises(ValueError):
+            _std_val('Foo', 'A')
+
     def test_std_val_other_prefixed_string(self):
-        self.assertEqual(_std_val('B14', 'A'), 'AB14')
+        with self.assertRaises(ValueError):
+            _std_val('B15', 'A')
 
     def test_std_p(self):
         patcher = mock.patch(

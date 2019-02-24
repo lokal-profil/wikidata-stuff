@@ -569,8 +569,16 @@ def list_to_lower(string_list):
 
 
 def _std_val(value, prefix):
-    """Ensure a value is always given a specific prefix."""
-    return '{}{}'.format(prefix, str(value).lstrip(prefix))
+    """
+    Ensure a value is always given a specific prefix.
+
+    Validates that the value is either a positive integer or already a prefixed
+    string.
+    """
+    if is_pos_int(value) or (is_str(value) and value.startswith(prefix)):
+        return '{}{}'.format(prefix, str(value).lstrip(prefix))
+    else:
+        raise ValueError('{} is not a valid {}id.'.format(value, prefix))
 
 
 def std_p(pid):
