@@ -13,7 +13,10 @@ from wikidatastuff.helpers import (
     listify,
     sig_fig_error,
     fill_cache_wdqs,
-    convert_language_dict_to_json
+    convert_language_dict_to_json,
+    _std_val,
+    std_p,
+    std_q
 )
 
 
@@ -345,3 +348,49 @@ class TestListify(unittest.TestCase):
         input_value = 'a string'
         expected = ['a string']
         self.assertEqual(listify(input_value), expected)
+
+
+class TestStdVal(unittest.TestCase):
+
+    """Test _std_val(), std_p, std_q."""
+
+    # tmp
+    def test_std_val_none(self):
+        self.assertEqual(_std_val(None, 'A'), 'ANone')
+
+    # tmp
+    def test_std_val_empty_string(self):
+        self.assertEqual(_std_val('', 'A'), 'A')
+
+    def test_std_val_int(self):
+        self.assertEqual(_std_val(11, 'A'), 'A11')
+
+    def test_std_val_int_string(self):
+        self.assertEqual(_std_val('12', 'A'), 'A12')
+
+    def test_std_val_prefixed_string(self):
+        self.assertEqual(_std_val('A13', 'A'), 'A13')
+
+    # tmp
+    def test_std_val_other_string(self):
+        self.assertEqual(_std_val('Foo', 'A'), 'AFoo')
+
+    # tmp
+    def test_std_val_other_prefixed_string(self):
+        self.assertEqual(_std_val('B14', 'A'), 'AB14')
+
+    def test_std_p(self):
+        patcher = mock.patch(
+            'wikidatastuff.helpers._std_val')
+        self.mock_std_val = patcher.start()
+        std_p('value')
+        self.mock_std_val.assert_called_once_with('value', 'P')
+        patcher.stop
+
+    def test_std_q(self):
+        patcher = mock.patch(
+            'wikidatastuff.helpers._std_val')
+        self.mock_std_val = patcher.start()
+        std_q('value')
+        self.mock_std_val.assert_called_once_with('value', 'Q')
+        patcher.stop
