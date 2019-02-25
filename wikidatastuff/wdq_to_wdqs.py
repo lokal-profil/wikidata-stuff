@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 from builtins import str
 import pywikibot
 
+from wikidatastuff.helpers import std_p, std_q
 from wikidatastuff.wdqs_lookup import (
     make_select_wdqs_query,
     make_simple_wdqs_query,
@@ -189,9 +190,9 @@ def make_tree_sparql(item_1, prop_2, prop_3, item_label=None):
     """
     # standardise inout
     label = item_label or 'item'
-    item_1 = 'Q{}'.format(str(item_1).lstrip('Q'))
-    prop_2 = 'P{}'.format(str(prop_2).lstrip('P')) if prop_2 else None
-    prop_3 = 'P{}'.format(str(prop_3).lstrip('P')) if prop_3 else None
+    item_1 = std_q(item_1)
+    prop_2 = std_p(prop_2) if prop_2 else None
+    prop_3 = std_p(prop_3) if prop_3 else None
 
     query = "SELECT ?{item} WHERE ".format(item=label)
     query += "{ "
@@ -277,7 +278,7 @@ def make_claim_qualifiers_sparql(main_prop, qualifiers):
     @return: sparql code for (all) qualifiers
     @rtype: str
     """
-    main_prop = 'P{}'.format(str(main_prop).lstrip('P'))
+    main_prop = std_p(main_prop)
     qualifier_sparqls = []
 
     for qualifier in [q.strip() for q in qualifiers.strip('{}').split(' OR ')]:
@@ -339,7 +340,7 @@ def make_claim_sparql(prop, q_value=None, item_label=None, value_label=None,
 
     # handle value
     if q_value:
-        value = 'wd:Q{}'.format(str(q_value).lstrip('Q'))  # standardise input
+        value = 'wd:{}'.format(std_q(q_value))  # standardise input
     else:
         value = '?{}'.format(value_label) if value_label else None
 

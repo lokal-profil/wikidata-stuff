@@ -13,7 +13,10 @@ from wikidatastuff.helpers import (
     listify,
     sig_fig_error,
     fill_cache_wdqs,
-    convert_language_dict_to_json
+    convert_language_dict_to_json,
+    _std_val,
+    std_p,
+    std_q
 )
 
 
@@ -345,3 +348,51 @@ class TestListify(unittest.TestCase):
         input_value = 'a string'
         expected = ['a string']
         self.assertEqual(listify(input_value), expected)
+
+
+class TestStdVal(unittest.TestCase):
+
+    """Test _std_val(), std_p, std_q."""
+
+    def test_std_val_none(self):
+        with self.assertRaises(ValueError):
+            _std_val(None, 'A')
+
+    def test_std_val_empty_string(self):
+        with self.assertRaises(ValueError):
+            _std_val('', 'A')
+
+    def test_std_val_int(self):
+        self.assertEqual(_std_val(11, 'A'), 'A11')
+
+    def test_std_val_int_string(self):
+        self.assertEqual(_std_val('12', 'A'), 'A12')
+
+    def test_std_val_prefixed_string(self):
+        self.assertEqual(_std_val('A13', 'A'), 'A13')
+
+    def test_std_val_negative_int(self):
+        with self.assertRaises(ValueError):
+            _std_val(-14, 'A')
+
+    def test_std_val_other_string(self):
+        with self.assertRaises(ValueError):
+            _std_val('Foo', 'A')
+
+    def test_std_val_other_prefixed_string(self):
+        with self.assertRaises(ValueError):
+            _std_val('B15', 'A')
+
+    def test_std_p(self):
+        with mock.patch('wikidatastuff.helpers._std_val', autospec=True,
+                        return_value='mock_value') as mock_std_val:
+            result = std_p('value')
+            mock_std_val.assert_called_once_with('value', 'P')
+            self.assertEqual(result, 'mock_value')
+
+    def test_std_q(self):
+        with mock.patch('wikidatastuff.helpers._std_val', autospec=True,
+                        return_value='mock_value') as mock_std_val:
+            result = std_q('value')
+            mock_std_val.assert_called_once_with('value', 'Q')
+            self.assertEqual(result, 'mock_value')

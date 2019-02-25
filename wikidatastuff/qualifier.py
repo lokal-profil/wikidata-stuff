@@ -8,6 +8,8 @@
 from __future__ import unicode_literals
 from builtins import object
 
+from wikidatastuff.helpers import std_p
+
 
 class Qualifier(object):
     """
@@ -29,7 +31,7 @@ class Qualifier(object):
         @param itis: a valid claim target e.g. pywikibot.ItemPage
         @type itis: object
         """
-        self.prop = 'P{}'.format(str(prop).lstrip('P'))
+        self.prop = std_p(prop)
         self.itis = itis
 
     def __repr__(self):

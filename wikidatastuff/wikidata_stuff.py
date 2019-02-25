@@ -564,9 +564,7 @@ class WikidataStuff(object):
         @type qid: basestring|int
         @rtype pywikibot.ItemPage
         """
-        return pywikibot.ItemPage(
-            self.repo,
-            'Q{}'.format(str(qid).lstrip('Q')))
+        return pywikibot.ItemPage(self.repo, helpers.std_q(qid))
 
     def make_simple_claim(self, prop, target):
         """
@@ -578,7 +576,7 @@ class WikidataStuff(object):
         @type target: object
         @rtype: pywikibot.Claim
         """
-        claim = pywikibot.Claim(self.repo, 'P{}'.format(str(prop).lstrip('P')))
+        claim = pywikibot.Claim(self.repo, helpers.std_p(prop))
         claim.setTarget(target)
         return claim
 
