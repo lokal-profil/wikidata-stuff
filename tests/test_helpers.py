@@ -5,15 +5,20 @@ from __future__ import unicode_literals
 import unittest
 import mock
 
+import pywikibot
+
 from wikidatastuff.helpers import (
+    bundle_values,
+    convert_language_dict_to_json,
+    fill_cache_wdqs,
     get_unit_q,
     is_number,
     is_int,
     is_pos_int,
+    iso_to_wbtime,
     listify,
+    reorder_names,
     sig_fig_error,
-    fill_cache_wdqs,
-    convert_language_dict_to_json,
     _std_val,
     std_p,
     std_q
@@ -396,3 +401,103 @@ class TestStdVal(unittest.TestCase):
             result = std_q('value')
             mock_std_val.assert_called_once_with('value', 'Q')
             self.assertEqual(result, 'mock_value')
+
+
+class TestIsoToWbtime(unittest.TestCase):
+
+    """Test the iso_to_wbtime method."""
+
+    def test_iso_to_wbtime_empty(self):
+        with self.assertRaises(pywikibot.Error):
+            iso_to_wbtime('')
+
+    def test_iso_to_wbtime_invalid_date(self):
+        with self.assertRaises(pywikibot.Error):
+            iso_to_wbtime('late 1980s')
+
+    def test_iso_to_wbtime_date_and_time(self):
+        date = '2014-07-11T08:14:46Z'
+        expected = pywikibot.WbTime(year=2014, month=7, day=11)
+        self.assertEqual(iso_to_wbtime(date), expected)
+
+    def test_iso_to_wbtime_date_and_timezone(self):
+        date = '2014-07-11Z'
+        expected = pywikibot.WbTime(year=2014, month=7, day=11)
+        self.assertEqual(iso_to_wbtime(date), expected)
+
+    def test_iso_to_wbtime_date(self):
+        date = '2014-07-11'
+        expected = pywikibot.WbTime(year=2014, month=7, day=11)
+        self.assertEqual(iso_to_wbtime(date), expected)
+
+    def test_iso_to_wbtime_year_and_timezone(self):
+        date = '2014Z'
+        expected = pywikibot.WbTime(year=2014)
+        self.assertEqual(iso_to_wbtime(date), expected)
+
+    def test_iso_to_wbtime_year(self):
+        date = '2014'
+        expected = pywikibot.WbTime(year=2014)
+        self.assertEqual(iso_to_wbtime(date), expected)
+
+    def test_iso_to_wbtime_year_month_and_timezone(self):
+        date = '2014-07Z'
+        expected = pywikibot.WbTime(year=2014, month=7)
+        self.assertEqual(iso_to_wbtime(date), expected)
+
+    def test_iso_to_wbtime_year_month(self):
+        date = '2014-07'
+        expected = pywikibot.WbTime(year=2014, month=7)
+        self.assertEqual(iso_to_wbtime(date), expected)
+
+
+class TestBundleValues(unittest.TestCase):
+
+    """Test the bundle_values method."""
+
+    def test_bundle_values_empty(self):
+        self.assertEqual(bundle_values([]), [])
+
+    def test_bundle_values_values(self):
+        values = [1, 2, 3, 4, 5]
+        self.assertEqual(bundle_values(values), values)
+
+    def test_bundle_values_lists(self):
+        values = [[1, 2, 3], [4, 5]]
+        expected = [1, 2, 3, 4, 5]
+        self.assertEqual(bundle_values(values), expected)
+
+    def test_bundle_values_mixed(self):
+        values = [1, [2, 3], 4, 5]
+        expected = [1, 2, 3, 4, 5]
+        self.assertEqual(bundle_values(values), expected)
+
+
+class TestReorderNames(unittest.TestCase):
+
+    """Test the reorder_names method."""
+
+    def setUp(self):
+        patcher = mock.patch('wikidatastuff.helpers.pywikibot.output')
+        self.mock_output = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_reorder_names_empty(self):
+        self.assertEqual(reorder_names(''), '')
+        self.mock_output.assert_not_called()
+
+    def test_reorder_names_last_first(self):
+        name = 'Last, First'
+        expect = 'First Last'
+        self.assertEqual(reorder_names(name), expect)
+        self.mock_output.assert_not_called()
+
+    def test_reorder_names_pseudonym(self):
+        name = 'Michelangelo'
+        self.assertEqual(reorder_names(name), name)
+        self.mock_output.assert_not_called()
+
+    def test_reorder_names_weirdo(self):
+        name = 'Last, Middle, First'
+        self.assertEqual(reorder_names(name), None)
+        self.mock_output.assert_called_once()
