@@ -387,14 +387,18 @@ class TestStdVal(unittest.TestCase):
         patcher = mock.patch(
             'wikidatastuff.helpers._std_val')
         mock_std_val = patcher.start()
-        std_p('value')
+        mock_std_val.return_value = 'mock_value'
+        result = std_p('value')
         mock_std_val.assert_called_once_with('value', 'P')
+        self.assertEqual(result, 'mock_value')
         patcher.stop()
 
     def test_std_q(self):
         patcher = mock.patch(
             'wikidatastuff.helpers._std_val')
         mock_std_val = patcher.start()
-        std_q('value')
+        mock_std_val.return_value = 'mock_value'
+        result = std_q('value')
         mock_std_val.assert_called_once_with('value', 'Q')
+        self.assertEqual(result, 'mock_value')
         patcher.stop()
