@@ -1,5 +1,5 @@
 future
 PyMySQL
 requests
-pywikibot==3.0.20200703;python_version<"3"
-pywikibot<4;python_version>"3"
+pywikibot==3.0.20200703;python_version<="3.4"
+pywikibot;python_version>"3.4"
