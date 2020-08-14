@@ -31,9 +31,9 @@ class TestStatement(unittest.TestCase):
         s = Statement('foo')
         self.assertFalse(s.force)
         self.assertFalse(s.special)
-        self.assertEquals(s.quals, [])
-        self.assertEquals(s.itis, 'foo')
-        self.assertEquals(s.ref, None)
+        self.assertEqual(s.quals, [])
+        self.assertEqual(s.itis, 'foo')
+        self.assertEqual(s.ref, None)
 
     def test_statement_init_none(self):
         self.assertTrue(Statement(None).is_none())
@@ -55,8 +55,8 @@ class TestStatement(unittest.TestCase):
         s = Statement('foo')
         s_same = Statement('foo')
         s_different = Statement('bar')
-        self.assertEquals(s, s)
-        self.assertEquals(s, s_same)
+        self.assertEqual(s, s)
+        self.assertEqual(s, s_same)
         self.assertNotEquals(s, s_different)
 
         # Comparison with other classes always gives false, weird but expected
@@ -76,18 +76,18 @@ class TestStatement(unittest.TestCase):
     def test_statement_qualifier(self):
         s = Statement('foo')
         s.add_qualifier(self.q_1)
-        self.assertEquals(s.quals, [self.q_1])
-        self.assertEquals(s._quals, set([self.q_1]))
-        self.assertEquals(s, s)
+        self.assertEqual(s.quals, [self.q_1])
+        self.assertEqual(s._quals, set([self.q_1]))
+        self.assertEqual(s, s)
 
         s.add_qualifier(self.q_2)
-        self.assertEquals(s._quals, set([self.q_1, self.q_2]))
-        self.assertEquals(s, s)
+        self.assertEqual(s._quals, set([self.q_1, self.q_2]))
+        self.assertEqual(s, s)
 
     def test_statement_none_qualifier(self):
         s = Statement('foo')
         s.add_qualifier(None)
-        self.assertEquals(s.quals, [])
+        self.assertEqual(s.quals, [])
 
         s.add_qualifier(None, force=True)
         s.force = False
@@ -95,7 +95,7 @@ class TestStatement(unittest.TestCase):
     def test_statement_qualifier_chaining(self):
         s = Statement('foo')
         s.add_qualifier(self.q_1).add_qualifier(self.q_2)
-        self.assertEquals(s._quals, set([self.q_1, self.q_2]))
+        self.assertEqual(s._quals, set([self.q_1, self.q_2]))
 
     def test_statement_equality_qualifier_order(self):
         s_1 = Statement('foo')
@@ -104,23 +104,23 @@ class TestStatement(unittest.TestCase):
         s_1.add_qualifier(self.q_1).add_qualifier(self.q_2)
         s_2.add_qualifier(self.q_2).add_qualifier(self.q_1)
         s_3.add_qualifier(self.q_1)
-        self.assertEquals(s_1, s_2)
+        self.assertEqual(s_1, s_2)
         self.assertNotEquals(s_1, s_3)
 
     def test_statement_qualifier_duplicates(self):
         s = Statement('foo')
         s.add_qualifier(self.q_1)
         s.add_qualifier(self.q_1)
-        self.assertEquals(s.quals, [self.q_1])
+        self.assertEqual(s.quals, [self.q_1])
 
     def test_statement_add_reference(self):
         s = Statement('foo')
         s.add_reference(self.ref)
-        self.assertEquals(s.ref, self.ref)
+        self.assertEqual(s.ref, self.ref)
 
     def test_statement_add_chained_reference(self):
         s = Statement('foo').add_reference(self.ref)
-        self.assertEquals(s.ref, self.ref)
+        self.assertEqual(s.ref, self.ref)
 
     def test_statement_add_bad_reference_error(self):
         s = Statement('foo')
