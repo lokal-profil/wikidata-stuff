@@ -343,7 +343,7 @@ def bundle_values(values):
     Merge multiple values/lists into one list.
 
     @param values: values to bundle
-    @param values: list, of values or lists
+    @type values: list, of values or lists
     @return: the bundled list
     @rtype: list
     """
